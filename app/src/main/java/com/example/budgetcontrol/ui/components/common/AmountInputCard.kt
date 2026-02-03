@@ -1,0 +1,109 @@
+package com.example.budgetcontrol.ui.components.common
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.budgetcontrol.core.domain.model.TransactionType
+import com.example.budgetcontrol.core.theme.AppBlue
+
+@Composable
+fun AmountInputCard(
+    amount: String,
+    onAmountChange: (String) -> Unit,
+    transactionType: TransactionType,
+    currency: String,
+    modifier: Modifier = Modifier
+) {
+    val title = when (transactionType) {
+        TransactionType.EXPENSE -> "Сумма траты"
+        TransactionType.INCOME -> "Сумма дохода"
+    }
+
+    val currencySymbol = when (currency) {
+        "USD", "AUD", "CAD", "NZD" -> "$"
+        "EUR" -> "€"
+        "GBP" -> "£"
+        "JPY", "CNY" -> "¥"
+        "SEK" -> "kr"
+        "CHF" -> "Fr."
+        else -> currency
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = AppBlue.copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = AppBlue,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = amount,
+                onValueChange = onAmountChange,
+                placeholder = {
+                    Text(
+                        "0",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                suffix = {
+                    Text(
+                        currencySymbol,
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = AppBlue
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineLarge.copy(
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 32.sp,
+                    color = AppBlue
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppBlue,
+                    unfocusedBorderColor = AppBlue.copy(alpha = 0.5f),
+                    focusedTextColor = AppBlue,
+                    unfocusedTextColor = AppBlue,
+                    focusedLabelColor = AppBlue,
+                    cursorColor = AppBlue
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
+    }
+}

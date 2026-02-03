@@ -1,0 +1,292 @@
+package com.example.budgetcontrol.ui.components.common
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import java.text.SimpleDateFormat
+import java.util.*
+
+@Composable
+fun DatePickerDialog(
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var currentMonth by remember {
+        mutableStateOf(Calendar.getInstance().apply { timeInMillis = selectedDate })
+    }
+
+    // ОГРАНИЧИВАЕМ максимальный месяц текущим
+    val maxMonth = Calendar.getInstance()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Выбор даты",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Навигация по месяцам
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            currentMonth = Calendar.getInstance().apply {
+                                timeInMillis = currentMonth.timeInMillis
+                                add(Calendar.MONTH, -1)
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "Предыдущий месяц"
+                        )
+                    }
+
+                    Text(
+                        text = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+                            .format(currentMonth.time),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    val canGoForward = currentMonth.get(Calendar.YEAR) < maxMonth.get(Calendar.YEAR) ||
+                            (currentMonth.get(Calendar.YEAR) == maxMonth.get(Calendar.YEAR) &&
+                                    currentMonth.get(Calendar.MONTH) < maxMonth.get(Calendar.MONTH))
+
+                    if (canGoForward) {
+                        IconButton(
+                            onClick = {
+                                currentMonth = Calendar.getInstance().apply {
+                                    timeInMillis = currentMonth.timeInMillis
+                                    add(Calendar.MONTH, 1)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "Следующий месяц"
+                            )
+                        }
+                    } else {
+                        // Пустой блок чтобы сохранить центрирование
+                        Box(modifier = Modifier.size(48.dp))
+                    }
+                }
+
+                // Дни недели
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { day ->
+                        Text(
+                            text = day,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Календарь
+                CalendarGrid(
+                    currentMonth = currentMonth,
+                    selectedDate = selectedDate,
+                    onDateSelected = { date ->
+                        // ПРОВЕРЯЕМ что дата не в будущем
+                        if (date <= System.currentTimeMillis()) {
+                            onDateSelected(date)
+                            onDismiss()
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Кнопки
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("ОТМЕНА")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarGrid(
+    currentMonth: Calendar,
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit
+) {
+    val daysInMonth = getDaysInMonth(currentMonth)
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(7),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(daysInMonth) { dayInfo ->
+            DayItem(
+                dayInfo = dayInfo,
+                selectedDate = selectedDate,
+                onDateSelected = onDateSelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun DayItem(
+    dayInfo: DayInfo,
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit
+) {
+    val isSelected = isSameDay(dayInfo.date, selectedDate)
+    val isToday = isSameDay(dayInfo.date, System.currentTimeMillis())
+    val isFuture = dayInfo.date > System.currentTimeMillis() && !isToday // ДОБАВИЛИ проверку на будущее
+
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(
+                when {
+                    isSelected -> MaterialTheme.colorScheme.primary
+                    isToday -> MaterialTheme.colorScheme.tertiary
+                    else -> Color.Transparent
+                }
+            )
+            .clickable(enabled = dayInfo.isCurrentMonth && !isFuture) { // ОТКЛЮЧАЕМ клик для будущих дат
+                onDateSelected(dayInfo.date)
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = dayInfo.dayOfMonth.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = when {
+                !dayInfo.isCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) // ДЕЛАЕМ БУДУЩИЕ ДАТЫ СЕРЫМИ
+                isSelected -> MaterialTheme.colorScheme.onPrimary
+                isToday -> MaterialTheme.colorScheme.onTertiary
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+            fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
+        )
+    }
+}
+
+private data class DayInfo(
+    val date: Long,
+    val dayOfMonth: Int,
+    val isCurrentMonth: Boolean
+)
+
+private fun getDaysInMonth(currentMonth: Calendar): List<DayInfo> {
+    val days = mutableListOf<DayInfo>()
+
+    // Первый день месяца
+    val firstDayOfMonth = Calendar.getInstance().apply {
+        timeInMillis = currentMonth.timeInMillis
+        set(Calendar.DAY_OF_MONTH, 1)
+    }
+
+    // Первый день недели (понедельник = 2)
+    val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK)
+    val daysFromPrevMonth = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - 2
+
+    // Добавляем дни из предыдущего месяца
+    val prevMonth = Calendar.getInstance().apply {
+        timeInMillis = firstDayOfMonth.timeInMillis
+        add(Calendar.MONTH, -1)
+    }
+    val daysInPrevMonth = prevMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+    for (i in daysFromPrevMonth downTo 1) {
+        val day = daysInPrevMonth - i + 1
+        val date = Calendar.getInstance().apply {
+            timeInMillis = prevMonth.timeInMillis
+            set(Calendar.DAY_OF_MONTH, day)
+        }.timeInMillis
+
+        days.add(DayInfo(date, day, false))
+    }
+
+    // Добавляем дни текущего месяца
+    val daysInCurrentMonth = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+    for (day in 1..daysInCurrentMonth) {
+        val date = Calendar.getInstance().apply {
+            timeInMillis = currentMonth.timeInMillis
+            set(Calendar.DAY_OF_MONTH, day)
+        }.timeInMillis
+
+        days.add(DayInfo(date, day, true))
+    }
+
+    // Добавляем дни из следующего месяца для заполнения сетки
+    val totalCells = 42 // 6 недель x 7 дней
+    val remainingCells = totalCells - days.size
+
+    for (day in 1..remainingCells) {
+        val nextMonth = Calendar.getInstance().apply {
+            timeInMillis = currentMonth.timeInMillis
+            add(Calendar.MONTH, 1)
+            set(Calendar.DAY_OF_MONTH, day)
+        }
+
+        days.add(DayInfo(nextMonth.timeInMillis, day, false))
+    }
+
+    return days
+}
+
+private fun isSameDay(date1: Long, date2: Long): Boolean {
+    val cal1 = Calendar.getInstance().apply { timeInMillis = date1 }
+    val cal2 = Calendar.getInstance().apply { timeInMillis = date2 }
+    return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+            cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+}
