@@ -1,13 +1,16 @@
 package com.example.budgetcontrol.ui.components.common
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
@@ -33,7 +36,11 @@ fun AddTransactionContent(
     selectedCurrency: String = "EUR",
     onCurrencySelect: (String) -> Unit = {},
     isCurrenciesLoading: Boolean = false,
-    currenciesError: String? = null
+    currenciesError: String? = null,
+    availableBanks: List<BankEntity> = emptyList(),
+    selectedBank: BankEntity? = null,
+    onBankSelect: (BankEntity) -> Unit = {},
+    convertedAmountPreview: String = ""
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -51,8 +58,9 @@ fun AddTransactionContent(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         AmountInputCard(
             amount = amount,
@@ -69,6 +77,15 @@ fun AddTransactionContent(
                 isLoading = isCurrenciesLoading,
                 error = currenciesError
             )
+
+            if (selectedCurrency != "EUR") {
+                BankSelector(
+                    banks = availableBanks,
+                    selectedBank = selectedBank,
+                    onBankSelect = onBankSelect
+                )
+                ConversionPreview(preview = convertedAmountPreview)
+            }
         }
 
         CategorySelector(
@@ -90,7 +107,7 @@ fun AddTransactionContent(
             onShowDatePicker = { showDatePicker = true }
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(8.dp))
 
         errorMessage?.let { error ->
             Card(

@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.di
 
+import com.example.budgetcontrol.BuildConfig
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import dagger.Module
@@ -16,8 +17,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    private const val CERPS_BASE_URL = "http://172.16.3.219:8080/"
 
     @Provides
     @Singleton
@@ -38,7 +37,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(CERPS_BASE_URL)
+            .baseUrl(BuildConfig.CERPS_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

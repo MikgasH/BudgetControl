@@ -2,9 +2,11 @@ package com.example.budgetcontrol.feature.transaction.common
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,11 +17,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.ui.components.common.AddTransactionContent
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
-import com.example.budgetcontrol.ui.components.common.CurrencySelector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +137,7 @@ fun TransactionFormScreen(
                         modifier = Modifier.align(Alignment.CenterStart)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад",
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
@@ -174,6 +176,7 @@ fun TransactionFormScreen(
                 onShowDatePicker = { showDatePicker = true },
                 onTransactionTypeChange = viewModel::changeTransactionType,
                 onCurrencySelect = viewModel::selectCurrency,
+                onBankSelect = viewModel::selectBank,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -191,6 +194,7 @@ private fun TransactionFormContent(
     onShowDatePicker: () -> Unit,
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
+    onBankSelect: (BankEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (uiState.mode == TransactionFormMode.ADD) {
@@ -214,7 +218,11 @@ private fun TransactionFormContent(
             selectedCurrency = uiState.selectedCurrency,
             onCurrencySelect = onCurrencySelect,
             isCurrenciesLoading = uiState.isCurrenciesLoading,
-            currenciesError = uiState.currenciesError
+            currenciesError = uiState.currenciesError,
+            availableBanks = uiState.availableBanks,
+            selectedBank = uiState.selectedBank,
+            onBankSelect = onBankSelect,
+            convertedAmountPreview = uiState.convertedAmountPreview
         )
     } else {
         EditTransactionFormContent(
@@ -227,6 +235,7 @@ private fun TransactionFormContent(
             onShowDatePicker = onShowDatePicker,
             onTransactionTypeChange = onTransactionTypeChange,
             onCurrencySelect = onCurrencySelect,
+            onBankSelect = onBankSelect,
             modifier = modifier
         )
     }
@@ -243,13 +252,15 @@ private fun EditTransactionFormContent(
     onShowDatePicker: () -> Unit,
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
+    onBankSelect: (BankEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (uiState.canChangeType) {
             TransactionTypeSelector(
@@ -260,22 +271,29 @@ private fun EditTransactionFormContent(
             TransactionTypeDisplay(uiState.transactionType)
         }
 
+        // An expense that was originally saved in a foreign currency cannot have
+        // its amount changed in-place — the EUR value was calculated by CERPS at
+        // save time and re-calculating it here would require a full re-conversion.
+        // The user must delete and re-create the transaction to change the amount.
+        val isAmountLocked = uiState.transactionType == TransactionType.EXPENSE &&
+                uiState.selectedCurrency != "EUR"
+
         com.example.budgetcontrol.ui.components.common.AmountInputCard(
-            amount = uiState.amount,
+            // When locked: show the original foreign-currency amount (e.g. 150 BYN)
+            // so the user sees what they originally entered, not the converted EUR value.
+            amount = if (isAmountLocked) uiState.originalAmount.toString() else uiState.amount,
             onAmountChange = onAmountChange,
             transactionType = uiState.transactionType,
-            currency = uiState.selectedCurrency
+            currency = uiState.selectedCurrency,
+            readOnly = isAmountLocked,
+            hint = if (isAmountLocked)
+                "Для изменения суммы удалите и создайте заново."
+            else null
         )
 
-        if (uiState.transactionType == TransactionType.EXPENSE) {
-            CurrencySelector(
-                currencies = uiState.availableCurrencies,
-                selectedCurrency = uiState.selectedCurrency,
-                onCurrencySelect = onCurrencySelect,
-                isLoading = uiState.isCurrenciesLoading,
-                error = uiState.currenciesError
-            )
-        }
+        // Currency / bank selectors are intentionally hidden in EDIT mode:
+        // re-selecting a currency would require a new CERPS conversion, which
+        // is only done at creation time. The saved EUR amount is shown as-is.
 
         com.example.budgetcontrol.ui.components.common.CategorySelector(
             categories = uiState.categories,
@@ -295,7 +313,7 @@ private fun EditTransactionFormContent(
             onDescriptionChange = onDescriptionChange
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(8.dp))
 
         uiState.showError?.let { error ->
             Card(

@@ -13,7 +13,9 @@ fun ExpenseEntity.toDomain(): Expense {
         createdAt = createdAt,
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
-        exchangeRate = exchangeRate
+        exchangeRate = exchangeRate,
+        bankName = bankName,
+        bankCommission = bankCommission
     )
 }
 
@@ -27,7 +29,9 @@ fun Expense.toEntity(): ExpenseEntity {
         createdAt = createdAt,
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
-        exchangeRate = exchangeRate
+        exchangeRate = exchangeRate,
+        bankName = bankName,
+        bankCommission = bankCommission
     )
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
+import java.util.Currency
 
 @Composable
 fun AmountInputCard(
@@ -22,21 +23,19 @@ fun AmountInputCard(
     onAmountChange: (String) -> Unit,
     transactionType: TransactionType,
     currency: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
+    hint: String? = null
 ) {
     val title = when (transactionType) {
         TransactionType.EXPENSE -> "Сумма траты"
         TransactionType.INCOME -> "Сумма дохода"
     }
 
-    val currencySymbol = when (currency) {
-        "USD", "AUD", "CAD", "NZD" -> "$"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        "JPY", "CNY" -> "¥"
-        "SEK" -> "kr"
-        "CHF" -> "Fr."
-        else -> currency
+    val currencySymbol = try {
+        Currency.getInstance(currency).symbol
+    } catch (_: IllegalArgumentException) {
+        currency
     }
 
     Card(
@@ -63,6 +62,7 @@ fun AmountInputCard(
             OutlinedTextField(
                 value = amount,
                 onValueChange = onAmountChange,
+                readOnly = readOnly,
                 placeholder = {
                     Text(
                         "0",
@@ -100,10 +100,21 @@ fun AmountInputCard(
                     focusedTextColor = AppBlue,
                     unfocusedTextColor = AppBlue,
                     focusedLabelColor = AppBlue,
-                    cursorColor = AppBlue
+                    cursorColor = AppBlue,
+                    disabledTextColor = AppBlue,
+                    disabledBorderColor = AppBlue.copy(alpha = 0.4f)
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
         }
+    }
+
+    if (hint != null) {
+        Text(
+            text = hint,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray,
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+        )
     }
 }

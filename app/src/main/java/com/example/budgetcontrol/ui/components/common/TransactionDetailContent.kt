@@ -2,8 +2,10 @@ package com.example.budgetcontrol.ui.components.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -37,8 +39,9 @@ fun TransactionDetailContent(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Карточка с суммой
         TransactionAmountCard(
@@ -69,6 +72,39 @@ fun TransactionDetailContent(
                 .format(Date(transaction.date))
         )
 
+        // Оригинальная сумма и банк (только для конвертированных расходов)
+        if (transaction is Transaction.ExpenseTransaction &&
+            transaction.originalCurrency != "EUR"
+        ) {
+            val originalFormatted = String.format("%.2f", transaction.originalAmount)
+                .trimEnd('0').trimEnd('.')
+            val displayName = try {
+                Currency.getInstance(transaction.originalCurrency)
+                    .getDisplayName(Locale.getDefault())
+            } catch (_: IllegalArgumentException) {
+                transaction.originalCurrency
+            }
+            DetailItem(
+                label = "Оригинальная сумма",
+                value = "$originalFormatted ${transaction.originalCurrency} ($displayName)"
+            )
+
+            transaction.bankName?.let { name ->
+                val commission = transaction.bankCommission
+                val commissionStr = if (commission != null) {
+                    val trimmed = if (commission == commission.toLong().toDouble())
+                        commission.toLong().toString()
+                    else
+                        commission.toString()
+                    " ($trimmed%)"
+                } else ""
+                DetailItem(
+                    label = "Банк",
+                    value = "$name$commissionStr"
+                )
+            }
+        }
+
         // Комментарий
         transaction.description?.takeIf { it.isNotBlank() }?.let { description ->
             DetailItem(
@@ -77,7 +113,7 @@ fun TransactionDetailContent(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Кнопка удаления
         Button(

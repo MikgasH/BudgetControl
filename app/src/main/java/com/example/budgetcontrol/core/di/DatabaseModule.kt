@@ -3,9 +3,11 @@ package com.example.budgetcontrol.core.di
 import android.content.Context
 import androidx.room.Room
 import com.example.budgetcontrol.core.data.local.database.AppDatabase
+import com.example.budgetcontrol.core.data.local.database.dao.BankDao
 import com.example.budgetcontrol.core.data.local.database.dao.CategoryDao
 import com.example.budgetcontrol.core.data.local.database.dao.ExpenseDao
 import com.example.budgetcontrol.core.data.local.database.dao.IncomeDao
+import com.example.budgetcontrol.core.data.repository.BankRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +27,8 @@ object DatabaseModule {
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
         )
-            .addMigrations(AppDatabase.MIGRATION_3_4)
+            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
+            .addCallback(AppDatabase.PREPOPULATE_CALLBACK)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -44,4 +47,16 @@ object DatabaseModule {
     fun provideIncomeDao(database: AppDatabase): IncomeDao {
         return database.incomeDao()
     }
+
+    @Provides
+    fun provideBankDao(database: AppDatabase): BankDao {
+        return database.bankDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBankRepository(bankDao: BankDao): BankRepository {
+        return BankRepository(bankDao)
+    }
 }
+

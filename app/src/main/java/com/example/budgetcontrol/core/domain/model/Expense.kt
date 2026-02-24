@@ -9,7 +9,9 @@ data class Expense(
     val createdAt: Long,
     val originalAmount: Double = amount,
     val originalCurrency: String = "EUR",
-    val exchangeRate: Double? = null
+    val exchangeRate: Double? = null,
+    val bankName: String? = null,
+    val bankCommission: Double? = null
 ) {
 
     val wasConverted: Boolean

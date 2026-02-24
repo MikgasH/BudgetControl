@@ -23,7 +23,9 @@ class AddExpenseUseCase @Inject constructor(
         currency: String = "EUR",
         categoryId: String,
         description: String?,
-        date: Long = System.currentTimeMillis()
+        date: Long = System.currentTimeMillis(),
+        bankName: String? = null,
+        bankCommission: Double? = null
     ): AddExpenseResult {
 
         return try {
@@ -53,7 +55,9 @@ class AddExpenseUseCase @Inject constructor(
                 createdAt = System.currentTimeMillis(),
                 originalAmount = amount,
                 originalCurrency = currency,
-                exchangeRate = exchangeRate
+                exchangeRate = exchangeRate,
+                bankName = bankName,
+                bankCommission = bankCommission
             )
 
             repository.insertExpense(expense)

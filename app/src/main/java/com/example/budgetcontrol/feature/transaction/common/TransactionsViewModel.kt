@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
+import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.data.repository.BankRepository
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.Transaction
@@ -46,7 +48,13 @@ data class TransactionFormUiState(
     val availableCurrencies: List<String> = listOf("EUR"),
     val selectedCurrency: String = "EUR",
     val isCurrenciesLoading: Boolean = false,
-    val currenciesError: String? = null
+    val currenciesError: String? = null,
+    // Банк и комиссия
+    val availableBanks: List<BankEntity> = emptyList(),
+    val selectedBank: BankEntity? = null,
+    val convertedAmountPreview: String = "",
+    // Оригинальная сумма в исходной валюте (заполняется только в EDIT mode)
+    val originalAmount: Double = 0.0
 )
 
 enum class TransactionFormMode { ADD, EDIT }
@@ -58,13 +66,34 @@ class TransactionFormViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
     private val categoryRepository: CategoryRepository,
-    private val cerpsRepository: CerpsRepository
+    private val cerpsRepository: CerpsRepository,
+    private val bankRepository: BankRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionFormUiState())
     val uiState: StateFlow<TransactionFormUiState> = _uiState.asStateFlow()
 
     private var allCategories: List<Category> = emptyList()
+
+    /** In-memory cache so we don't re-fetch currencies on every screen open */
+    private var cachedCurrencies: List<String>? = null
+
+    /** Cache of the interbank exchange rate for the current currency */
+    private var cachedInterBankRate: Double? = null
+    private var cachedRateCurrency: String? = null
+
+    init {
+        loadBanks()
+    }
+
+    private fun loadBanks() {
+        viewModelScope.launch {
+            bankRepository.getAllBanks().collect { banks ->
+                val current = _uiState.value
+                _uiState.value = current.copy(availableBanks = banks)
+            }
+        }
+    }
 
     /**
      * Инициализация ViewModel
@@ -106,17 +135,29 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     /**
-     * Загрузка списка валют из CERPS
+     * Загрузка списка валют из CERPS (с кэшированием в памяти)
      */
     private fun loadCurrencies() {
+        // Serve from cache if already fetched
+        val cached = cachedCurrencies
+        if (cached != null) {
+            _uiState.value = _uiState.value.copy(
+                availableCurrencies = cached,
+                isCurrenciesLoading = false,
+                currenciesError = null
+            )
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCurrenciesLoading = true)
 
             when (val result = cerpsRepository.getCurrencies()) {
                 is CerpsResult.Success -> {
-                    val currencyCodes = result.data
+                    val all = result.data.ifEmpty { listOf("EUR") }
+                    cachedCurrencies = all
                     _uiState.value = _uiState.value.copy(
-                        availableCurrencies = currencyCodes.ifEmpty { listOf("EUR") },
+                        availableCurrencies = all,
                         isCurrenciesLoading = false,
                         currenciesError = null
                     )
@@ -126,7 +167,7 @@ class TransactionFormViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         availableCurrencies = listOf("EUR"),
                         isCurrenciesLoading = false,
-                        currenciesError = result.message
+                        currenciesError = "Сервис курсов недоступен. Введите сумму вручную."
                     )
                 }
             }
@@ -137,10 +178,87 @@ class TransactionFormViewModel @Inject constructor(
      * Выбор валюты
      */
     fun selectCurrency(currency: String) {
-        _uiState.value = _uiState.value.copy(
+        val current = _uiState.value
+        val defaultBank = if (currency != "EUR") {
+            current.availableBanks.firstOrNull { it.isDefault }
+                ?: current.availableBanks.firstOrNull()
+        } else null
+
+        _uiState.value = current.copy(
             selectedCurrency = currency,
+            selectedBank = defaultBank,
+            convertedAmountPreview = "",
             showError = null
         )
+
+        if (currency != "EUR") {
+            fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
+        }
+    }
+
+    /**
+     * Выбор банка
+     */
+    fun selectBank(bank: BankEntity) {
+        val current = _uiState.value
+        _uiState.value = current.copy(selectedBank = bank, convertedAmountPreview = "")
+        if (current.selectedCurrency != "EUR") {
+            fetchRateAndUpdatePreview(current.selectedCurrency, current.amount, bank)
+        }
+    }
+
+    /**
+     * Получить межбанковский курс и обновить превью конвертации.
+     *
+     * CERPS возвращает курс как "1 EUR = X единиц иностранной валюты".
+     * Чтобы получить этот курс, конвертируем EUR→currency (1 EUR).
+     * Формула: convertedAmount = originalAmount / realRate
+     * Пример: 150 BYN / 3.48 ≈ 43 EUR ✓
+     */
+    private fun fetchRateAndUpdatePreview(currency: String, amount: String, bank: BankEntity?) {
+        if (bank == null) return
+        viewModelScope.launch {
+            // Use cached rate if currency unchanged
+            val interBankRate: Double? = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
+                cachedInterBankRate
+            } else {
+                // Convert EUR → currency to get "1 EUR = X foreign units" (e.g. 3.48 BYN)
+                when (val result = cerpsRepository.convert("EUR", currency, 1.0)) {
+                    is CerpsResult.Success -> {
+                        val rate = result.data.exchangeRate.toDouble()
+                        cachedInterBankRate = rate
+                        cachedRateCurrency = currency
+                        rate
+                    }
+                    is CerpsResult.Error -> null
+                }
+            }
+
+            if (interBankRate != null) {
+                _uiState.value = _uiState.value.copy(
+                    convertedAmountPreview = buildPreview(amount, interBankRate, bank)
+                )
+            }
+        }
+    }
+
+    /**
+     * Строим строку превью конвертации
+     * realRate = interBankRate * (1 - commission/100)
+     * convertedAmount = originalAmount / realRate
+     */
+    private fun buildPreview(amountStr: String, interBankRate: Double, bank: BankEntity): String {
+        val amount = amountStr.toDoubleOrNull() ?: return ""
+        if (amount <= 0) return ""
+        val realRate = interBankRate * (1.0 - bank.commissionPercent / 100.0)
+        if (realRate <= 0) return ""
+        val converted = amount / realRate
+        val realRateFormatted = String.format("%.4f", realRate)
+        val convertedFormatted = String.format("%.2f", converted)
+        val commissionFormatted = bank.commissionPercent.let {
+            if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+        }
+        return "≈ $convertedFormatted EUR  (курс $realRateFormatted, комиссия $commissionFormatted%)"
     }
 
     /**
@@ -230,13 +348,14 @@ class TransactionFormViewModel @Inject constructor(
     private fun loadTransactionForEdit(transactionId: String, type: TransactionType) {
         viewModelScope.launch {
             try {
+                // Fetch full expense to get originalCurrency/bankName
+                val expense = if (type == TransactionType.EXPENSE) {
+                    expenseRepository.getExpenseById(transactionId)
+                } else null
+
                 val transaction = when (type) {
-                    TransactionType.EXPENSE -> {
-                        expenseRepository.getExpenseById(transactionId)?.toTransaction()
-                    }
-                    TransactionType.INCOME -> {
-                        incomeRepository.getIncomeById(transactionId)?.toTransaction()
-                    }
+                    TransactionType.EXPENSE -> expense?.toTransaction()
+                    TransactionType.INCOME -> incomeRepository.getIncomeById(transactionId)?.toTransaction()
                 }
 
                 if (transaction == null) {
@@ -269,7 +388,15 @@ class TransactionFormViewModel @Inject constructor(
                         categories.filter { it.type == CategoryType.INCOME }.firstOrNull()
                     }
 
-                    _uiState.value = _uiState.value.copy(
+                    val current = _uiState.value
+
+                    // Restore bank info for expense
+                    val restoredCurrency = expense?.originalCurrency ?: "EUR"
+                    val restoredBank = if (expense?.bankName != null) {
+                        current.availableBanks.firstOrNull { it.name == expense.bankName }
+                    } else null
+
+                    _uiState.value = current.copy(
                         categories = filteredCategories,
                         selectedCategory = selectedCategory,
                         amount = transaction.amount.toString(),
@@ -278,8 +405,16 @@ class TransactionFormViewModel @Inject constructor(
                         originalTransaction = transaction,
                         selectedExpenseCategory = initialExpenseCategory,
                         selectedIncomeCategory = initialIncomeCategory,
+                        selectedCurrency = restoredCurrency,
+                        selectedBank = restoredBank,
+                        originalAmount = expense?.originalAmount ?: transaction.amount,
                         isLoading = false
                     )
+
+                    // If non-EUR, fetch interbank rate for preview
+                    if (restoredCurrency != "EUR" && restoredBank != null) {
+                        fetchRateAndUpdatePreview(restoredCurrency, transaction.amount.toString(), restoredBank)
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -292,8 +427,17 @@ class TransactionFormViewModel @Inject constructor(
 
     fun updateAmount(amount: String) {
         val filteredAmount = ValidationHelper.filterAmountInput(amount)
-        _uiState.value = _uiState.value.copy(
+        val current = _uiState.value
+        val preview = if (current.selectedCurrency != "EUR" && current.selectedBank != null
+            && cachedInterBankRate != null && cachedRateCurrency == current.selectedCurrency
+        ) {
+            buildPreview(filteredAmount, cachedInterBankRate!!, current.selectedBank)
+        } else {
+            current.convertedAmountPreview
+        }
+        _uiState.value = current.copy(
             amount = filteredAmount,
+            convertedAmountPreview = preview,
             showError = null
         )
     }
@@ -358,7 +502,9 @@ class TransactionFormViewModel @Inject constructor(
                                     currency = currentState.selectedCurrency,
                                     categoryId = currentState.selectedCategory!!.id,
                                     description = currentState.description.ifBlank { null },
-                                    date = currentState.selectedDate
+                                    date = currentState.selectedDate,
+                                    bankName = currentState.selectedBank?.name,
+                                    bankCommission = currentState.selectedBank?.commissionPercent
                                 )
 
                                 when (result) {
@@ -396,7 +542,10 @@ class TransactionFormViewModel @Inject constructor(
                                 amount = amountDouble,
                                 categoryId = currentState.selectedCategory!!.id,
                                 description = currentState.description.ifBlank { null },
-                                date = currentState.selectedDate
+                                date = currentState.selectedDate,
+                                selectedCurrency = currentState.selectedCurrency,
+                                bankName = currentState.selectedBank?.name,
+                                bankCommission = currentState.selectedBank?.commissionPercent
                             )
                         } else {
                             replaceTransactionWithNewType(
@@ -429,18 +578,25 @@ class TransactionFormViewModel @Inject constructor(
         amount: Double,
         categoryId: String,
         description: String?,
-        date: Long
+        date: Long,
+        selectedCurrency: String = "EUR",
+        bankName: String? = null,
+        bankCommission: Double? = null
     ) {
         when (originalTransaction) {
             is Transaction.ExpenseTransaction -> {
-                val updatedExpense = originalTransaction.copy(
+                // Use AddExpenseUseCase to handle conversion (re-calculates via CERPS)
+                addExpenseUseCase(
                     amount = amount,
+                    currency = selectedCurrency,
                     categoryId = categoryId,
                     description = description,
-                    date = date
-                ).toExpense()
-
-                expenseRepository.updateExpense(updatedExpense)
+                    date = date,
+                    bankName = bankName,
+                    bankCommission = bankCommission
+                )
+                // Delete the old record after inserting the new one
+                expenseRepository.deleteExpenseById(originalTransaction.id)
             }
             is Transaction.IncomeTransaction -> {
                 val updatedIncome = originalTransaction.copy(
