@@ -1,7 +1,9 @@
 package com.example.budgetcontrol.feature.transaction.common
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
@@ -10,6 +12,7 @@ import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +30,7 @@ data class TransactionsByCategoryUiState(
 
 @HiltViewModel
 class TransactionsByCategoryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getIncomesUseCase: GetIncomesUseCase,
     private val categoryRepository: CategoryRepository
@@ -35,9 +39,6 @@ class TransactionsByCategoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TransactionsByCategoryUiState())
     val uiState: StateFlow<TransactionsByCategoryUiState> = _uiState.asStateFlow()
 
-    /**
-     * Загрузка транзакций по категории
-     */
     fun loadTransactions(categoryId: String, transactionType: TransactionType) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -46,10 +47,8 @@ class TransactionsByCategoryViewModel @Inject constructor(
             )
 
             try {
-                // Загружаем категорию
                 val category = categoryRepository.getCategoryById(categoryId)
 
-                // Загружаем транзакции по категории в зависимости от типа
                 when (transactionType) {
                     TransactionType.EXPENSE -> {
                         getExpensesUseCase.getByCategory(categoryId).collect { expenses ->
@@ -62,7 +61,7 @@ class TransactionsByCategoryViewModel @Inject constructor(
                                 transactionType = transactionType,
                                 totalAmount = transactions.sumOf { it.amount },
                                 isLoading = false,
-                                showError = if (category == null) "Категория не найдена" else null
+                                showError = if (category == null) context.getString(R.string.category_not_found) else null
                             )
                         }
                     }
@@ -77,7 +76,7 @@ class TransactionsByCategoryViewModel @Inject constructor(
                                 transactionType = transactionType,
                                 totalAmount = transactions.sumOf { it.amount },
                                 isLoading = false,
-                                showError = if (category == null) "Категория не найдена" else null
+                                showError = if (category == null) context.getString(R.string.category_not_found) else null
                             )
                         }
                     }
@@ -85,15 +84,12 @@ class TransactionsByCategoryViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showError = "Ошибка загрузки: ${e.message}"
+                    showError = context.getString(R.string.error_loading, e.message ?: "")
                 )
             }
         }
     }
 
-    /**
-     * Очистка ошибки
-     */
     fun clearError() {
         _uiState.value = _uiState.value.copy(showError = null)
     }

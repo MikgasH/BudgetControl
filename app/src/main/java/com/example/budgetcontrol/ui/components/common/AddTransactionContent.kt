@@ -6,12 +6,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.Category
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
 
@@ -40,7 +45,11 @@ fun AddTransactionContent(
     availableBanks: List<BankEntity> = emptyList(),
     selectedBank: BankEntity? = null,
     onBankSelect: (BankEntity) -> Unit = {},
-    convertedAmountPreview: String = ""
+    convertedAmountPreview: String = "",
+    exactEurAmount: String = "",
+    onExactEurAmountChange: (String) -> Unit = {},
+    isExactAmountEnabled: Boolean = false,
+    onExactAmountToggle: (Boolean) -> Unit = {}
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -84,7 +93,53 @@ fun AddTransactionContent(
                     selectedBank = selectedBank,
                     onBankSelect = onBankSelect
                 )
-                ConversionPreview(preview = convertedAmountPreview)
+
+                // Conversion preview — hidden when user has entered exact EUR amount
+                if (isExactAmountEnabled && exactEurAmount.isNotBlank()) {
+                    Text(
+                        text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                } else {
+                    ConversionPreview(preview = convertedAmountPreview)
+                }
+
+                // Toggle: Уточнить сумму вручную
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = isExactAmountEnabled,
+                        onCheckedChange = onExactAmountToggle,
+                        colors = CheckboxDefaults.colors(checkedColor = AppBlue)
+                    )
+                    Text(
+                        text = stringResource(R.string.specify_amount_manually),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                // Exact EUR amount field — shown only when toggle is checked
+                if (isExactAmountEnabled) {
+                    OutlinedTextField(
+                        value = exactEurAmount,
+                        onValueChange = onExactEurAmountChange,
+                        label = { Text(stringResource(R.string.exact_eur_amount)) },
+                        placeholder = { Text(stringResource(R.string.exact_eur_example)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppBlue,
+                            focusedLabelColor = AppBlue,
+                            cursorColor = AppBlue
+                        )
+                    )
+                }
             }
         }
 
@@ -143,8 +198,8 @@ fun AddTransactionContent(
                 )
             } else {
                 val buttonText = when (transactionType) {
-                    TransactionType.EXPENSE -> "Добавить трату"
-                    TransactionType.INCOME -> "Добавить доход"
+                    TransactionType.EXPENSE -> stringResource(R.string.add_expense)
+                    TransactionType.INCOME -> stringResource(R.string.add_income)
                 }
                 Text(
                     text = buttonText,
@@ -165,13 +220,13 @@ private fun DescriptionSection(
     modifier: Modifier = Modifier
 ) {
     val placeholder = when (transactionType) {
-        TransactionType.EXPENSE -> "Например: обед в ресторане"
-        TransactionType.INCOME -> "Например: зарплата за декабрь"
+        TransactionType.EXPENSE -> stringResource(R.string.expense_placeholder)
+        TransactionType.INCOME -> stringResource(R.string.income_placeholder)
     }
 
     Column(modifier = modifier) {
         Text(
-            text = "Описание (необязательно)",
+            text = stringResource(R.string.description_optional),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(bottom = 8.dp)

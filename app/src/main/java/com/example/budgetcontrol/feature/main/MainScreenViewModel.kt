@@ -17,7 +17,11 @@ import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
+import androidx.annotation.StringRes
+import com.example.budgetcontrol.R
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,21 +47,22 @@ data class MainScreenUiState(
     val isAllTimePeriod: Boolean = false
 )
 
-enum class PeriodType(val displayName: String) {
-    DAY("День"),
-    WEEK("Неделя"),
-    MONTH("Месяц"),
-    YEAR("Год"),
-    PERIOD("Период")
+enum class PeriodType(@StringRes val displayNameRes: Int) {
+    DAY(R.string.period_day),
+    WEEK(R.string.period_week),
+    MONTH(R.string.period_month),
+    YEAR(R.string.period_year),
+    PERIOD(R.string.period_custom)
 }
 
 @HiltViewModel
 class MainScreenViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getIncomesUseCase: GetIncomesUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
-    private val deleteExpenseUseCase: DeleteExpenseUseCase, // ДОБАВИЛИ
-    private val deleteIncomeUseCase: DeleteIncomeUseCase   // ДОБАВИЛИ
+    private val deleteExpenseUseCase: DeleteExpenseUseCase,
+    private val deleteIncomeUseCase: DeleteIncomeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainScreenUiState())
@@ -203,6 +208,7 @@ class MainScreenViewModel @Inject constructor(
     private fun getPeriodDisplayText(): String {
         val currentState = _uiState.value
         return DateRangeHelper.getPeriodDisplayText(
+            context = context,
             periodType = currentState.selectedPeriodType,
             periodOffset = currentState.currentPeriodIndex,
             customStartDate = currentState.customStartDate,

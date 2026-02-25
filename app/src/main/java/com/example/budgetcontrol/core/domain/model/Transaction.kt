@@ -24,7 +24,8 @@ sealed class Transaction {
         val originalAmount: Double = amount,
         val originalCurrency: String = "EUR",
         val bankName: String? = null,
-        val bankCommission: Double? = null
+        val bankCommission: Double? = null,
+        val rateSource: String? = null
     ) : Transaction() {
         override val type: TransactionType = TransactionType.EXPENSE
     }
@@ -44,9 +45,9 @@ sealed class Transaction {
 /**
  * Тип транзакции
  */
-enum class TransactionType(val displayName: String) {
-    EXPENSE("Расход"),
-    INCOME("Доход");
+enum class TransactionType {
+    EXPENSE,
+    INCOME;
 
     fun isExpense() = this == EXPENSE
     fun isIncome() = this == INCOME
@@ -66,7 +67,8 @@ fun Expense.toTransaction(): Transaction.ExpenseTransaction {
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
         bankName = bankName,
-        bankCommission = bankCommission
+        bankCommission = bankCommission,
+        rateSource = rateSource
     )
 }
 

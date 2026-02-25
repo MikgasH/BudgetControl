@@ -3,9 +3,11 @@ package com.example.budgetcontrol.core.di
 import com.example.budgetcontrol.BuildConfig
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
+import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -51,7 +53,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideCerpsRepository(apiService: CerpsApiService): CerpsRepository {
-        return CerpsRepository(apiService)
+    fun provideCerpsRepository(
+        @ApplicationContext context: Context,
+        apiService: CerpsApiService
+    ): CerpsRepository {
+        return CerpsRepository(context, apiService)
     }
 }

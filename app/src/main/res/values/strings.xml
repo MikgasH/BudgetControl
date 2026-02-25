@@ -1,3 +1,209 @@
 <resources>
     <string name="app_name">BudgetControl</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="settings">Settings</string>
+    <string name="add_operation">Add operation</string>
+    <string name="delete_upper">DELETE</string>
+    <string name="save">Save</string>
+    <string name="yes_upper">YES</string>
+    <string name="no_upper">NO</string>
+    <string name="cancel_upper">CANCEL</string>
+    <string name="select_upper">SELECT</string>
+    <string name="total">Total</string>
+    <string name="edit">Edit</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="unknown_category">Unknown category</string>
+    <string name="transaction_not_found">Transaction not found</string>
+
+    <!-- Operation types -->
+    <string name="expenses_upper">EXPENSES</string>
+    <string name="incomes_upper">INCOMES</string>
+    <string name="income_upper">INCOME</string>
+
+    <!-- Period types -->
+    <string name="period_day">Day</string>
+    <string name="period_week">Week</string>
+    <string name="period_month">Month</string>
+    <string name="period_year">Year</string>
+    <string name="period_custom">Period</string>
+
+    <!-- DateRangeHelper -->
+    <string name="period_all_time">All time</string>
+    <string name="period_today">Today, %1$s</string>
+    <string name="period_yesterday">Yesterday, %1$s</string>
+    <string name="period_tomorrow">Tomorrow, %1$s</string>
+    <string name="period_label">Period</string>
+
+    <!-- TimePeriod (Statistics) -->
+    <string name="time_period_this_week">This week</string>
+    <string name="time_period_this_month">This month</string>
+    <string name="time_period_this_year">This year</string>
+    <string name="time_period_all_time">All time</string>
+
+    <!-- MainScreen -->
+    <string name="previous_period">Previous period</string>
+    <string name="next_period">Next period</string>
+    <string name="no_expenses_all_time">No expenses\nfor all time</string>
+    <string name="no_incomes_all_time">No incomes\nfor all time</string>
+    <string name="no_expenses_today">Today\nno expenses</string>
+    <string name="no_incomes_today">Today\nno incomes</string>
+    <string name="no_data_this_day">No data\nfor this day</string>
+    <string name="no_data_this_period">No data\nfor this period</string>
+
+    <!-- StatisticsScreen -->
+    <string name="statistics">Statistics</string>
+    <string name="no_data_for_selected_period">No data for the selected period</string>
+    <string name="expenses_count_suffix"> expenses</string>
+
+    <!-- SettingsScreen -->
+    <string name="data_sync">Data synchronization</string>
+    <string name="create_backup_description">Create a backup of your data in the cloud</string>
+    <string name="cloud_expenses_count">In cloud: %1$d expenses</string>
+    <string name="create_backup">Create Backup</string>
+    <string name="restore_data">Restore data</string>
+    <string name="about_app">About app</string>
+    <string name="app_version">Budget Control v1.0</string>
+    <string name="app_description">Your personal finance management assistant</string>
+
+    <!-- Language selector -->
+    <string name="language">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_russian">Russian</string>
+
+    <!-- SyncDataUseCase -->
+    <string name="backup_success">Backup created successfully! Saved %1$d expenses.</string>
+    <string name="backup_create_error">Error creating backup</string>
+    <string name="sync_complete">Sync complete! Processed %1$d expenses from cloud.</string>
+    <string name="sync_error">Sync error</string>
+    <string name="expense_not_found">Expense not found</string>
+
+    <!-- SettingsViewModel errors -->
+    <string name="error_backup">Backup error: %1$s</string>
+    <string name="error_restore">Restore error: %1$s</string>
+
+    <!-- TransactionFormScreen -->
+    <string name="form_modified_title">Operation was modified</string>
+    <string name="form_not_empty_title">Form is not empty</string>
+    <string name="exit_without_saving">Exit without saving?</string>
+    <string name="add_expense">Add expense</string>
+    <string name="add_income">Add income</string>
+    <string name="edit_expense_upper">EDITING EXPENSE</string>
+    <string name="edit_income_upper">EDITING INCOME</string>
+    <string name="edit_expense">Edit expense</string>
+    <string name="edit_income">Edit income</string>
+    <string name="comment_label">Comment</string>
+    <string name="comment_placeholder">Add a comment to the operation</string>
+    <string name="amount_locked_hint">To change the amount, delete and recreate the transaction.</string>
+
+    <!-- AddTransactionContent -->
+    <string name="will_be_saved">Saved: %1$s EUR</string>
+    <string name="specify_amount_manually">Specify amount manually</string>
+    <string name="exact_eur_amount">Exact amount in EUR</string>
+    <string name="exact_eur_example">For example: 13.22</string>
+    <string name="description_optional">Description (optional)</string>
+    <string name="expense_placeholder">For example: lunch at a restaurant</string>
+    <string name="income_placeholder">For example: salary for December</string>
+
+    <!-- AmountInputCard -->
+    <string name="expense_amount">Expense amount</string>
+    <string name="income_amount">Income amount</string>
+
+    <!-- CategorySelector -->
+    <string name="expense_categories">Expense categories</string>
+    <string name="income_categories">Income categories</string>
+    <string name="add_category">Add category</string>
+    <string name="more">More</string>
+
+    <!-- CurrencySelector -->
+    <string name="currency">Currency</string>
+    <string name="default_label">(default)</string>
+
+    <!-- BankSelector -->
+    <string name="bank_payment_method">Bank / Payment method</string>
+
+    <!-- DateSelector -->
+    <string name="date_label">Date</string>
+    <string name="select_date">Select date</string>
+    <string name="today">today</string>
+    <string name="yesterday">yesterday</string>
+    <string name="day_before_yesterday">day before yesterday</string>
+    <string name="selected">selected</string>
+
+    <!-- DatePickerDialog -->
+    <string name="date_selection">Date selection</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+
+    <!-- PeriodRangePicker -->
+    <string name="select_period">Select period</string>
+    <string name="all_time">All time</string>
+    <string name="period_range_display">Period: %1$s</string>
+    <string name="start_date_display">Start: %1$s</string>
+
+    <!-- TransactionDetailContent -->
+    <string name="category">Category</string>
+    <string name="detail_date">Date</string>
+    <string name="detail_time">Time</string>
+    <string name="original_amount">Original amount</string>
+    <string name="bank">Bank</string>
+    <string name="user_corrected">manually corrected</string>
+    <string name="detail_comment">Comment</string>
+    <string name="operation_details">OPERATION DETAILS</string>
+
+    <!-- ExpensesScreen -->
+    <string name="all_expenses">All expenses</string>
+    <string name="total_spent">Total spent</string>
+    <string name="no_expenses_yet">You have no expenses yet</string>
+    <string name="add_first_expense">Press + to add your first expense</string>
+
+    <!-- TransactionItem -->
+    <string name="delete_action">Delete</string>
+    <string name="main_account">Main</string>
+
+    <!-- TransactionFormViewModel errors -->
+    <string name="error_transaction_id_missing">Transaction ID is missing</string>
+    <string name="error_currency_service_unavailable">Currency service unavailable. Enter the amount manually.</string>
+    <string name="error_loading_categories">Error loading categories: %1$s</string>
+    <string name="error_loading_transaction">Error loading transaction: %1$s</string>
+    <string name="error_enter_valid_eur">Enter a valid EUR amount</string>
+    <string name="error_saving">Error saving: %1$s</string>
+    <string name="conversion_preview_format">approx. %1$s EUR  (rate %2$s, commission %3$s%%)</string>
+
+    <!-- ValidationHelper -->
+    <string name="validation_enter_amount">Enter amount</string>
+    <string name="validation_enter_valid_amount">Enter a valid amount</string>
+    <string name="validation_amount_positive">Amount must be greater than zero</string>
+    <string name="validation_select_category">Select a category</string>
+
+    <!-- PieChart -->
+    <string name="pie_chart_total">Total</string>
+
+    <!-- TransactionDetailViewModel -->
+    <string name="error_loading">Error loading: %1$s</string>
+    <string name="error_deleting">Error deleting: %1$s</string>
+
+    <!-- TransactionsByCategoryViewModel -->
+    <string name="category_not_found">Category not found</string>
+
+    <!-- CerpsRepository -->
+    <string name="error_loading_currencies">Error loading currencies: %1$s</string>
+    <string name="conversion_service_unavailable">Conversion service unavailable: %1$s</string>
+    <string name="conversion_failed">Conversion failed</string>
+    <string name="error_conversion">Conversion error: %1$s</string>
+
+    <!-- AddExpenseUseCase -->
+    <string name="error_saving_expense">Error saving: %1$s</string>
+
+    <!-- Date formats -->
+    <string name="date_format_full">MMMM d, yyyy</string>
 </resources>

@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
@@ -34,8 +36,8 @@ fun CategorySelector(
     modifier: Modifier = Modifier
 ) {
     val title = when (transactionType) {
-        TransactionType.EXPENSE -> "Категории расходов"
-        TransactionType.INCOME -> "Категории доходов"
+        TransactionType.EXPENSE -> stringResource(R.string.expense_categories)
+        TransactionType.INCOME -> stringResource(R.string.income_categories)
     }
 
     Column(modifier = modifier) {
@@ -111,7 +113,7 @@ private fun CategoryItem(
                 } else {
                     getCategoryIcon(category?.iconName)
                 },
-                contentDescription = category?.name ?: "Добавить категорию",
+                contentDescription = category?.name ?: stringResource(R.string.add_category),
                 tint = contentColor,
                 modifier = Modifier.size(28.dp)
             )
@@ -120,7 +122,7 @@ private fun CategoryItem(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = category?.name ?: "Еще",
+            text = category?.name ?: stringResource(R.string.more),
             style = MaterialTheme.typography.bodySmall,
             color = if (isSelected && !isAddButton) AppBlue else MaterialTheme.colorScheme.onSurface,
             fontWeight = if (isSelected && !isAddButton) FontWeight.SemiBold else FontWeight.Normal,

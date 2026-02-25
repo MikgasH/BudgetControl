@@ -15,6 +15,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.components.common.TransactionDetailContent
 import com.example.budgetcontrol.feature.transaction.common.TransactionDetailViewModel
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.theme.AppBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +69,7 @@ fun ExpenseDetailScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Назад",
+                            contentDescription = stringResource(R.string.back),
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -75,7 +77,7 @@ fun ExpenseDetailScreen(
 
                     // Заголовок по центру
                     Text(
-                        text = "ДЕТАЛИ ОПЕРАЦИИ",
+                        text = stringResource(R.string.operation_details),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -90,7 +92,7 @@ fun ExpenseDetailScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Редактировать",
+                            contentDescription = stringResource(R.string.edit),
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -129,7 +131,7 @@ fun ExpenseDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = uiState.showError ?: "Неизвестная ошибка",
+                            text = uiState.showError ?: stringResource(R.string.unknown_error),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -164,7 +166,7 @@ fun ExpenseDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Транзакция не найдена",
+                                text = stringResource(R.string.transaction_not_found),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.error
                             )

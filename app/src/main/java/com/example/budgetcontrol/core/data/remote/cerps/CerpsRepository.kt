@@ -1,7 +1,10 @@
 package com.example.budgetcontrol.core.data.remote.cerps
 
+import android.content.Context
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionRequest
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,6 +15,7 @@ sealed class CerpsResult<out T> {
 
 @Singleton
 class CerpsRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val apiService: CerpsApiService
 ) {
 
@@ -21,10 +25,10 @@ class CerpsRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 CerpsResult.Success(response.body()!!)
             } else {
-                CerpsResult.Error("Ошибка загрузки валют: ${response.code()}")
+                CerpsResult.Error(context.getString(R.string.error_loading_currencies, response.code().toString()))
             }
         } catch (e: Exception) {
-            CerpsResult.Error("Сервис конвертации недоступен: ${e.message}")
+            CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
         }
     }
 
@@ -42,13 +46,13 @@ class CerpsRepository @Inject constructor(
                 if (body.success) {
                     CerpsResult.Success(body)
                 } else {
-                    CerpsResult.Error("Конвертация не удалась")
+                    CerpsResult.Error(context.getString(R.string.conversion_failed))
                 }
             } else {
-                CerpsResult.Error("Ошибка конвертации: ${response.code()}")
+                CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }
         } catch (e: Exception) {
-            CerpsResult.Error("Сервис конвертации недоступен: ${e.message}")
+            CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
         }
     }
 

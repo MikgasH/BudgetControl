@@ -17,11 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import java.util.Currency
 import java.util.Locale
 
-private fun getCurrencyDisplayName(code: String): String =
-    try { Currency.getInstance(code).getDisplayName(Locale.ENGLISH) }
+private fun getCurrencyDisplayName(code: String, locale: Locale): String =
+    try { Currency.getInstance(code).getDisplayName(locale) }
     catch (_: IllegalArgumentException) { code }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +42,7 @@ fun CurrencySelector(
     enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val appLocale = LocalConfiguration.current.locales[0]
 
     // Other currencies are everything except the base, preserving server order
     val otherCurrencies = remember(currencies, baseCurrency) {
@@ -56,7 +60,7 @@ fun CurrencySelector(
                 value = selectedCurrency,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Валюта") },
+                label = { Text(stringResource(R.string.currency)) },
                 trailingIcon = {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -96,12 +100,12 @@ fun CurrencySelector(
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    text = getCurrencyDisplayName(baseCurrency),
+                                    text = getCurrencyDisplayName(baseCurrency, appLocale),
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "(по умолчанию)",
+                                    text = stringResource(R.string.default_label),
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -135,7 +139,7 @@ fun CurrencySelector(
                                     fontSize = 16.sp
                                 )
                                 Text(
-                                    text = getCurrencyDisplayName(code),
+                                    text = getCurrencyDisplayName(code, appLocale),
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

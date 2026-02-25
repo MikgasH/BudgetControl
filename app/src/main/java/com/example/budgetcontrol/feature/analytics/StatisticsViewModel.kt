@@ -7,6 +7,8 @@ import com.example.budgetcontrol.core.domain.model.Expense
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
+import androidx.annotation.StringRes
+import com.example.budgetcontrol.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,11 +26,11 @@ data class StatisticsUiState(
     val selectedPeriod: TimePeriod = TimePeriod.THIS_MONTH
 )
 
-enum class TimePeriod(val displayName: String) {
-    THIS_WEEK("Эта неделя"),
-    THIS_MONTH("Этот месяц"),
-    THIS_YEAR("Этот год"),
-    ALL_TIME("Все время")
+enum class TimePeriod(@StringRes val displayNameRes: Int) {
+    THIS_WEEK(R.string.time_period_this_week),
+    THIS_MONTH(R.string.time_period_this_month),
+    THIS_YEAR(R.string.time_period_this_year),
+    ALL_TIME(R.string.time_period_all_time)
 }
 
 @HiltViewModel

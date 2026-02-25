@@ -19,8 +19,11 @@ import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseResult
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.ValidationHelper
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +56,9 @@ data class TransactionFormUiState(
     val availableBanks: List<BankEntity> = emptyList(),
     val selectedBank: BankEntity? = null,
     val convertedAmountPreview: String = "",
+    // Уточнить сумму вручную
+    val exactEurAmount: String = "",
+    val isExactAmountEnabled: Boolean = false,
     // Оригинальная сумма в исходной валюте (заполняется только в EDIT mode)
     val originalAmount: Double = 0.0
 )
@@ -61,6 +67,7 @@ enum class TransactionFormMode { ADD, EDIT }
 
 @HiltViewModel
 class TransactionFormViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val addExpenseUseCase: AddExpenseUseCase,
     private val addIncomeUseCase: AddIncomeUseCase,
     private val expenseRepository: ExpenseRepository,
@@ -127,7 +134,7 @@ class TransactionFormViewModel @Inject constructor(
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        showError = "ID транзакции не указан"
+                        showError = context.getString(R.string.error_transaction_id_missing)
                     )
                 }
             }
@@ -167,7 +174,7 @@ class TransactionFormViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         availableCurrencies = listOf("EUR"),
                         isCurrenciesLoading = false,
-                        currenciesError = "Сервис курсов недоступен. Введите сумму вручную."
+                        currenciesError = context.getString(R.string.error_currency_service_unavailable)
                     )
                 }
             }
@@ -188,6 +195,9 @@ class TransactionFormViewModel @Inject constructor(
             selectedCurrency = currency,
             selectedBank = defaultBank,
             convertedAmountPreview = "",
+            // Reset exact amount when currency changes
+            isExactAmountEnabled = if (currency == "EUR") false else current.isExactAmountEnabled,
+            exactEurAmount = if (currency == "EUR") "" else current.exactEurAmount,
             showError = null
         )
 
@@ -258,7 +268,7 @@ class TransactionFormViewModel @Inject constructor(
         val commissionFormatted = bank.commissionPercent.let {
             if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
         }
-        return "≈ $convertedFormatted EUR  (курс $realRateFormatted, комиссия $commissionFormatted%)"
+        return context.getString(R.string.conversion_preview_format, convertedFormatted, realRateFormatted, commissionFormatted)
     }
 
     /**
@@ -310,7 +320,7 @@ class TransactionFormViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showError = "Ошибка загрузки категорий: ${e.message}"
+                    showError = context.getString(R.string.error_loading_categories, e.message ?: "")
                 )
             }
         }
@@ -361,7 +371,7 @@ class TransactionFormViewModel @Inject constructor(
                 if (transaction == null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        showError = "Транзакция не найдена"
+                        showError = context.getString(R.string.transaction_not_found)
                     )
                     return@launch
                 }
@@ -419,7 +429,7 @@ class TransactionFormViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showError = "Ошибка загрузки транзакции: ${e.message}"
+                    showError = context.getString(R.string.error_loading_transaction, e.message ?: "")
                 )
             }
         }
@@ -445,6 +455,20 @@ class TransactionFormViewModel @Inject constructor(
     fun updateDescription(description: String) {
         _uiState.value = _uiState.value.copy(
             description = description,
+            showError = null
+        )
+    }
+
+    fun toggleExactAmount(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            isExactAmountEnabled = enabled,
+            exactEurAmount = if (!enabled) "" else _uiState.value.exactEurAmount
+        )
+    }
+
+    fun updateExactEurAmount(amount: String) {
+        _uiState.value = _uiState.value.copy(
+            exactEurAmount = amount,
             showError = null
         )
     }
@@ -477,6 +501,7 @@ class TransactionFormViewModel @Inject constructor(
         val currentState = _uiState.value
 
         val validationResult = ValidationHelper.validateTransaction(
+            context = context,
             amount = currentState.amount,
             category = currentState.selectedCategory
         )
@@ -497,15 +522,40 @@ class TransactionFormViewModel @Inject constructor(
                         when (currentState.transactionType) {
                             TransactionType.EXPENSE -> {
                                 // Используем UseCase с валютой
-                                val result = addExpenseUseCase(
-                                    amount = amountDouble,
-                                    currency = currentState.selectedCurrency,
-                                    categoryId = currentState.selectedCategory!!.id,
-                                    description = currentState.description.ifBlank { null },
-                                    date = currentState.selectedDate,
-                                    bankName = currentState.selectedBank?.name,
-                                    bankCommission = currentState.selectedBank?.commissionPercent
-                                )
+                                val result = if (
+                                    currentState.isExactAmountEnabled &&
+                                    currentState.exactEurAmount.isNotBlank() &&
+                                    currentState.selectedCurrency != "EUR"
+                                ) {
+                                    val exactEur = currentState.exactEurAmount.toDoubleOrNull()
+                                    if (exactEur == null || exactEur <= 0) {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = context.getString(R.string.error_enter_valid_eur)
+                                        )
+                                        return@launch
+                                    }
+                                    addExpenseUseCase.addWithExactEurAmount(
+                                        originalAmount = amountDouble,
+                                        originalCurrency = currentState.selectedCurrency,
+                                        exactEurAmount = exactEur,
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = currentState.selectedBank?.name,
+                                        bankCommission = currentState.selectedBank?.commissionPercent
+                                    )
+                                } else {
+                                    addExpenseUseCase(
+                                        amount = amountDouble,
+                                        currency = currentState.selectedCurrency,
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = currentState.selectedBank?.name,
+                                        bankCommission = currentState.selectedBank?.commissionPercent
+                                    )
+                                }
 
                                 when (result) {
                                     is AddExpenseResult.Success -> {
@@ -567,7 +617,7 @@ class TransactionFormViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showError = "Ошибка при сохранении: ${e.message}"
+                    showError = context.getString(R.string.error_saving, e.message ?: "")
                 )
             }
         }

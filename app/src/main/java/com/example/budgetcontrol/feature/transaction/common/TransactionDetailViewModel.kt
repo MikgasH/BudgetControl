@@ -1,7 +1,9 @@
 package com.example.budgetcontrol.feature.transaction.common
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
@@ -12,6 +14,7 @@ import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +31,7 @@ data class TransactionDetailUiState(
 
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
     private val categoryRepository: CategoryRepository
@@ -36,9 +40,6 @@ class TransactionDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TransactionDetailUiState())
     val uiState: StateFlow<TransactionDetailUiState> = _uiState.asStateFlow()
 
-    /**
-     * Загрузка транзакции
-     */
     fun loadTransaction(transactionId: String, transactionType: TransactionType) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -61,26 +62,23 @@ class TransactionDetailViewModel @Inject constructor(
                     transaction = transaction,
                     category = category,
                     isLoading = false,
-                    showError = if (transaction == null) "Транзакция не найдена" else null
+                    showError = if (transaction == null) context.getString(R.string.transaction_not_found) else null
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showError = "Ошибка загрузки: ${e.message}"
+                    showError = context.getString(R.string.error_loading, e.message ?: "")
                 )
             }
         }
     }
 
-    /**
-     * Удаление транзакции
-     */
     fun deleteTransaction() {
         viewModelScope.launch {
             val transaction = _uiState.value.transaction
             if (transaction == null) {
                 _uiState.value = _uiState.value.copy(
-                    showError = "Транзакция не найдена"
+                    showError = context.getString(R.string.transaction_not_found)
                 )
                 return@launch
             }
@@ -98,15 +96,12 @@ class TransactionDetailViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isDeleted = true)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    showError = "Ошибка при удалении: ${e.message}"
+                    showError = context.getString(R.string.error_deleting, e.message ?: "")
                 )
             }
         }
     }
 
-    /**
-     * Очистка ошибки
-     */
     fun clearError() {
         _uiState.value = _uiState.value.copy(showError = null)
     }

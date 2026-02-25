@@ -18,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.budgetcontrol.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,7 +51,7 @@ fun PeriodRangePicker(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Выберите период",
+                    text = stringResource(R.string.select_period),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -72,7 +74,7 @@ fun PeriodRangePicker(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = "Предыдущий месяц"
+                            contentDescription = stringResource(R.string.previous_month)
                         )
                     }
 
@@ -93,7 +95,7 @@ fun PeriodRangePicker(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Следующий месяц"
+                            contentDescription = stringResource(R.string.next_month)
                         )
                     }
                 }
@@ -103,7 +105,7 @@ fun PeriodRangePicker(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { day ->
+                    listOf(stringResource(R.string.day_mon), stringResource(R.string.day_tue), stringResource(R.string.day_wed), stringResource(R.string.day_thu), stringResource(R.string.day_fri), stringResource(R.string.day_sat), stringResource(R.string.day_sun)).forEach { day ->
                         Text(
                             text = day,
                             style = MaterialTheme.typography.bodySmall,
@@ -148,8 +150,8 @@ fun PeriodRangePicker(
                 if (startDate != null) {
                     Text(
                         text = when {
-                            endDate != null -> "Период: ${formatPeriod(startDate!!, endDate!!)}"
-                            else -> "Начало: ${SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(startDate!!))}"
+                            endDate != null -> stringResource(R.string.period_range_display, formatPeriod(startDate!!, endDate!!))
+                            else -> stringResource(R.string.start_date_display, SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(startDate!!)))
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
@@ -177,7 +179,7 @@ fun PeriodRangePicker(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "За все время",
+                            text = stringResource(R.string.all_time),
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Medium
                             )
@@ -193,7 +195,7 @@ fun PeriodRangePicker(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("ОТМЕНА")
+                        Text(stringResource(R.string.cancel_upper))
                     }
 
                     if (startDate != null && endDate != null) {
@@ -203,7 +205,7 @@ fun PeriodRangePicker(
                                 onDismiss()
                             }
                         ) {
-                            Text("ВЫБРАТЬ")
+                            Text(stringResource(R.string.select_upper))
                         }
                     }
                 }

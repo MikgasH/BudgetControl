@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 
 @Composable
@@ -43,7 +45,7 @@ fun PieChart(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Всего",
+                    text = stringResource(R.string.pie_chart_total),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

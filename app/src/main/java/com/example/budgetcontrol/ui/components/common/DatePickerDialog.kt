@@ -18,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.budgetcontrol.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -51,7 +53,7 @@ fun DatePickerDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Выбор даты",
+                    text = stringResource(R.string.date_selection),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -74,7 +76,7 @@ fun DatePickerDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = "Предыдущий месяц"
+                            contentDescription = stringResource(R.string.previous_month)
                         )
                     }
 
@@ -100,7 +102,7 @@ fun DatePickerDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "Следующий месяц"
+                                contentDescription = stringResource(R.string.next_month)
                             )
                         }
                     } else {
@@ -114,7 +116,7 @@ fun DatePickerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { day ->
+                    listOf(stringResource(R.string.day_mon), stringResource(R.string.day_tue), stringResource(R.string.day_wed), stringResource(R.string.day_thu), stringResource(R.string.day_fri), stringResource(R.string.day_sat), stringResource(R.string.day_sun)).forEach { day ->
                         Text(
                             text = day,
                             style = MaterialTheme.typography.bodySmall,
@@ -148,7 +150,7 @@ fun DatePickerDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("ОТМЕНА")
+                        Text(stringResource(R.string.cancel_upper))
                     }
                 }
             }

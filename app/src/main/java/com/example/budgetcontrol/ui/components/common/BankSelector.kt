@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 
 private fun formatCommission(percent: Double): String {
@@ -45,7 +47,7 @@ fun BankSelector(
             value = displayValue,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Банк / Способ оплаты") },
+            label = { Text(stringResource(R.string.bank_payment_method)) },
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },

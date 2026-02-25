@@ -12,11 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
@@ -86,21 +88,21 @@ fun TransactionFormScreen(
             title = {
                 Text(
                     text = if (mode == TransactionFormMode.EDIT) {
-                        "Операция была изменена"
+                        stringResource(R.string.form_modified_title)
                     } else {
-                        "Форма не пуста"
+                        stringResource(R.string.form_not_empty_title)
                     }
                 )
             },
-            text = { Text("Выйти без сохранения?") },
+            text = { Text(stringResource(R.string.exit_without_saving)) },
             confirmButton = {
                 TextButton(onClick = onBackClick) {
-                    Text("ДА")
+                    Text(stringResource(R.string.yes_upper))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
-                    Text("НЕТ")
+                    Text(stringResource(R.string.no_upper))
                 }
             }
         )
@@ -138,7 +140,7 @@ fun TransactionFormScreen(
                     ) {
                         Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад",
+                            contentDescription = stringResource(R.string.back),
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -177,6 +179,8 @@ fun TransactionFormScreen(
                 onTransactionTypeChange = viewModel::changeTransactionType,
                 onCurrencySelect = viewModel::selectCurrency,
                 onBankSelect = viewModel::selectBank,
+                onExactAmountToggle = viewModel::toggleExactAmount,
+                onExactEurAmountChange = viewModel::updateExactEurAmount,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -195,6 +199,8 @@ private fun TransactionFormContent(
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
     onBankSelect: (BankEntity) -> Unit,
+    onExactAmountToggle: (Boolean) -> Unit,
+    onExactEurAmountChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (uiState.mode == TransactionFormMode.ADD) {
@@ -222,7 +228,11 @@ private fun TransactionFormContent(
             availableBanks = uiState.availableBanks,
             selectedBank = uiState.selectedBank,
             onBankSelect = onBankSelect,
-            convertedAmountPreview = uiState.convertedAmountPreview
+            convertedAmountPreview = uiState.convertedAmountPreview,
+            exactEurAmount = uiState.exactEurAmount,
+            onExactEurAmountChange = onExactEurAmountChange,
+            isExactAmountEnabled = uiState.isExactAmountEnabled,
+            onExactAmountToggle = onExactAmountToggle
         )
     } else {
         EditTransactionFormContent(
@@ -271,29 +281,19 @@ private fun EditTransactionFormContent(
             TransactionTypeDisplay(uiState.transactionType)
         }
 
-        // An expense that was originally saved in a foreign currency cannot have
-        // its amount changed in-place — the EUR value was calculated by CERPS at
-        // save time and re-calculating it here would require a full re-conversion.
-        // The user must delete and re-create the transaction to change the amount.
         val isAmountLocked = uiState.transactionType == TransactionType.EXPENSE &&
                 uiState.selectedCurrency != "EUR"
 
         com.example.budgetcontrol.ui.components.common.AmountInputCard(
-            // When locked: show the original foreign-currency amount (e.g. 150 BYN)
-            // so the user sees what they originally entered, not the converted EUR value.
             amount = if (isAmountLocked) uiState.originalAmount.toString() else uiState.amount,
             onAmountChange = onAmountChange,
             transactionType = uiState.transactionType,
             currency = uiState.selectedCurrency,
             readOnly = isAmountLocked,
             hint = if (isAmountLocked)
-                "Для изменения суммы удалите и создайте заново."
+                stringResource(R.string.amount_locked_hint)
             else null
         )
-
-        // Currency / bank selectors are intentionally hidden in EDIT mode:
-        // re-selecting a currency would require a new CERPS conversion, which
-        // is only done at creation time. The saved EUR amount is shown as-is.
 
         com.example.budgetcontrol.ui.components.common.CategorySelector(
             categories = uiState.categories,
@@ -348,7 +348,7 @@ private fun EditTransactionFormContent(
                 )
             } else {
                 Text(
-                    text = "Сохранить",
+                    text = stringResource(R.string.save),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -386,7 +386,7 @@ private fun TransactionTypeSelector(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "РАСХОДЫ",
+                    text = stringResource(R.string.expenses_upper),
                     modifier = Modifier.padding(
                         horizontal = 4.dp,
                         vertical = 16.dp
@@ -421,7 +421,7 @@ private fun TransactionTypeSelector(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "ДОХОДЫ",
+                    text = stringResource(R.string.incomes_upper),
                     modifier = Modifier.padding(
                         horizontal = 4.dp,
                         vertical = 16.dp
@@ -470,7 +470,7 @@ private fun TransactionTypeDisplay(transactionType: TransactionType) {
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "РАСХОДЫ",
+                    text = stringResource(R.string.expenses_upper),
                     modifier = Modifier.padding(
                         horizontal = 4.dp,
                         vertical = 16.dp
@@ -503,7 +503,7 @@ private fun TransactionTypeDisplay(transactionType: TransactionType) {
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "ДОХОДЫ",
+                    text = stringResource(R.string.incomes_upper),
                     modifier = Modifier.padding(
                         horizontal = 4.dp,
                         vertical = 16.dp
@@ -537,8 +537,8 @@ private fun DescriptionField(
     OutlinedTextField(
         value = description,
         onValueChange = onDescriptionChange,
-        label = { Text("Комментарий") },
-        placeholder = { Text("Добавьте комментарий к операции") },
+        label = { Text(stringResource(R.string.comment_label)) },
+        placeholder = { Text(stringResource(R.string.comment_placeholder)) },
         modifier = Modifier.fillMaxWidth(),
         maxLines = 3,
         shape = RoundedCornerShape(12.dp),
@@ -550,6 +550,7 @@ private fun DescriptionField(
     )
 }
 
+@Composable
 private fun getTitle(
     mode: TransactionFormMode,
     transactionType: TransactionType,
@@ -558,19 +559,20 @@ private fun getTitle(
     return when (mode) {
         TransactionFormMode.ADD -> {
             when (transactionType) {
-                TransactionType.EXPENSE -> "Добавить трату"
-                TransactionType.INCOME -> "Добавить доход"
+                TransactionType.EXPENSE -> stringResource(R.string.add_expense)
+                TransactionType.INCOME -> stringResource(R.string.add_income)
             }
         }
         TransactionFormMode.EDIT -> {
             categoryName?.uppercase() ?: when (transactionType) {
-                TransactionType.EXPENSE -> "РЕДАКТИРОВАНИЕ РАСХОДА"
-                TransactionType.INCOME -> "РЕДАКТИРОВАНИЕ ДОХОДА"
+                TransactionType.EXPENSE -> stringResource(R.string.edit_expense_upper)
+                TransactionType.INCOME -> stringResource(R.string.edit_income_upper)
             }
         }
     }
 }
 
+@Composable
 private fun getContentTitle(
     mode: TransactionFormMode,
     transactionType: TransactionType
@@ -578,14 +580,14 @@ private fun getContentTitle(
     return when (mode) {
         TransactionFormMode.ADD -> {
             when (transactionType) {
-                TransactionType.EXPENSE -> "Добавить трату"
-                TransactionType.INCOME -> "Добавить доход"
+                TransactionType.EXPENSE -> stringResource(R.string.add_expense)
+                TransactionType.INCOME -> stringResource(R.string.add_income)
             }
         }
         TransactionFormMode.EDIT -> {
             when (transactionType) {
-                TransactionType.EXPENSE -> "Редактировать трату"
-                TransactionType.INCOME -> "Редактировать доход"
+                TransactionType.EXPENSE -> stringResource(R.string.edit_expense)
+                TransactionType.INCOME -> stringResource(R.string.edit_income)
             }
         }
     }

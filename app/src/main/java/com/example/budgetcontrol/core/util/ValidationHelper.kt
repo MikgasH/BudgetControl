@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.core.util
 
+import android.content.Context
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 
 /**
@@ -18,11 +20,11 @@ object ValidationHelper {
     /**
      * Валидация суммы
      */
-    fun validateAmount(amount: String): ValidationResult {
+    fun validateAmount(context: Context, amount: String): ValidationResult {
         return when {
-            amount.isBlank() -> ValidationResult.Error("Введите сумму")
-            amount.toDoubleOrNull() == null -> ValidationResult.Error("Введите корректную сумму")
-            amount.toDouble() <= 0 -> ValidationResult.Error("Сумма должна быть больше нуля")
+            amount.isBlank() -> ValidationResult.Error(context.getString(R.string.validation_enter_amount))
+            amount.toDoubleOrNull() == null -> ValidationResult.Error(context.getString(R.string.validation_enter_valid_amount))
+            amount.toDouble() <= 0 -> ValidationResult.Error(context.getString(R.string.validation_amount_positive))
             else -> ValidationResult.Success
         }
     }
@@ -30,9 +32,9 @@ object ValidationHelper {
     /**
      * Валидация категории
      */
-    fun validateCategory(category: Category?): ValidationResult {
+    fun validateCategory(context: Context, category: Category?): ValidationResult {
         return if (category == null) {
-            ValidationResult.Error("Выберите категорию")
+            ValidationResult.Error(context.getString(R.string.validation_select_category))
         } else {
             ValidationResult.Success
         }
@@ -57,14 +59,15 @@ object ValidationHelper {
      * Валидация всех полей транзакции
      */
     fun validateTransaction(
+        context: Context,
         amount: String,
         category: Category?
     ): ValidationResult {
-        validateAmount(amount).let { result ->
+        validateAmount(context, amount).let { result ->
             if (result is ValidationResult.Error) return result
         }
 
-        validateCategory(category).let { result ->
+        validateCategory(context, category).let { result ->
             if (result is ValidationResult.Error) return result
         }
 

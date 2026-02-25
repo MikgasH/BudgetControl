@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.common.TransactionItem
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.theme.AppBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,7 +39,7 @@ fun ExpensesScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Все расходы",
+                            text = stringResource(R.string.all_expenses),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -45,7 +47,7 @@ fun ExpensesScreen(
                         IconButton(onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Назад"
+                                contentDescription = stringResource(R.string.back)
                             )
                         }
                     },
@@ -53,7 +55,7 @@ fun ExpensesScreen(
                         IconButton(onClick = onStatisticsClick) {
                             Icon(
                                 imageVector = Icons.Default.PieChart,
-                                contentDescription = "Статистика",
+                                contentDescription = stringResource(R.string.statistics),
                                 tint = Color.White
                             )
                         }
@@ -69,7 +71,7 @@ fun ExpensesScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Все расходы",
+                            text = stringResource(R.string.all_expenses),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -77,7 +79,7 @@ fun ExpensesScreen(
                         IconButton(onClick = onStatisticsClick) {
                             Icon(
                                 imageVector = Icons.Default.PieChart,
-                                contentDescription = "Статистика",
+                                contentDescription = stringResource(R.string.statistics),
                                 tint = Color.White
                             )
                         }
@@ -97,7 +99,7 @@ fun ExpensesScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Добавить трату",
+                    contentDescription = stringResource(R.string.add_expense),
                     tint = Color.White
                 )
             }
@@ -123,7 +125,7 @@ fun ExpensesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Всего потрачено",
+                        text = stringResource(R.string.total_spent),
                         style = MaterialTheme.typography.titleMedium,
                         color = AppBlue,
                         fontWeight = FontWeight.Medium
@@ -158,14 +160,14 @@ fun ExpensesScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "У вас пока нет трат",
+                                text = stringResource(R.string.no_expenses_yet),
                                 style = MaterialTheme.typography.headlineSmall,
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Нажмите кнопку + чтобы добавить первую трату",
+                                text = stringResource(R.string.add_first_expense),
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant

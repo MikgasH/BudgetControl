@@ -1,32 +1,34 @@
 package com.example.budgetcontrol.core.domain.usecase
 
+import android.content.Context
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.FirestoreExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class SyncDataUseCase @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val localRepository: ExpenseRepository,
     private val remoteRepository: FirestoreExpenseRepository
 ) {
 
-    // Создать backup (загрузить локальные данные в облако)
     suspend fun backupToCloud(): Result<String> {
         return try {
             val localExpenses = localRepository.getAllExpenses().first()
             val success = remoteRepository.saveAllExpenses(localExpenses)
 
             if (success) {
-                Result.success("Backup создан успешно! Сохранено ${localExpenses.size} трат.")
+                Result.success(context.getString(R.string.backup_success, localExpenses.size))
             } else {
-                Result.failure(Exception("Ошибка при создании backup"))
+                Result.failure(Exception(context.getString(R.string.backup_create_error)))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // Восстановить данные (загрузить из облака в локальную БД)
     suspend fun restoreFromCloud(): Result<String> {
         return try {
             val remoteExpenses = remoteRepository.getAllExpenses()
@@ -39,13 +41,12 @@ class SyncDataUseCase @Inject constructor(
             val newLocalCount = localRepository.getAllExpenses().first().size
             val actuallyRestored = newLocalCount - localExpensesCount
 
-            Result.success("Синхронизация завершена! Обработано ${remoteExpenses.size} трат из облака.")
+            Result.success(context.getString(R.string.sync_complete, remoteExpenses.size))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    // Синхронизировать одну трату при добавлении
     suspend fun syncExpenseToCloud(expenseId: String): Result<Unit> {
         return try {
             val expense = localRepository.getExpenseById(expenseId)
@@ -54,10 +55,10 @@ class SyncDataUseCase @Inject constructor(
                 if (success) {
                     Result.success(Unit)
                 } else {
-                    Result.failure(Exception("Ошибка синхронизации"))
+                    Result.failure(Exception(context.getString(R.string.sync_error)))
                 }
             } else {
-                Result.failure(Exception("Трата не найдена"))
+                Result.failure(Exception(context.getString(R.string.expense_not_found)))
             }
         } catch (e: Exception) {
             Result.failure(e)

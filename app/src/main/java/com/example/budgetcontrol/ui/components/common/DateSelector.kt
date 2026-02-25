@@ -10,8 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import java.text.SimpleDateFormat
@@ -29,7 +31,7 @@ fun DateSelector(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "Дата",
+            text = stringResource(R.string.date_label),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -52,7 +54,7 @@ fun DateSelector(
             IconButton(onClick = onShowDatePicker) {
                 Icon(
                     imageVector = Icons.Default.CalendarToday,
-                    contentDescription = "Выбрать дату",
+                    contentDescription = stringResource(R.string.select_date),
                     tint = AppBlue
                 )
             }
@@ -78,15 +80,15 @@ private fun QuickDateOptions(
     val quickDates = listOf(
         today to Pair(
             SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(today)),
-            "сегодня"
+            stringResource(R.string.today)
         ),
         yesterday to Pair(
             SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(yesterday)),
-            "вчера"
+            stringResource(R.string.yesterday)
         ),
         dayBeforeYesterday to Pair(
             SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(dayBeforeYesterday)),
-            "позавчера"
+            stringResource(R.string.day_before_yesterday)
         )
     )
 
@@ -164,7 +166,7 @@ private fun QuickDateOptions(
                             maxLines = 1
                         )
                         Text(
-                            text = "выбрано",
+                            text = stringResource(R.string.selected),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold

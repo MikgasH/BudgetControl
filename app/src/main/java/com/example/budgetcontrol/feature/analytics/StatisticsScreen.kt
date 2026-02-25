@@ -14,9 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 
@@ -33,7 +35,7 @@ fun StatisticsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Статистика",
+                        text = stringResource(R.string.statistics),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -41,7 +43,7 @@ fun StatisticsScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Назад"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -82,7 +84,7 @@ fun StatisticsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.selectedPeriod.displayName,
+                            text = stringResource(uiState.selectedPeriod.displayNameRes),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 16.dp)
@@ -96,7 +98,7 @@ fun StatisticsScreen(
                             )
                         } else {
                             Text(
-                                text = "Нет данных за выбранный период",
+                                text = stringResource(R.string.no_data_for_selected_period),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(40.dp)
@@ -135,7 +137,7 @@ private fun PeriodSelector(
             TimePeriod.values().forEach { period ->
                 FilterChip(
                     onClick = { onPeriodSelected(period) },
-                    label = { Text(period.displayName) },
+                    label = { Text(stringResource(period.displayNameRes)) },
                     selected = selectedPeriod == period,
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(
@@ -194,7 +196,7 @@ private fun CategoryStatisticItem(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${statistic.expenseCount} трат",
+                    text = "${statistic.expenseCount}${stringResource(R.string.expenses_count_suffix)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -13,8 +13,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
@@ -74,7 +76,7 @@ fun TransactionItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = category?.name ?: "Неизвестная категория",
+                    text = category?.name ?: stringResource(R.string.unknown_category),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -127,7 +129,7 @@ fun TransactionItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Удалить",
+                        contentDescription = stringResource(R.string.delete_action),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -188,7 +190,7 @@ fun TransactionItemDetailed(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = category?.name ?: "Неизвестная категория",
+                    text = category?.name ?: stringResource(R.string.unknown_category),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
@@ -196,7 +198,7 @@ fun TransactionItemDetailed(
                 )
 
                 Text(
-                    text = "Основной",
+                    text = stringResource(R.string.main_account),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Normal
                     ),

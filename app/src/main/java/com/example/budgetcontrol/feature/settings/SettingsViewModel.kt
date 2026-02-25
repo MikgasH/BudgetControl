@@ -1,9 +1,15 @@
 package com.example.budgetcontrol.feature.settings
 
+import android.content.Context
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.usecase.SyncDataUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,12 +21,15 @@ data class SettingsUiState(
     val message: String? = null,
     val isError: Boolean = false,
     val cloudExpensesCount: Int = -1,
-    val currentOperation: String? = null
+    val currentOperation: String? = null,
+    val currentLanguage: String = ""
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val syncDataUseCase: SyncDataUseCase
+    @ApplicationContext private val context: Context,
+    private val syncDataUseCase: SyncDataUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -28,6 +37,27 @@ class SettingsViewModel @Inject constructor(
 
     init {
         loadCloudExpensesCount()
+        observeLanguage()
+    }
+
+    private fun observeLanguage() {
+        viewModelScope.launch {
+            preferencesManager.languageFlow.collect { tag ->
+                _uiState.value = _uiState.value.copy(currentLanguage = tag)
+            }
+        }
+    }
+
+    fun setLanguage(tag: String) {
+        viewModelScope.launch {
+            preferencesManager.setLanguage(tag)
+            val locales = if (tag.isEmpty()) {
+                LocaleListCompat.getEmptyLocaleList()
+            } else {
+                LocaleListCompat.forLanguageTags(tag)
+            }
+            AppCompatDelegate.setApplicationLocales(locales)
+        }
     }
 
     private fun loadCloudExpensesCount() {
@@ -59,13 +89,12 @@ class SettingsViewModel @Inject constructor(
                         isError = false,
                         currentOperation = null
                     )
-                    // Обновляем счетчик
                     loadCloudExpensesCount()
                 },
                 onFailure = { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        message = "Ошибка backup: ${exception.message}",
+                        message = context.getString(R.string.error_backup, exception.message ?: ""),
                         isError = true,
                         currentOperation = null
                     )
@@ -96,7 +125,7 @@ class SettingsViewModel @Inject constructor(
                 onFailure = { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        message = "Ошибка восстановления: ${exception.message}",
+                        message = context.getString(R.string.error_restore, exception.message ?: ""),
                         isError = true,
                         currentOperation = null
                     )

@@ -17,7 +17,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.example.budgetcontrol.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -89,7 +91,7 @@ fun MainScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Настройки",
+                            contentDescription = stringResource(R.string.settings),
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -111,7 +113,7 @@ fun MainScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Добавить операцию",
+                    contentDescription = stringResource(R.string.add_operation),
                     tint = Color.White
                 )
             }
@@ -197,7 +199,7 @@ private fun ExpenseIncomeToggle(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "РАСХОДЫ",
+                    text = stringResource(R.string.expenses_upper),
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
@@ -216,7 +218,7 @@ private fun ExpenseIncomeToggle(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "ДОХОДЫ",
+                    text = stringResource(R.string.incomes_upper),
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
@@ -249,7 +251,7 @@ private fun FixedPeriodTypeSelector(
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
-                    text = period.displayName,
+                    text = stringResource(period.displayNameRes),
                     modifier = Modifier.padding(
                         horizontal = 8.dp,
                         vertical = 8.dp
@@ -296,7 +298,7 @@ private fun PeriodNavigationCard(
                     IconButton(onClick = { onNavigate(-1) }) {
                         Icon(
                             imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = "Предыдущий период"
+                            contentDescription = stringResource(R.string.previous_period)
                         )
                     }
                 }
@@ -319,7 +321,7 @@ private fun PeriodNavigationCard(
                         IconButton(onClick = { onNavigate(1) }) {
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "Следующий период"
+                                contentDescription = stringResource(R.string.next_period)
                             )
                         }
                     } else {
@@ -353,9 +355,9 @@ private fun PeriodNavigationCard(
                             uiState.isAllTimePeriod -> {
                                 Text(
                                     text = if (uiState.selectedOperationType == OperationType.EXPENSES) {
-                                        "Нет расходов\nза все время"
+                                        stringResource(R.string.no_expenses_all_time)
                                     } else {
-                                        "Нет доходов\nза все время"
+                                        stringResource(R.string.no_incomes_all_time)
                                     },
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Medium
@@ -368,9 +370,9 @@ private fun PeriodNavigationCard(
                                 if (uiState.currentPeriodIndex == 0) {
                                     Text(
                                         text = if (uiState.selectedOperationType == OperationType.EXPENSES) {
-                                            "Сегодня\nрасходов\nне было"
+                                            stringResource(R.string.no_expenses_today)
                                         } else {
-                                            "Сегодня\nдоходов\nне было"
+                                            stringResource(R.string.no_incomes_today)
                                         },
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Medium
@@ -380,7 +382,7 @@ private fun PeriodNavigationCard(
                                     )
                                 } else {
                                     Text(
-                                        text = "Нет данных\nза этот день",
+                                        text = stringResource(R.string.no_data_this_day),
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Medium
                                         ),
@@ -391,7 +393,7 @@ private fun PeriodNavigationCard(
                             }
                             else -> {
                                 Text(
-                                    text = "Нет данных\nза этот период",
+                                    text = stringResource(R.string.no_data_this_period),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Medium
                                     ),

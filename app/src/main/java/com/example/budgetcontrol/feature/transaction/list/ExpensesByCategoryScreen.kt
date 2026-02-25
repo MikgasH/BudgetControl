@@ -18,6 +18,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.components.common.TransactionItemDetailed
 import com.example.budgetcontrol.feature.transaction.common.TransactionsByCategoryViewModel
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.theme.AppBlue
 import java.text.SimpleDateFormat
 import java.util.*
@@ -65,7 +67,7 @@ fun ExpensesByCategoryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Назад",
+                            contentDescription = stringResource(R.string.back),
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
@@ -77,7 +79,7 @@ fun ExpensesByCategoryScreen(
                         modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text(
-                            text = uiState.category?.name?.uppercase() ?: "РАСХОДЫ",
+                            text = uiState.category?.name?.uppercase() ?: stringResource(R.string.expenses_upper),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
@@ -102,7 +104,7 @@ fun ExpensesByCategoryScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Добавить трату",
+                    contentDescription = stringResource(R.string.add_expense),
                     tint = Color.White
                 )
             }
@@ -138,7 +140,7 @@ fun ExpensesByCategoryScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = uiState.showError ?: "Неизвестная ошибка",
+                            text = uiState.showError ?: stringResource(R.string.unknown_error),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -147,6 +149,7 @@ fun ExpensesByCategoryScreen(
             }
 
             else -> {
+                val dateFormatPattern = stringResource(R.string.date_format_full)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -158,7 +161,7 @@ fun ExpensesByCategoryScreen(
                     val groupedTransactions = uiState.transactions.groupBy { transaction ->
                         val calendar = Calendar.getInstance()
                         calendar.timeInMillis = transaction.date
-                        SimpleDateFormat("d MMMM yyyy 'г.'", Locale.getDefault()).format(calendar.time)
+                        SimpleDateFormat(dateFormatPattern, Locale.getDefault()).format(calendar.time)
                     }
 
                     groupedTransactions.forEach { (date, transactions) ->

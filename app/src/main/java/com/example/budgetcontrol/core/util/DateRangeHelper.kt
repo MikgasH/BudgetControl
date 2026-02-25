@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.core.util
 
+import android.content.Context
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.feature.main.PeriodType
 import java.text.SimpleDateFormat
 import java.util.*
@@ -128,6 +130,7 @@ object DateRangeHelper {
      * Получить текстовое представление периода
      */
     fun getPeriodDisplayText(
+        context: Context,
         periodType: PeriodType,
         periodOffset: Int = 0,
         customStartDate: Long? = null,
@@ -136,7 +139,7 @@ object DateRangeHelper {
     ): String {
 
         if (isAllTimePeriod) {
-            return "За все время"
+            return context.getString(R.string.period_all_time)
         }
 
         if (periodType == PeriodType.PERIOD && customStartDate != null && customEndDate != null) {
@@ -151,10 +154,11 @@ object DateRangeHelper {
         return when (periodType) {
             PeriodType.DAY -> {
                 calendar.add(Calendar.DAY_OF_MONTH, periodOffset)
+                val dateStr = android.text.format.DateFormat.format("d MMMM", calendar).toString()
                 when (periodOffset) {
-                    0 -> "Сегодня, ${android.text.format.DateFormat.format("d MMMM", calendar)}"
-                    -1 -> "Вчера, ${android.text.format.DateFormat.format("d MMMM", calendar)}"
-                    1 -> "Завтра, ${android.text.format.DateFormat.format("d MMMM", calendar)}"
+                    0 -> context.getString(R.string.period_today, dateStr)
+                    -1 -> context.getString(R.string.period_yesterday, dateStr)
+                    1 -> context.getString(R.string.period_tomorrow, dateStr)
                     else -> android.text.format.DateFormat.format("d MMMM yyyy", calendar).toString()
                 }
             }
@@ -180,7 +184,7 @@ object DateRangeHelper {
                 calendar.get(Calendar.YEAR).toString()
             }
 
-            else -> "Период"
+            else -> context.getString(R.string.period_label)
         }
     }
 

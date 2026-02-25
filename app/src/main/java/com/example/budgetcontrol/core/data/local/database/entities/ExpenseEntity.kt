@@ -28,5 +28,6 @@ data class ExpenseEntity(
     val originalCurrency: String = "EUR",
     val exchangeRate: Double? = null,
     val bankName: String? = null,
-    val bankCommission: Double? = null
+    val bankCommission: Double? = null,
+    val rateSource: String? = null
 )

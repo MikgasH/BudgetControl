@@ -99,6 +99,8 @@ dependencies {
 
     implementation("co.yml:ycharts:2.1.0")
 
+    implementation("androidx.appcompat:appcompat:1.7.0")
+
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-firestore-ktx")
 

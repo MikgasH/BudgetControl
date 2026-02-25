@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.budgetcontrol.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +28,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Настройки",
+                        text = stringResource(R.string.settings),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -34,7 +36,7 @@ fun SettingsScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Назад"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -67,13 +69,13 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Синхронизация данных",
+                        text = stringResource(R.string.data_sync),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Создавайте backup ваших данных в облаке",
+                        text = stringResource(R.string.create_backup_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -81,7 +83,7 @@ fun SettingsScreen(
                     // Статус облачных данных
                     if (uiState.cloudExpensesCount >= 0) {
                         Text(
-                            text = "В облаке: ${uiState.cloudExpensesCount} трат",
+                            text = stringResource(R.string.cloud_expenses_count, uiState.cloudExpensesCount),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -109,7 +111,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text("Создать Backup")
+                        Text(stringResource(R.string.create_backup))
                     }
 
                     // Кнопка Restore
@@ -134,7 +136,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text("Восстановить данные")
+                        Text(stringResource(R.string.restore_data))
                     }
                 }
             }
@@ -180,6 +182,47 @@ fun SettingsScreen(
                 }
             }
 
+            // Language selector
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.language),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    val languages = listOf(
+                        "" to stringResource(R.string.language_system),
+                        "en" to stringResource(R.string.language_english),
+                        "ru" to stringResource(R.string.language_russian)
+                    )
+
+                    languages.forEach { (tag, name) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = uiState.currentLanguage == tag,
+                                onClick = { viewModel.setLanguage(tag) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = name)
+                        }
+                    }
+                }
+            }
+
             // Информационная секция
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -189,18 +232,18 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "О приложении",
+                        text = stringResource(R.string.about_app),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Budget Control v1.0",
+                        text = stringResource(R.string.app_version),
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     Text(
-                        text = "Ваш персональный помощник для управления финансами",
+                        text = stringResource(R.string.app_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

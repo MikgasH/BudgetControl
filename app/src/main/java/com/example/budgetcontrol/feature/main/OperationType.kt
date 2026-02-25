@@ -1,6 +1,9 @@
 package com.example.budgetcontrol.feature.main
 
-enum class OperationType(val displayName: String) {
-    EXPENSES("РАСХОДЫ"),
-    INCOMES("ДОХОДЫ")
+import androidx.annotation.StringRes
+import com.example.budgetcontrol.R
+
+enum class OperationType(@StringRes val displayNameRes: Int) {
+    EXPENSES(R.string.expenses_upper),
+    INCOMES(R.string.incomes_upper)
 }

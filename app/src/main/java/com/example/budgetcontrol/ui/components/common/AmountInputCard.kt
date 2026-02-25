@@ -13,6 +13,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
 import java.util.Currency
@@ -28,8 +30,8 @@ fun AmountInputCard(
     hint: String? = null
 ) {
     val title = when (transactionType) {
-        TransactionType.EXPENSE -> "Сумма траты"
-        TransactionType.INCOME -> "Сумма дохода"
+        TransactionType.EXPENSE -> stringResource(R.string.expense_amount)
+        TransactionType.INCOME -> stringResource(R.string.income_amount)
     }
 
     val currencySymbol = try {

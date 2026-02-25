@@ -16,9 +16,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
@@ -50,8 +52,8 @@ fun TransactionDetailContent(
 
         // Категория
         DetailItem(
-            label = "Категория",
-            value = category?.name ?: "Неизвестная категория",
+            label = stringResource(R.string.category),
+            value = category?.name ?: stringResource(R.string.unknown_category),
             icon = getCategoryIcon(category?.iconName),
             iconColor = category?.let {
                 Color(android.graphics.Color.parseColor(it.color))
@@ -60,14 +62,14 @@ fun TransactionDetailContent(
 
         // Дата
         DetailItem(
-            label = "Дата",
-            value = SimpleDateFormat("d MMMM yyyy 'г.'", Locale.getDefault())
+            label = stringResource(R.string.detail_date),
+            value = SimpleDateFormat(stringResource(R.string.date_format_full), Locale.getDefault())
                 .format(Date(transaction.date))
         )
 
         // Время
         DetailItem(
-            label = "Время",
+            label = stringResource(R.string.detail_time),
             value = SimpleDateFormat("HH:mm", Locale.getDefault())
                 .format(Date(transaction.date))
         )
@@ -77,7 +79,7 @@ fun TransactionDetailContent(
             transaction.originalCurrency != "EUR"
         ) {
             val originalFormatted = String.format("%.2f", transaction.originalAmount)
-                .trimEnd('0').trimEnd('.')
+                .trimEnd('0').trimEnd('.', ',')
             val displayName = try {
                 Currency.getInstance(transaction.originalCurrency)
                     .getDisplayName(Locale.getDefault())
@@ -85,7 +87,7 @@ fun TransactionDetailContent(
                 transaction.originalCurrency
             }
             DetailItem(
-                label = "Оригинальная сумма",
+                label = stringResource(R.string.original_amount),
                 value = "$originalFormatted ${transaction.originalCurrency} ($displayName)"
             )
 
@@ -98,17 +100,44 @@ fun TransactionDetailContent(
                         commission.toString()
                     " ($trimmed%)"
                 } else ""
-                DetailItem(
-                    label = "Банк",
-                    value = "$name$commissionStr"
-                )
+                val bankLabel = "$name$commissionStr"
+                val isUserCorrected = transaction.rateSource == "USER_CORRECTED"
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.bank),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = bankLabel,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (isUserCorrected) {
+                            Text(
+                                text = "· " + stringResource(R.string.user_corrected),
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
             }
         }
 
         // Комментарий
         transaction.description?.takeIf { it.isNotBlank() }?.let { description ->
             DetailItem(
-                label = "Комментарий",
+                label = stringResource(R.string.detail_comment),
                 value = description
             )
         }
@@ -125,7 +154,7 @@ fun TransactionDetailContent(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "УДАЛИТЬ",
+                text = stringResource(R.string.delete_upper),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 )
