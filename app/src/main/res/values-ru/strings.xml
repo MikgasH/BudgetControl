@@ -67,6 +67,12 @@
     <string name="app_version">Budget Control v1.0</string>
     <string name="app_description">Ваш персональный помощник для управления финансами</string>
 
+    <!-- Appearance -->
+    <string name="appearance">Внешний вид</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+
     <!-- Language selector -->
     <string name="language">Язык</string>
     <string name="language_system">Системный</string>
@@ -325,4 +331,20 @@
 
     <!-- Date formats -->
     <string name="date_format_full">d MMMM yyyy \'г.\'</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Добро пожаловать в BudgetControl</string>
+    <string name="onboarding_language_title">Выберите язык</string>
+    <string name="onboarding_currency_title">Ваша основная валюта</string>
+    <string name="onboarding_currency_desc">Все расходы будут конвертированы в эту валюту</string>
+    <string name="onboarding_banks_title">Ваши банки</string>
+    <string name="onboarding_banks_desc">Выберите банки, которые вы используете для расходов в иностранной валюте</string>
+    <string name="onboarding_balance_title">Ваш текущий баланс</string>
+    <string name="onboarding_balance_desc">Необязательно — помогает точно отслеживать ваши финансы</string>
+    <string name="onboarding_ready_title">Всё готово!</string>
+    <string name="onboarding_ready_desc">Приложение настроено и готово к использованию</string>
+    <string name="onboarding_start">Начать</string>
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_skip">Пропустить</string>
+    <string name="onboarding_add_custom_bank">Добавить свой банк</string>
 </resources>

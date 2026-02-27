@@ -9,8 +9,9 @@ private val DarkColorScheme = darkColorScheme(
     primary = AppBlueLight,
     secondary = AppBlue,
     tertiary = AppBlueDark,
-    background = AppWhite,
-    surface = AppWhite,
+    background = AppDarkBackground,
+    surface = AppDarkSurface,
+    surfaceVariant = AppDarkSurfaceVariant,
     error = AppError
 )
 
@@ -32,7 +33,7 @@ fun BudgetControlTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LightColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -196,6 +196,69 @@ fun SettingsScreen(
                 }
             }
 
+            // Appearance selector
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.appearance),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    val themes = listOf(
+                        "system" to stringResource(R.string.theme_system),
+                        "light" to stringResource(R.string.theme_light),
+                        "dark" to stringResource(R.string.theme_dark)
+                    )
+
+                    val currentThemeName = themes.firstOrNull { it.first == uiState.currentTheme }?.second
+                        ?: stringResource(R.string.theme_system)
+
+                    var themeExpanded by remember { mutableStateOf(false) }
+
+                    ExposedDropdownMenuBox(
+                        expanded = themeExpanded,
+                        onExpandedChange = { themeExpanded = !themeExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = currentThemeName,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = themeExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth(),
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = themeExpanded,
+                            onDismissRequest = { themeExpanded = false }
+                        ) {
+                            themes.forEach { (tag, name) ->
+                                DropdownMenuItem(
+                                    text = { Text(name) },
+                                    onClick = {
+                                        viewModel.setTheme(tag)
+                                        themeExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Language selector
             Card(
                 modifier = Modifier.fillMaxWidth(),

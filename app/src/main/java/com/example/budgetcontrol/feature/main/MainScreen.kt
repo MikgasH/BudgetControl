@@ -1,7 +1,7 @@
 package com.example.budgetcontrol.feature.main
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -136,8 +136,6 @@ fun MainScreen(
         }
     ) { paddingValues ->
         val listState = rememberLazyListState()
-        val isEmpty = uiState.categoryStatistics.isEmpty()
-        var swipeCollapsed by remember { mutableStateOf(false) }
 
         val density = LocalDensity.current
         val fullHeight = 200.dp
@@ -179,28 +177,9 @@ fun MainScreen(
             }
         }
 
-        val scrollFraction = if (maxCollapseOffsetPx > 0f) {
+        val collapseFraction = if (maxCollapseOffsetPx > 0f) {
             (collapseOffsetPx / maxCollapseOffsetPx).coerceIn(0f, 1f)
         } else 0f
-
-        // Swipe for empty state is animated; scroll-driven is instant (follows finger)
-        val swipeTarget = if (swipeCollapsed) 1f else 0f
-        val animatedSwipeFraction by animateFloatAsState(
-            targetValue = swipeTarget,
-            animationSpec = tween(300),
-            label = "swipe_collapse"
-        )
-
-        // Sync scroll offset when swipe overrides
-        LaunchedEffect(swipeCollapsed) {
-            if (swipeCollapsed) {
-                collapseOffsetPx = maxCollapseOffsetPx
-            } else {
-                collapseOffsetPx = 0f
-            }
-        }
-
-        val collapseFraction = maxOf(animatedSwipeFraction, scrollFraction)
         val chartHeight = lerp(fullHeight, collapsedBarHeight, collapseFraction)
 
         Column(
@@ -211,7 +190,14 @@ fun MainScreen(
         ) {
             // Fixed header: toggle, period selector, chart
             Column(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                    .pointerInput(maxCollapseOffsetPx) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            collapseOffsetPx = (collapseOffsetPx - dragAmount)
+                                .coerceIn(0f, maxCollapseOffsetPx)
+                        }
+                    },
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ExpenseIncomeToggle(
@@ -235,9 +221,7 @@ fun MainScreen(
                     onNavigate = viewModel::navigatePeriod,
                     collapseFraction = collapseFraction,
                     chartHeight = chartHeight,
-                    barHeight = collapsedBarHeight,
-                    isEmpty = isEmpty,
-                    onSwipeCollapse = { collapse -> swipeCollapsed = collapse }
+                    barHeight = collapsedBarHeight
                 )
             }
 
@@ -370,9 +354,7 @@ private fun PeriodNavigationCard(
     onNavigate: (Int) -> Unit,
     collapseFraction: Float = 0f,
     chartHeight: androidx.compose.ui.unit.Dp = 200.dp,
-    barHeight: androidx.compose.ui.unit.Dp = 44.dp,
-    isEmpty: Boolean = false,
-    onSwipeCollapse: (Boolean) -> Unit = {}
+    barHeight: androidx.compose.ui.unit.Dp = 44.dp
 ) {
     val density = LocalDensity.current
     val swipeThresholdPx = with(density) { 50.dp.toPx() }
@@ -387,15 +369,6 @@ private fun PeriodNavigationCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount < -20f) {
-                        onSwipeCollapse(true)
-                    } else if (dragAmount > 20f) {
-                        onSwipeCollapse(false)
-                    }
-                }
-            }
             .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
                 if (currentUiState.isAllTimePeriod) return@pointerInput
                 var totalDrag = 0f

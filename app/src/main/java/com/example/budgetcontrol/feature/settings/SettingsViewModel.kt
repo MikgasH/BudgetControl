@@ -29,6 +29,7 @@ data class SettingsUiState(
     val cloudExpensesCount: Int = -1,
     val currentOperation: String? = null,
     val currentLanguage: String = "",
+    val currentTheme: String = "system",
     val allCurrencies: List<String> = emptyList(),
     val isCurrenciesLoading: Boolean = false,
     val currenciesError: String? = null
@@ -55,6 +56,7 @@ class SettingsViewModel @Inject constructor(
     init {
         loadCloudExpensesCount()
         observeLanguage()
+        observeTheme()
         loadCurrencies()
     }
 
@@ -63,6 +65,20 @@ class SettingsViewModel @Inject constructor(
             preferencesManager.languageFlow.collect { tag ->
                 _uiState.value = _uiState.value.copy(currentLanguage = tag)
             }
+        }
+    }
+
+    private fun observeTheme() {
+        viewModelScope.launch {
+            preferencesManager.themeFlow.collect { theme ->
+                _uiState.value = _uiState.value.copy(currentTheme = theme)
+            }
+        }
+    }
+
+    fun setTheme(theme: String) {
+        viewModelScope.launch {
+            preferencesManager.setTheme(theme)
         }
     }
 

@@ -19,10 +19,11 @@ import com.example.budgetcontrol.feature.transaction.list.IncomesByCategoryScree
 import com.example.budgetcontrol.feature.main.MainScreen
 import com.example.budgetcontrol.feature.main.OperationType
 import com.example.budgetcontrol.feature.analytics.StatisticsScreen
-import com.example.budgetcontrol.feature.settings.SettingsScreen
+import com.example.budgetcontrol.feature.onboarding.OnboardingScreen
 import com.example.budgetcontrol.feature.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
+    object Onboarding : Screen("onboarding")
     object Main : Screen("main")
     object Expenses : Screen("expenses")
     object AddExpense : Screen("add_expense")
@@ -79,11 +80,12 @@ val fadeOut = fadeOut(animationSpec = tween(ANIMATION_DURATION))
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavigation(
+    onboardingCompleted: Boolean = true,
     navController: NavHostController = rememberNavController()
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Main.route,
+        startDestination = if (onboardingCompleted) Screen.Main.route else Screen.Onboarding.route,
         // Быстрые анимации по умолчанию
         enterTransition = { slideInFromRight + fadeIn },
         exitTransition = { slideOutToLeft + fadeOut },
@@ -345,6 +347,22 @@ fun AppNavigation(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.Onboarding.route,
+            enterTransition = { fadeIn },
+            exitTransition = { fadeOut },
+            popEnterTransition = { fadeIn },
+            popExitTransition = { fadeOut }
+        ) {
+            OnboardingScreen(
+                onFinish = {
+                    navController.navigate(Screen.Main.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
             )
         }
     }

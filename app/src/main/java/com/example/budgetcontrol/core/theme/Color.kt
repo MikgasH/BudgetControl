@@ -12,3 +12,8 @@ val AppGray = Color(0xFFE0E0E0)
 val AppWhite = Color(0xFFFFFFFF)
 val AppError = Color(0xFFD32F2F)
 val AppSuccess = Color(0xFF388E3C)
+
+// Dark theme colors
+val AppDarkBackground = Color(0xFF121212)
+val AppDarkSurface = Color(0xFF1E1E1E)
+val AppDarkSurfaceVariant = Color(0xFF2C2C2C)
