@@ -13,8 +13,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
-import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 
 @Composable
@@ -29,27 +27,20 @@ fun PieChart(
     ) {
         if (data.isNotEmpty()) {
             Canvas(
-                modifier = Modifier.size(200.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
                 drawPieChart(data)
             }
 
             // Центральный текст с общей суммой
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "${String.format("%.2f", totalAmount)} €",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = stringResource(R.string.pie_chart_total),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "${String.format("%.2f", totalAmount)} €",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
         }
     }
 }
@@ -57,7 +48,7 @@ fun PieChart(
 private fun DrawScope.drawPieChart(data: List<CategoryStatistic>) {
     val center = androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2)
     val radius = size.minDimension / 2 * 0.8f
-    val strokeWidth = 40.dp.toPx()
+    val strokeWidth = size.minDimension * 0.22f
 
     var startAngle = -90f // Начинаем сверху
 

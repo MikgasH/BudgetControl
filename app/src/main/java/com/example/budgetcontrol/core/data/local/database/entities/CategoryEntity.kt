@@ -10,5 +10,8 @@ data class CategoryEntity(
     val iconName: String,
     val color: String,
     val isDefault: Boolean = false,
-    val type: String = "EXPENSE"
+    val type: String = "EXPENSE",
+    val nameKey: String? = null,
+    val isSystem: Boolean = false,
+    val usageCount: Int = 0
 )

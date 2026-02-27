@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -30,7 +31,19 @@ class PreferencesManager @Inject constructor(
         }
     }
 
+    val favoriteCurrenciesFlow: Flow<Set<String>> = dataStore.data.map { preferences ->
+        preferences[FAVORITE_CURRENCIES_KEY] ?: DEFAULT_FAVORITE_CURRENCIES
+    }
+
+    suspend fun setFavoriteCurrencies(currencies: Set<String>) {
+        dataStore.edit { preferences ->
+            preferences[FAVORITE_CURRENCIES_KEY] = currencies
+        }
+    }
+
     companion object {
         private val LANGUAGE_KEY = stringPreferencesKey("language")
+        private val FAVORITE_CURRENCIES_KEY = stringSetPreferencesKey("favorite_currencies")
+        val DEFAULT_FAVORITE_CURRENCIES = setOf("EUR", "USD", "GBP", "PLN", "BYN")
     }
 }

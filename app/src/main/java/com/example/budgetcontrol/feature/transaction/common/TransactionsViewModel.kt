@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.repository.BankRepository
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
@@ -19,8 +20,10 @@ import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseResult
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
+import com.example.budgetcontrol.core.domain.usecase.AddIncomeResult
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.ValidationHelper
+import java.util.UUID
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -60,7 +63,8 @@ data class TransactionFormUiState(
     val exactEurAmount: String = "",
     val isExactAmountEnabled: Boolean = false,
     // Оригинальная сумма в исходной валюте (заполняется только в EDIT mode)
-    val originalAmount: Double = 0.0
+    val originalAmount: Double = 0.0,
+    val favoriteCurrencies: Set<String> = emptySet()
 )
 
 enum class TransactionFormMode { ADD, EDIT }
@@ -74,7 +78,8 @@ class TransactionFormViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
     private val categoryRepository: CategoryRepository,
     private val cerpsRepository: CerpsRepository,
-    private val bankRepository: BankRepository
+    private val bankRepository: BankRepository,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionFormUiState())
@@ -91,13 +96,22 @@ class TransactionFormViewModel @Inject constructor(
 
     init {
         loadBanks()
+        observeFavoriteCurrencies()
     }
 
     private fun loadBanks() {
         viewModelScope.launch {
-            bankRepository.getAllBanks().collect { banks ->
+            bankRepository.getFavoriteBanks().collect { banks ->
                 val current = _uiState.value
                 _uiState.value = current.copy(availableBanks = banks)
+            }
+        }
+    }
+
+    private fun observeFavoriteCurrencies() {
+        viewModelScope.launch {
+            preferencesManager.favoriteCurrenciesFlow.collect { favorites ->
+                _uiState.value = _uiState.value.copy(favoriteCurrencies = favorites)
             }
         }
     }
@@ -119,10 +133,8 @@ class TransactionFormViewModel @Inject constructor(
             canChangeType = mode == TransactionFormMode.EDIT
         )
 
-        // Загружаем валюты для расходов
-        if (type == TransactionType.EXPENSE) {
-            loadCurrencies()
-        }
+        // Загружаем валюты для расходов и доходов
+        loadCurrencies()
 
         when (mode) {
             TransactionFormMode.ADD -> {
@@ -286,15 +298,8 @@ class TransactionFormViewModel @Inject constructor(
 
         _uiState.value = updatedState.copy(
             transactionType = newType,
-            isLoading = true,
-            // Сбрасываем валюту на EUR при переключении на доходы
-            selectedCurrency = if (newType == TransactionType.INCOME) "EUR" else updatedState.selectedCurrency
+            isLoading = true
         )
-
-        // Загружаем валюты если переключились на расходы
-        if (newType == TransactionType.EXPENSE) {
-            loadCurrencies()
-        }
 
         loadCategoriesForType(newType)
     }
@@ -358,14 +363,18 @@ class TransactionFormViewModel @Inject constructor(
     private fun loadTransactionForEdit(transactionId: String, type: TransactionType) {
         viewModelScope.launch {
             try {
-                // Fetch full expense to get originalCurrency/bankName
+                // Fetch full entity to get originalCurrency/bankName
                 val expense = if (type == TransactionType.EXPENSE) {
                     expenseRepository.getExpenseById(transactionId)
                 } else null
 
+                val income = if (type == TransactionType.INCOME) {
+                    incomeRepository.getIncomeById(transactionId)
+                } else null
+
                 val transaction = when (type) {
                     TransactionType.EXPENSE -> expense?.toTransaction()
-                    TransactionType.INCOME -> incomeRepository.getIncomeById(transactionId)?.toTransaction()
+                    TransactionType.INCOME -> income?.toTransaction()
                 }
 
                 if (transaction == null) {
@@ -400,10 +409,13 @@ class TransactionFormViewModel @Inject constructor(
 
                     val current = _uiState.value
 
-                    // Restore bank info for expense
-                    val restoredCurrency = expense?.originalCurrency ?: "EUR"
-                    val restoredBank = if (expense?.bankName != null) {
-                        current.availableBanks.firstOrNull { it.name == expense.bankName }
+                    // Restore bank info for expense or income
+                    val restoredCurrency = expense?.originalCurrency
+                        ?: income?.originalCurrency
+                        ?: "EUR"
+                    val restoredBankName = expense?.bankName ?: income?.bankName
+                    val restoredBank = if (restoredBankName != null) {
+                        current.availableBanks.firstOrNull { it.name == restoredBankName }
                     } else null
 
                     _uiState.value = current.copy(
@@ -417,13 +429,14 @@ class TransactionFormViewModel @Inject constructor(
                         selectedIncomeCategory = initialIncomeCategory,
                         selectedCurrency = restoredCurrency,
                         selectedBank = restoredBank,
-                        originalAmount = expense?.originalAmount ?: transaction.amount,
+                        originalAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount,
                         isLoading = false
                     )
 
                     // If non-EUR, fetch interbank rate for preview
                     if (restoredCurrency != "EUR" && restoredBank != null) {
-                        fetchRateAndUpdatePreview(restoredCurrency, transaction.amount.toString(), restoredBank)
+                        val origAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
+                        fetchRateAndUpdatePreview(restoredCurrency, origAmount.toString(), restoredBank)
                     }
                 }
             } catch (e: Exception) {
@@ -574,12 +587,56 @@ class TransactionFormViewModel @Inject constructor(
                                 return@launch
                             }
                             TransactionType.INCOME -> {
-                                addIncomeUseCase(
-                                    amount = amountDouble,
-                                    categoryId = currentState.selectedCategory!!.id,
-                                    description = currentState.description.ifBlank { null },
-                                    date = currentState.selectedDate
-                                )
+                                val result = if (
+                                    currentState.isExactAmountEnabled &&
+                                    currentState.exactEurAmount.isNotBlank() &&
+                                    currentState.selectedCurrency != "EUR"
+                                ) {
+                                    val exactEur = currentState.exactEurAmount.toDoubleOrNull()
+                                    if (exactEur == null || exactEur <= 0) {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = context.getString(R.string.error_enter_valid_eur)
+                                        )
+                                        return@launch
+                                    }
+                                    addIncomeUseCase.addWithExactEurAmount(
+                                        originalAmount = amountDouble,
+                                        originalCurrency = currentState.selectedCurrency,
+                                        exactEurAmount = exactEur,
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = currentState.selectedBank?.name,
+                                        bankCommission = currentState.selectedBank?.commissionPercent
+                                    )
+                                } else {
+                                    addIncomeUseCase(
+                                        amount = amountDouble,
+                                        currency = currentState.selectedCurrency,
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = currentState.selectedBank?.name,
+                                        bankCommission = currentState.selectedBank?.commissionPercent
+                                    )
+                                }
+
+                                when (result) {
+                                    is AddIncomeResult.Success -> {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            isSuccess = true
+                                        )
+                                    }
+                                    is AddIncomeResult.Error -> {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = result.message
+                                        )
+                                    }
+                                }
+                                return@launch
                             }
                         }
                     }
@@ -649,14 +706,18 @@ class TransactionFormViewModel @Inject constructor(
                 expenseRepository.deleteExpenseById(originalTransaction.id)
             }
             is Transaction.IncomeTransaction -> {
-                val updatedIncome = originalTransaction.copy(
+                // Use AddIncomeUseCase to handle conversion (re-calculates via CERPS)
+                addIncomeUseCase(
                     amount = amount,
+                    currency = selectedCurrency,
                     categoryId = categoryId,
                     description = description,
-                    date = date
-                ).toIncome()
-
-                incomeRepository.updateIncome(updatedIncome)
+                    date = date,
+                    bankName = bankName,
+                    bankCommission = bankCommission
+                )
+                // Delete the old record after inserting the new one
+                incomeRepository.deleteIncomeById(originalTransaction.id)
             }
         }
     }
@@ -688,12 +749,80 @@ class TransactionFormViewModel @Inject constructor(
                 )
             }
             TransactionType.INCOME -> {
-                addIncomeUseCase(
+                addIncomeUseCase.addInEur(
                     amount = amount,
                     categoryId = categoryId,
                     description = description,
                     date = date
                 )
+            }
+        }
+    }
+
+    fun createCategory(name: String, iconName: String, color: String, type: CategoryType) {
+        viewModelScope.launch {
+            val newCategory = Category(
+                id = UUID.randomUUID().toString(),
+                name = name,
+                iconName = iconName,
+                color = color,
+                isDefault = false,
+                type = type,
+                nameKey = null,
+                isSystem = false,
+                usageCount = 0
+            )
+            categoryRepository.insertCategory(newCategory)
+
+            // Reload categories and auto-select the new one
+            allCategories = emptyList()
+            categoryRepository.getAllCategories().collect { categories ->
+                allCategories = categories
+                val currentType = _uiState.value.transactionType
+                val filteredCategories = when (currentType) {
+                    TransactionType.EXPENSE -> categories.filter { it.type == CategoryType.EXPENSE }
+                    TransactionType.INCOME -> categories.filter { it.type == CategoryType.INCOME }
+                }
+                val created = filteredCategories.find { it.id == newCategory.id }
+                _uiState.value = _uiState.value.copy(
+                    categories = filteredCategories,
+                    selectedCategory = created ?: _uiState.value.selectedCategory
+                )
+            }
+        }
+    }
+
+    fun updateCategoryColor(category: Category, newColor: String) {
+        viewModelScope.launch {
+            categoryRepository.updateCategory(category.copy(color = newColor))
+            reloadCategories()
+        }
+    }
+
+    fun updateCustomCategory(category: Category) {
+        viewModelScope.launch {
+            categoryRepository.updateCategory(category)
+            reloadCategories()
+        }
+    }
+
+    fun deleteCustomCategory(category: Category) {
+        viewModelScope.launch {
+            categoryRepository.deleteCategoryById(category.id)
+            // If the deleted category was selected, clear selection
+            if (_uiState.value.selectedCategory?.id == category.id) {
+                _uiState.value = _uiState.value.copy(selectedCategory = null)
+            }
+            reloadCategories()
+        }
+    }
+
+    private fun reloadCategories() {
+        viewModelScope.launch {
+            allCategories = emptyList()
+            categoryRepository.getAllCategories().collect { categories ->
+                allCategories = categories
+                updateCategoriesForType(_uiState.value.transactionType)
             }
         }
     }

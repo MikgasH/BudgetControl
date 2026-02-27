@@ -6,7 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +21,8 @@ import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
+import com.example.budgetcontrol.ui.util.displayName
+import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,6 +38,31 @@ fun TransactionItem(
     onDeleteClick: (Transaction) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.delete_transaction_title)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDeleteClick(transaction)
+                }) {
+                    Text(
+                        text = stringResource(R.string.delete_button),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel_button))
+                }
+            }
+        )
+    }
+
     Card(
         onClick = { onTransactionClick(transaction) },
         modifier = modifier.fillMaxWidth(),
@@ -63,7 +90,7 @@ fun TransactionItem(
             ) {
                 Icon(
                     imageVector = getCategoryIcon(category?.iconName),
-                    contentDescription = category?.name,
+                    contentDescription = category?.displayName(),
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
@@ -76,7 +103,7 @@ fun TransactionItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = category?.name ?: stringResource(R.string.unknown_category),
+                    text = category?.displayName() ?: stringResource(R.string.unknown_category),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -124,7 +151,7 @@ fun TransactionItem(
 
                 // Кнопка удаления
                 IconButton(
-                    onClick = { onDeleteClick(transaction) },
+                    onClick = { showDeleteDialog = true },
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
@@ -177,7 +204,7 @@ fun TransactionItemDetailed(
             ) {
                 Icon(
                     imageVector = getCategoryIcon(category?.iconName),
-                    contentDescription = category?.name,
+                    contentDescription = category?.displayName(),
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
@@ -190,7 +217,7 @@ fun TransactionItemDetailed(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = category?.name ?: stringResource(R.string.unknown_category),
+                    text = category?.displayName() ?: stringResource(R.string.unknown_category),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
@@ -242,31 +269,6 @@ fun TransactionItemDetailed(
     }
 }
 
-/**
- * Получение иконки для категории
- */
-@Composable
-private fun getCategoryIcon(iconName: String?): ImageVector {
-    return when (iconName) {
-        // Иконки для расходов
-        "shopping_cart" -> Icons.Default.ShoppingCart
-        "directions_car" -> Icons.Default.DirectionsCar
-        "movie" -> Icons.Default.Movie
-        "local_hospital" -> Icons.Default.LocalHospital
-        "home" -> Icons.Default.Home
-        "subscriptions" -> Icons.Default.Subscriptions
-
-        // Иконки для доходов
-        "work" -> Icons.Default.Work
-        "computer" -> Icons.Default.Computer
-        "trending_up" -> Icons.Default.TrendingUp
-        "card_giftcard" -> Icons.Default.CardGiftcard
-        "sell" -> Icons.Default.Sell
-
-        // По умолчанию
-        else -> Icons.Default.Category
-    }
-}
 
 /**
  * Форматирование даты

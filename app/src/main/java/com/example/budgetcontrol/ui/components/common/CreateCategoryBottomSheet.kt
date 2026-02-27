@@ -1,0 +1,678 @@
+package com.example.budgetcontrol.ui.components.common
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.core.theme.AppBlue
+
+// ── Icon data ────────────────────────────────────────────────────────
+
+data class IconEntry(val key: String, val icon: ImageVector)
+
+data class IconGroup(val nameResId: Int, val icons: List<IconEntry>)
+
+private val quickIcons = listOf(
+    IconEntry("shopping_cart", Icons.Default.ShoppingCart),
+    IconEntry("restaurant", Icons.Default.Restaurant),
+    IconEntry("directions_car", Icons.Default.DirectionsCar),
+    IconEntry("home", Icons.Default.Home),
+    IconEntry("work", Icons.Default.Work),
+    IconEntry("movie", Icons.Default.Movie),
+    IconEntry("fitness_center", Icons.Default.FitnessCenter),
+    IconEntry("card_giftcard", Icons.Default.CardGiftcard),
+    IconEntry("flight", Icons.Default.Flight),
+    IconEntry("devices", Icons.Default.Devices)
+)
+
+private val iconGroups = listOf(
+    IconGroup(R.string.icon_group_finance, listOf(
+        IconEntry("work", Icons.Default.Work),
+        IconEntry("trending_up", Icons.Default.TrendingUp),
+        IconEntry("account_balance", Icons.Default.AccountBalance),
+        IconEntry("savings", Icons.Default.Savings),
+        IconEntry("credit_card", Icons.Default.CreditCard),
+        IconEntry("payments", Icons.Default.Payments),
+        IconEntry("attach_money", Icons.Default.AttachMoney),
+        IconEntry("percent", Icons.Default.Percent),
+        IconEntry("sell", Icons.Default.Sell),
+        IconEntry("replay", Icons.Default.Replay)
+    )),
+    IconGroup(R.string.icon_group_transport, listOf(
+        IconEntry("directions_car", Icons.Default.DirectionsCar),
+        IconEntry("flight", Icons.Default.Flight),
+        IconEntry("train", Icons.Default.Train),
+        IconEntry("directions_bus", Icons.Default.DirectionsBus),
+        IconEntry("two_wheeler", Icons.Default.TwoWheeler),
+        IconEntry("directions_bike", Icons.Default.DirectionsBike),
+        IconEntry("local_shipping", Icons.Default.LocalShipping),
+        IconEntry("sailing", Icons.Default.Sailing)
+    )),
+    IconGroup(R.string.icon_group_food, listOf(
+        IconEntry("shopping_cart", Icons.Default.ShoppingCart),
+        IconEntry("restaurant", Icons.Default.Restaurant),
+        IconEntry("local_cafe", Icons.Default.LocalCafe),
+        IconEntry("local_bar", Icons.Default.LocalBar),
+        IconEntry("bakery_dining", Icons.Default.BakeryDining),
+        IconEntry("fastfood", Icons.Default.Fastfood),
+        IconEntry("liquor", Icons.Default.Liquor),
+        IconEntry("cake", Icons.Default.Cake)
+    )),
+    IconGroup(R.string.icon_group_home, listOf(
+        IconEntry("home", Icons.Default.Home),
+        IconEntry("apartment", Icons.Default.Apartment),
+        IconEntry("fitness_center", Icons.Default.FitnessCenter),
+        IconEntry("spa", Icons.Default.Spa),
+        IconEntry("local_hospital", Icons.Default.LocalHospital),
+        IconEntry("school", Icons.Default.School),
+        IconEntry("church", Icons.Default.Church),
+        IconEntry("park", Icons.Default.Park)
+    )),
+    IconGroup(R.string.icon_group_entertainment, listOf(
+        IconEntry("movie", Icons.Default.Movie),
+        IconEntry("sports_esports", Icons.Default.SportsEsports),
+        IconEntry("music_note", Icons.Default.MusicNote),
+        IconEntry("sports_soccer", Icons.Default.SportsSoccer),
+        IconEntry("casino", Icons.Default.Casino),
+        IconEntry("theater_comedy", Icons.Default.TheaterComedy),
+        IconEntry("headphones", Icons.Default.Headphones)
+    )),
+    IconGroup(R.string.icon_group_other, listOf(
+        IconEntry("pets", Icons.Default.Pets),
+        IconEntry("checkroom", Icons.Default.Checkroom),
+        IconEntry("devices", Icons.Default.Devices),
+        IconEntry("more_horiz", Icons.Default.MoreHoriz),
+        IconEntry("card_giftcard", Icons.Default.CardGiftcard),
+        IconEntry("star", Icons.Default.Star),
+        IconEntry("favorite", Icons.Default.Favorite),
+        IconEntry("category", Icons.Default.Category)
+    ))
+)
+
+// ── Preset colors ────────────────────────────────────────────────────
+
+private val presetColors = listOf(
+    "#F44336", "#E91E63", "#9C27B0", "#3F51B5",
+    "#2196F3", "#00BCD4", "#4CAF50", "#8BC34A",
+    "#FF9800", "#FF5722", "#795548", "#607D8B"
+)
+
+// ── Bottom sheet ─────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateCategoryBottomSheet(
+    categoryType: CategoryType,
+    onDismiss: () -> Unit,
+    onSave: (name: String, iconName: String, color: String, type: CategoryType) -> Unit
+) {
+    val defaultIcon = "category"
+    val defaultColor = presetColors[4] // #2196F3
+
+    var name by remember { mutableStateOf("") }
+    var selectedIcon by remember { mutableStateOf(defaultIcon) }
+    var selectedColor by remember { mutableStateOf(defaultColor) }
+    var showMoreIcons by remember { mutableStateOf(false) }
+    var showCustomColor by remember { mutableStateOf(false) }
+
+    // RGB sliders state — decoupled from selectedColor to avoid loops
+    var red by remember { mutableIntStateOf(33) }
+    var green by remember { mutableIntStateOf(150) }
+    var blue by remember { mutableIntStateOf(243) }
+    // Local draft for HEX input — only applied when valid 6-char
+    var hexDraft by remember { mutableStateOf(selectedColor.removePrefix("#")) }
+
+    // Track unsaved changes
+    val hasUnsavedChanges by remember {
+        derivedStateOf {
+            name.isNotBlank() || selectedIcon != defaultIcon || selectedColor != defaultColor
+        }
+    }
+
+    // Discard confirmation dialog
+    var showDiscardDialog by remember { mutableStateOf(false) }
+    // Pending dismiss triggered by swipe while unsaved
+    var pendingDismiss by remember { mutableStateOf(false) }
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            if (newValue == SheetValue.Hidden && hasUnsavedChanges) {
+                showDiscardDialog = true
+                pendingDismiss = true
+                false // block dismiss
+            } else {
+                true
+            }
+        }
+    )
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDiscardDialog = false
+                pendingDismiss = false
+            },
+            title = { Text(stringResource(R.string.discard_changes)) },
+            text = { Text(stringResource(R.string.discard_changes_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDiscardDialog = false
+                    pendingDismiss = false
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.yes_upper))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDiscardDialog = false
+                    pendingDismiss = false
+                }) {
+                    Text(stringResource(R.string.no_upper))
+                }
+            }
+        )
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            if (hasUnsavedChanges) {
+                showDiscardDialog = true
+            } else {
+                onDismiss()
+            }
+        },
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header with title and close button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.create_category),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(
+                    onClick = {
+                        if (hasUnsavedChanges) {
+                            showDiscardDialog = true
+                        } else {
+                            onDismiss()
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.close)
+                    )
+                }
+            }
+
+            // ── SECTION 1: Name ──────────────────────────────────────
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.category_name_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppBlue,
+                    focusedLabelColor = AppBlue,
+                    cursorColor = AppBlue
+                )
+            )
+
+            // ── SECTION 2: Icon ──────────────────────────────────────
+            Text(
+                text = stringResource(R.string.select_icon),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            // Quick icons row
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp)
+            ) {
+                items(quickIcons) { entry ->
+                    IconCircle(
+                        icon = entry.icon,
+                        isSelected = selectedIcon == entry.key,
+                        selectedColor = selectedColor,
+                        onClick = { selectedIcon = entry.key }
+                    )
+                }
+            }
+
+            // "More icons" expandable
+            Row(
+                modifier = Modifier
+                    .clickable { showMoreIcons = !showMoreIcons }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = if (showMoreIcons) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.more_icons),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            AnimatedVisibility(visible = showMoreIcons) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    iconGroups.forEach { group ->
+                        Text(
+                            text = stringResource(group.nameResId),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(8),
+                            modifier = Modifier.heightIn(max = 200.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            userScrollEnabled = false
+                        ) {
+                            items(group.icons) { entry ->
+                                IconCircle(
+                                    icon = entry.icon,
+                                    isSelected = selectedIcon == entry.key,
+                                    selectedColor = selectedColor,
+                                    onClick = { selectedIcon = entry.key },
+                                    size = 40
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── SECTION 3: Color ─────────────────────────────────────
+            Text(
+                text = stringResource(R.string.select_color),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            // Preset color circles
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                presetColors.take(6).forEach { hex ->
+                    ColorCircle(
+                        hex = hex,
+                        isSelected = selectedColor == hex && !showCustomColor,
+                        onClick = {
+                            selectedColor = hex
+                            showCustomColor = false
+                            val (r, g, b) = parseHexColor(hex)
+                            red = r; green = g; blue = b
+                            hexDraft = hex.removePrefix("#")
+                        }
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                presetColors.drop(6).forEach { hex ->
+                    ColorCircle(
+                        hex = hex,
+                        isSelected = selectedColor == hex && !showCustomColor,
+                        onClick = {
+                            selectedColor = hex
+                            showCustomColor = false
+                            val (r, g, b) = parseHexColor(hex)
+                            red = r; green = g; blue = b
+                            hexDraft = hex.removePrefix("#")
+                        }
+                    )
+                }
+            }
+
+            // "Custom color" expandable
+            Row(
+                modifier = Modifier
+                    .clickable { showCustomColor = !showCustomColor }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = if (showCustomColor) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.custom_color),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            AnimatedVisibility(visible = showCustomColor) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Large color preview rectangle
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(red, green, blue)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = resolveIcon(selectedIcon),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    // HEX input — above sliders
+                    OutlinedTextField(
+                        value = hexDraft,
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isLetterOrDigit() }.take(6)
+                            hexDraft = filtered
+                            if (filtered.length == 6) {
+                                val (r, g, b) = parseHexColor("#$filtered")
+                                red = r; green = g; blue = b
+                                selectedColor = "#${filtered.uppercase()}"
+                            }
+                        },
+                        label = { Text(stringResource(R.string.hex_color_label)) },
+                        prefix = { Text("#") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppBlue,
+                            focusedLabelColor = AppBlue,
+                            cursorColor = AppBlue
+                        )
+                    )
+
+                    // R slider
+                    ColorSliderRow(
+                        label = "R",
+                        value = red,
+                        color = Color.Red,
+                        onValueChange = {
+                            red = it
+                            val hex = buildHex(red, green, blue)
+                            selectedColor = hex
+                            hexDraft = hex.removePrefix("#")
+                        }
+                    )
+
+                    // G slider
+                    ColorSliderRow(
+                        label = "G",
+                        value = green,
+                        color = Color(0xFF4CAF50),
+                        onValueChange = {
+                            green = it
+                            val hex = buildHex(red, green, blue)
+                            selectedColor = hex
+                            hexDraft = hex.removePrefix("#")
+                        }
+                    )
+
+                    // B slider
+                    ColorSliderRow(
+                        label = "B",
+                        value = blue,
+                        color = Color.Blue,
+                        onValueChange = {
+                            blue = it
+                            val hex = buildHex(red, green, blue)
+                            selectedColor = hex
+                            hexDraft = hex.removePrefix("#")
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ── Save button ──────────────────────────────────────────
+            Button(
+                onClick = {
+                    onSave(name.trim(), selectedIcon, selectedColor.uppercase(), categoryType)
+                    onDismiss()
+                },
+                enabled = name.isNotBlank(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+            ) {
+                Text(
+                    text = stringResource(R.string.create_category),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+// ── Helper composables ───────────────────────────────────────────────
+
+@Composable
+private fun IconCircle(
+    icon: ImageVector,
+    isSelected: Boolean,
+    selectedColor: String,
+    onClick: () -> Unit,
+    size: Int = 44
+) {
+    val bgColor = if (isSelected) {
+        try { Color(android.graphics.Color.parseColor(selectedColor)) }
+        catch (_: Exception) { AppBlue }
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = Modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(bgColor)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size((size * 0.5).dp)
+        )
+    }
+}
+
+@Composable
+private fun ColorCircle(
+    hex: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val color = try { Color(android.graphics.Color.parseColor(hex)) }
+    catch (_: Exception) { Color.Gray }
+
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(color)
+            .then(
+                if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                else Modifier
+            )
+            .clickable { onClick() }
+    )
+}
+
+@Composable
+private fun ColorSliderRow(
+    label: String,
+    value: Int,
+    color: Color,
+    onValueChange: (Int) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(20.dp)
+        )
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            valueRange = 0f..255f,
+            modifier = Modifier.weight(1f),
+            colors = SliderDefaults.colors(
+                thumbColor = color,
+                activeTrackColor = color
+            )
+        )
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.width(30.dp),
+            fontSize = 12.sp
+        )
+    }
+}
+
+// ── Pure helpers ─────────────────────────────────────────────────────
+
+private fun parseHexColor(hex: String): Triple<Int, Int, Int> {
+    return try {
+        val c = android.graphics.Color.parseColor(hex)
+        Triple(
+            android.graphics.Color.red(c),
+            android.graphics.Color.green(c),
+            android.graphics.Color.blue(c)
+        )
+    } catch (_: Exception) {
+        Triple(33, 150, 243) // fallback to #2196F3
+    }
+}
+
+private fun buildHex(r: Int, g: Int, b: Int): String =
+    "#%02X%02X%02X".format(r.coerceIn(0, 255), g.coerceIn(0, 255), b.coerceIn(0, 255))
+
+private fun resolveIcon(key: String): ImageVector = when (key) {
+    "shopping_cart" -> Icons.Default.ShoppingCart
+    "directions_car" -> Icons.Default.DirectionsCar
+    "movie" -> Icons.Default.Movie
+    "local_hospital" -> Icons.Default.LocalHospital
+    "home" -> Icons.Default.Home
+    "subscriptions" -> Icons.Default.Subscriptions
+    "restaurant" -> Icons.Default.Restaurant
+    "checkroom" -> Icons.Default.Checkroom
+    "school" -> Icons.Default.School
+    "flight" -> Icons.Default.Flight
+    "spa" -> Icons.Default.Spa
+    "pets" -> Icons.Default.Pets
+    "fitness_center" -> Icons.Default.FitnessCenter
+    "devices" -> Icons.Default.Devices
+    "more_horiz" -> Icons.Default.MoreHoriz
+    "work" -> Icons.Default.Work
+    "computer" -> Icons.Default.Computer
+    "trending_up" -> Icons.Default.TrendingUp
+    "card_giftcard" -> Icons.Default.CardGiftcard
+    "sell" -> Icons.Default.Sell
+    "apartment" -> Icons.Default.Apartment
+    "replay" -> Icons.Default.Replay
+    "account_balance" -> Icons.Default.AccountBalance
+    "savings" -> Icons.Default.Savings
+    "credit_card" -> Icons.Default.CreditCard
+    "payments" -> Icons.Default.Payments
+    "attach_money" -> Icons.Default.AttachMoney
+    "percent" -> Icons.Default.Percent
+    "train" -> Icons.Default.Train
+    "directions_bus" -> Icons.Default.DirectionsBus
+    "two_wheeler" -> Icons.Default.TwoWheeler
+    "directions_bike" -> Icons.Default.DirectionsBike
+    "local_shipping" -> Icons.Default.LocalShipping
+    "sailing" -> Icons.Default.Sailing
+    "local_cafe" -> Icons.Default.LocalCafe
+    "local_bar" -> Icons.Default.LocalBar
+    "bakery_dining" -> Icons.Default.BakeryDining
+    "fastfood" -> Icons.Default.Fastfood
+    "liquor" -> Icons.Default.Liquor
+    "cake" -> Icons.Default.Cake
+    "church" -> Icons.Default.Church
+    "park" -> Icons.Default.Park
+    "sports_esports" -> Icons.Default.SportsEsports
+    "music_note" -> Icons.Default.MusicNote
+    "sports_soccer" -> Icons.Default.SportsSoccer
+    "casino" -> Icons.Default.Casino
+    "theater_comedy" -> Icons.Default.TheaterComedy
+    "headphones" -> Icons.Default.Headphones
+    "star" -> Icons.Default.Star
+    "favorite" -> Icons.Default.Favorite
+    "category" -> Icons.Default.Category
+    else -> Icons.Default.Category
+}

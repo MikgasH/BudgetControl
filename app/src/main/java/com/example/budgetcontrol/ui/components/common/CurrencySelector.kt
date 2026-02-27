@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,9 +35,8 @@ fun CurrencySelector(
     selectedCurrency: String,
     onCurrencySelect: (String) -> Unit,
     modifier: Modifier = Modifier,
-    // When Settings screen is implemented, pass the stored base currency here
-    // instead of hardcoding "EUR" at every call site.
     baseCurrency: String = "EUR",
+    favoriteCurrencies: Set<String> = emptySet(),
     isLoading: Boolean = false,
     error: String? = null,
     enabled: Boolean = true
@@ -44,9 +44,12 @@ fun CurrencySelector(
     var expanded by remember { mutableStateOf(false) }
     val appLocale = LocalConfiguration.current.locales[0]
 
-    // Other currencies are everything except the base, preserving server order
-    val otherCurrencies = remember(currencies, baseCurrency) {
-        currencies.filter { it != baseCurrency }
+    // Split currencies: favourites first (excluding base), then the rest
+    val favoritesExcludingBase = remember(currencies, baseCurrency, favoriteCurrencies) {
+        currencies.filter { it != baseCurrency && favoriteCurrencies.contains(it) }
+    }
+    val otherCurrencies = remember(currencies, baseCurrency, favoriteCurrencies) {
+        currencies.filter { it != baseCurrency && !favoriteCurrencies.contains(it) }
     }
 
     Column(modifier = modifier) {
@@ -124,36 +127,41 @@ fun CurrencySelector(
                     thickness = 0.5.dp
                 )
 
+                // ── Favourite currencies ───────────────────────────────────
+                favoritesExcludingBase.forEach { code ->
+                    CurrencyDropdownItem(code, appLocale) {
+                        onCurrencySelect(code)
+                        expanded = false
+                    }
+                }
+
+                if (favoritesExcludingBase.isNotEmpty() && otherCurrencies.isNotEmpty()) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        thickness = 0.5.dp
+                    )
+
+                    Text(
+                        text = stringResource(R.string.manage_favourites_hint),
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                } else if (favoritesExcludingBase.isEmpty() && otherCurrencies.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.add_favourites_hint),
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+
                 // ── All other currencies ────────────────────────────────────
                 otherCurrencies.forEach { code ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = code,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
-                                Text(
-                                    text = getCurrencyDisplayName(code, appLocale),
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        onClick = {
-                            onCurrencySelect(code)
-                            expanded = false
-                        },
-                        contentPadding = PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 12.dp
-                        )
-                    )
+                    CurrencyDropdownItem(code, appLocale) {
+                        onCurrencySelect(code)
+                        expanded = false
+                    }
                 }
             }
         }
@@ -169,3 +177,28 @@ fun CurrencySelector(
     }
 }
 
+@Composable
+private fun CurrencyDropdownItem(code: String, locale: Locale, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = code,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = getCurrencyDisplayName(code, locale),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+    )
+}

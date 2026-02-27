@@ -1,0 +1,328 @@
+<resources>
+    <string name="app_name">BudgetControl</string>
+
+    <!-- Common -->
+    <string name="back">Назад</string>
+    <string name="settings">Настройки</string>
+    <string name="add_operation">Добавить операцию</string>
+    <string name="delete_upper">УДАЛИТЬ</string>
+    <string name="save">Сохранить</string>
+    <string name="yes_upper">ДА</string>
+    <string name="no_upper">НЕТ</string>
+    <string name="cancel_upper">ОТМЕНА</string>
+    <string name="select_upper">ВЫБРАТЬ</string>
+    <string name="total">Всего</string>
+    <string name="edit">Редактировать</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
+    <string name="unknown_category">Неизвестная категория</string>
+    <string name="transaction_not_found">Транзакция не найдена</string>
+
+    <!-- Operation types -->
+    <string name="expenses_upper">РАСХОДЫ</string>
+    <string name="incomes_upper">ДОХОДЫ</string>
+    <string name="income_upper">ДОХОД</string>
+
+    <!-- Period types -->
+    <string name="period_day">День</string>
+    <string name="period_week">Неделя</string>
+    <string name="period_month">Месяц</string>
+    <string name="period_year">Год</string>
+    <string name="period_custom">Период</string>
+
+    <!-- DateRangeHelper -->
+    <string name="period_all_time">За все время</string>
+    <string name="period_today">Сегодня, %1$s</string>
+    <string name="period_yesterday">Вчера, %1$s</string>
+    <string name="period_tomorrow">Завтра, %1$s</string>
+    <string name="period_label">Период</string>
+
+    <!-- TimePeriod (Statistics) -->
+    <string name="time_period_this_week">Эта неделя</string>
+    <string name="time_period_this_month">Этот месяц</string>
+    <string name="time_period_this_year">Этот год</string>
+    <string name="time_period_all_time">Все время</string>
+
+    <!-- MainScreen -->
+    <string name="previous_period">Предыдущий период</string>
+    <string name="next_period">Следующий период</string>
+    <string name="no_expenses_all_time">Нет расходов\nза все время</string>
+    <string name="no_incomes_all_time">Нет доходов\nза все время</string>
+    <string name="no_expenses_today">Сегодня\nрасходов\nне было</string>
+    <string name="no_incomes_today">Сегодня\nдоходов\nне было</string>
+    <string name="no_data_this_day">Нет данных\nза этот день</string>
+    <string name="no_data_this_period">Нет данных\nза этот период</string>
+
+    <!-- StatisticsScreen -->
+    <string name="statistics">Статистика</string>
+    <string name="no_data_for_selected_period">Нет данных за выбранный период</string>
+    <string name="expenses_count_suffix"> трат</string>
+
+    <!-- SettingsScreen -->
+    <string name="data_sync">Синхронизация данных</string>
+    <string name="create_backup_description">Создавайте backup ваших данных в облаке</string>
+    <string name="cloud_expenses_count">В облаке: %1$d трат</string>
+    <string name="create_backup">Создать Backup</string>
+    <string name="restore_data">Восстановить данные</string>
+    <string name="about_app">О приложении</string>
+    <string name="app_version">Budget Control v1.0</string>
+    <string name="app_description">Ваш персональный помощник для управления финансами</string>
+
+    <!-- Language selector -->
+    <string name="language">Язык</string>
+    <string name="language_system">Системный</string>
+    <string name="language_english">English</string>
+    <string name="language_russian">Русский</string>
+
+    <!-- SyncDataUseCase -->
+    <string name="backup_success">Backup создан успешно! Сохранено %1$d трат.</string>
+    <string name="backup_create_error">Ошибка при создании backup</string>
+    <string name="sync_complete">Синхронизация завершена! Обработано %1$d трат из облака.</string>
+    <string name="sync_error">Ошибка синхронизации</string>
+    <string name="expense_not_found">Трата не найдена</string>
+
+    <!-- SettingsViewModel errors -->
+    <string name="error_backup">Ошибка backup: %1$s</string>
+    <string name="error_restore">Ошибка восстановления: %1$s</string>
+
+    <!-- TransactionFormScreen -->
+    <string name="form_modified_title">Операция была изменена</string>
+    <string name="form_not_empty_title">Форма не пуста</string>
+    <string name="exit_without_saving">Выйти без сохранения?</string>
+    <string name="add_expense">Добавить трату</string>
+    <string name="add_income">Добавить доход</string>
+    <string name="edit_expense_upper">РЕДАКТИРОВАНИЕ РАСХОДА</string>
+    <string name="edit_income_upper">РЕДАКТИРОВАНИЕ ДОХОДА</string>
+    <string name="edit_expense">Редактировать трату</string>
+    <string name="edit_income">Редактировать доход</string>
+    <string name="comment_label">Комментарий</string>
+    <string name="comment_placeholder">Добавьте комментарий к операции</string>
+    <string name="amount_locked_hint">Для изменения суммы удалите и создайте заново.</string>
+
+    <!-- AddTransactionContent -->
+    <string name="will_be_saved">Будет сохранено: %1$s EUR</string>
+    <string name="specify_amount_manually">Уточнить сумму вручную</string>
+    <string name="exact_eur_amount">Точная сумма в EUR</string>
+    <string name="exact_eur_example">Например: 13.22</string>
+    <string name="description_optional">Описание (необязательно)</string>
+    <string name="expense_placeholder">Например: обед в ресторане</string>
+    <string name="income_placeholder">Например: зарплата за декабрь</string>
+
+    <!-- AmountInputCard -->
+    <string name="expense_amount">Сумма траты</string>
+    <string name="income_amount">Сумма дохода</string>
+
+    <!-- CategorySelector -->
+    <string name="expense_categories">Категории расходов</string>
+    <string name="income_categories">Категории доходов</string>
+    <string name="add_category">Добавить категорию</string>
+    <string name="more">Еще</string>
+
+    <!-- CurrencySelector -->
+    <string name="currency">Валюта</string>
+    <string name="default_label">(по умолчанию)</string>
+
+    <!-- BankSelector -->
+    <string name="bank_payment_method">Банк / Способ оплаты</string>
+
+    <!-- DateSelector -->
+    <string name="date_label">Дата</string>
+    <string name="select_date">Выбрать дату</string>
+    <string name="today">сегодня</string>
+    <string name="yesterday">вчера</string>
+    <string name="day_before_yesterday">позавчера</string>
+    <string name="selected">выбрано</string>
+
+    <!-- DatePickerDialog -->
+    <string name="date_selection">Выбор даты</string>
+    <string name="previous_month">Предыдущий месяц</string>
+    <string name="next_month">Следующий месяц</string>
+    <string name="day_mon">Пн</string>
+    <string name="day_tue">Вт</string>
+    <string name="day_wed">Ср</string>
+    <string name="day_thu">Чт</string>
+    <string name="day_fri">Пт</string>
+    <string name="day_sat">Сб</string>
+    <string name="day_sun">Вс</string>
+
+    <!-- PeriodRangePicker -->
+    <string name="select_period">Выберите период</string>
+    <string name="all_time">За все время</string>
+    <string name="period_range_display">Период: %1$s</string>
+    <string name="start_date_display">Начало: %1$s</string>
+
+    <!-- TransactionDetailContent -->
+    <string name="category">Категория</string>
+    <string name="detail_date">Дата</string>
+    <string name="detail_time">Время</string>
+    <string name="original_amount">Оригинальная сумма</string>
+    <string name="bank">Банк</string>
+    <string name="user_corrected">уточнено вручную</string>
+    <string name="detail_comment">Комментарий</string>
+    <string name="operation_details">ДЕТАЛИ ОПЕРАЦИИ</string>
+
+    <!-- ExpensesScreen -->
+    <string name="all_expenses">Все расходы</string>
+    <string name="total_spent">Всего потрачено</string>
+    <string name="no_expenses_yet">У вас пока нет трат</string>
+    <string name="add_first_expense">Нажмите кнопку + чтобы добавить первую трату</string>
+
+    <!-- TransactionItem -->
+    <string name="delete_action">Удалить</string>
+    <string name="main_account">Основной</string>
+
+    <!-- TransactionFormViewModel errors -->
+    <string name="error_transaction_id_missing">ID транзакции не указан</string>
+    <string name="error_currency_service_unavailable">Сервис курсов недоступен. Введите сумму вручную.</string>
+    <string name="error_loading_categories">Ошибка загрузки категорий: %1$s</string>
+    <string name="error_loading_transaction">Ошибка загрузки транзакции: %1$s</string>
+    <string name="error_enter_valid_eur">Введите корректную сумму в EUR</string>
+    <string name="error_saving">Ошибка при сохранении: %1$s</string>
+    <string name="conversion_preview_format">≈ %1$s EUR  (курс %2$s, комиссия %3$s%%)</string>
+
+    <!-- ValidationHelper -->
+    <string name="validation_enter_amount">Введите сумму</string>
+    <string name="validation_enter_valid_amount">Введите корректную сумму</string>
+    <string name="validation_amount_positive">Сумма должна быть больше нуля</string>
+    <string name="validation_select_category">Выберите категорию</string>
+
+    <!-- PieChart -->
+    <string name="pie_chart_total">Всего</string>
+
+    <!-- TransactionDetailViewModel -->
+    <string name="error_loading">Ошибка загрузки: %1$s</string>
+    <string name="error_deleting">Ошибка при удалении: %1$s</string>
+
+    <!-- TransactionsByCategoryViewModel -->
+    <string name="category_not_found">Категория не найдена</string>
+
+    <!-- CerpsRepository -->
+    <string name="error_loading_currencies">Ошибка загрузки валют: %1$s</string>
+    <string name="conversion_service_unavailable">Сервис конвертации недоступен: %1$s</string>
+    <string name="conversion_failed">Конвертация не удалась</string>
+    <string name="error_conversion">Ошибка конвертации: %1$s</string>
+
+    <!-- AddExpenseUseCase -->
+    <string name="error_saving_expense">Ошибка сохранения: %1$s</string>
+
+    <!-- Banks management -->
+    <string name="banks_and_commissions">Банки и комиссии</string>
+    <string name="banks_description">Управление комиссиями банков</string>
+    <string name="add_bank">Добавить банк</string>
+    <string name="bank_name_label">Название банка</string>
+    <string name="commission_percent_label">Комиссия %</string>
+    <string name="edit_bank">Редактировать банк</string>
+    <string name="reset_banks_to_defaults">Сбросить к настройкам по умолчанию</string>
+    <string name="reset_banks_confirm">Удалить все банки и восстановить по умолчанию?</string>
+    <string name="bank_name_required">Введите название банка</string>
+    <string name="default_bank">По умолчанию</string>
+    <string name="last_favorite_error">Хотя бы один банк должен остаться в избранном</string>
+    <string name="bank_min_one_required">Должен быть выбран хотя бы один банк</string>
+    <string name="bank_checkbox_hint">☑ Отметьте банки которыми пользуетесь — они появятся при добавлении траты</string>
+    <string name="bank_star_hint">★ Звезда — основной банк, выбирается автоматически</string>
+    <string name="favorite">Избранное</string>
+
+    <!-- Favourite currencies -->
+    <string name="favourite_currencies">Избранные валюты</string>
+    <string name="favourite_currencies_description">Выберите часто используемые валюты. Они будут отображаться первыми в списке.</string>
+    <string name="loading_currencies">Загрузка валют…</string>
+    <string name="last_favourite_currency_error">Хотя бы одна валюта должна остаться в избранном</string>
+    <string name="error_loading_currency_list">Не удалось загрузить валюты: %1$s</string>
+
+    <!-- Bottom sheet management -->
+    <string name="manage">Настроить</string>
+    <string name="banks_selected_count">Выбрано банков: %1$d</string>
+    <string name="currencies_selected_count">Выбрано валют: %1$d</string>
+    <string name="search_banks">Поиск банков</string>
+    <string name="search_currencies">Поиск валют</string>
+    <string name="no_banks_found">Банки не найдены</string>
+    <string name="add_bank_with_name">Добавить \"%1$s\"?</string>
+    <string name="no_currencies_found">Валюты не найдены</string>
+    <string name="manage_favourites_hint">Управление избранными в настройках</string>
+    <string name="add_favourites_hint">Добавьте часто используемые валюты в настройках</string>
+
+    <!-- System category names — Expenses -->
+    <string name="cat_groceries">Продукты</string>
+    <string name="cat_transport">Транспорт</string>
+    <string name="cat_entertainment">Развлечения</string>
+    <string name="cat_health">Здоровье</string>
+    <string name="cat_home">Дом</string>
+    <string name="cat_subscriptions">Подписки</string>
+    <string name="cat_restaurants">Рестораны</string>
+    <string name="cat_clothing">Одежда</string>
+    <string name="cat_education">Образование</string>
+    <string name="cat_gifts">Подарки</string>
+    <string name="cat_travel">Путешествия</string>
+    <string name="cat_beauty">Красота</string>
+    <string name="cat_pets">Питомцы</string>
+    <string name="cat_sport">Спорт</string>
+    <string name="cat_electronics">Электроника</string>
+    <string name="cat_other_expense">Прочее</string>
+
+    <!-- System category names — Incomes -->
+    <string name="cat_salary">Зарплата</string>
+    <string name="cat_freelance">Фриланс</string>
+    <string name="cat_investments">Инвестиции</string>
+    <string name="cat_gifts_income">Подарки</string>
+    <string name="cat_sales">Продажа</string>
+    <string name="cat_rental">Аренда</string>
+    <string name="cat_refund">Возврат</string>
+    <string name="cat_other_income">Прочее</string>
+
+    <!-- Categories management -->
+    <string name="categories_management">Категории</string>
+    <string name="categories_description">%1$d расходных, %2$d доходных категорий</string>
+    <string name="expense_tab">Расходы</string>
+    <string name="income_tab">Доходы</string>
+    <string name="search_categories">Поиск категорий</string>
+    <string name="add_custom_category">Добавить категорию</string>
+    <string name="category_name_label">Название категории</string>
+    <string name="category_name_required">Введите название категории</string>
+    <string name="select_icon">Иконка</string>
+    <string name="select_color">Цвет</string>
+    <string name="system_category">Системная</string>
+    <string name="no_categories_found">Категории не найдены</string>
+    <string name="reset_categories_to_defaults">Сбросить к настройкам по умолчанию</string>
+    <string name="reset_categories_confirm">Удалить все пользовательские категории и восстановить по умолчанию?</string>
+
+    <!-- CategorySelector grid -->
+    <string name="frequently_used">Часто используемые</string>
+    <string name="all_categories">Все категории</string>
+    <string name="categories_manage_hint">Для редактирования и удаления категорий перейдите в Настройки</string>
+    <string name="long_press_hint">Удерживайте категорию для редактирования или удаления</string>
+    <string name="system_category_color_only">Системная категория · только цвет</string>
+    <string name="edit_category">Редактировать категорию</string>
+    <string name="delete_category">Удалить категорию</string>
+    <string name="delete_category_confirm">Удалить категорию «%1$s»?</string>
+    <string name="category_in_use">Невозможно удалить: категория используется в транзакциях</string>
+
+    <!-- Create category sheet -->
+    <string name="create_category">Создать категорию</string>
+    <string name="more_icons">Больше иконок</string>
+    <string name="custom_color">Свой цвет</string>
+    <string name="icon_group_finance">Финансы</string>
+    <string name="icon_group_transport">Транспорт</string>
+    <string name="icon_group_food">Еда и покупки</string>
+    <string name="icon_group_home">Дом и жизнь</string>
+    <string name="icon_group_entertainment">Развлечения</string>
+    <string name="icon_group_other">Другое</string>
+    <string name="hex_color_label">HEX цвет</string>
+    <string name="discard_changes">Отменить изменения?</string>
+    <string name="discard_changes_confirm">У вас есть несохранённые изменения. Отменить их?</string>
+    <string name="close">Закрыть</string>
+
+    <!-- Delete confirmation -->
+    <string name="delete_transaction_title">Удалить транзакцию?</string>
+    <string name="delete_button">Удалить</string>
+    <string name="cancel_button">Отмена</string>
+
+    <!-- Discard form (ADD mode back press) -->
+    <string name="discard_changes_title">Отменить изменения?</string>
+    <string name="discard_button">Отменить</string>
+    <string name="keep_editing_button">Продолжить</string>
+
+    <!-- Statistics tabs -->
+    <string name="transactions_count_suffix"> операций</string>
+
+    <!-- Date formats -->
+    <string name="date_format_full">d MMMM yyyy \'г.\'</string>
+</resources>

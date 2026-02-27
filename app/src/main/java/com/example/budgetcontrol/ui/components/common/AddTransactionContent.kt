@@ -17,6 +17,7 @@ import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.Category
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
 
@@ -42,6 +43,7 @@ fun AddTransactionContent(
     onCurrencySelect: (String) -> Unit = {},
     isCurrenciesLoading: Boolean = false,
     currenciesError: String? = null,
+    favoriteCurrencies: Set<String> = emptySet(),
     availableBanks: List<BankEntity> = emptyList(),
     selectedBank: BankEntity? = null,
     onBankSelect: (BankEntity) -> Unit = {},
@@ -49,7 +51,11 @@ fun AddTransactionContent(
     exactEurAmount: String = "",
     onExactEurAmountChange: (String) -> Unit = {},
     isExactAmountEnabled: Boolean = false,
-    onExactAmountToggle: (Boolean) -> Unit = {}
+    onExactAmountToggle: (Boolean) -> Unit = {},
+    onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType) -> Unit)? = null,
+    onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
+    onUpdateCategory: (Category) -> Unit = {},
+    onDeleteCategory: (Category) -> Unit = {}
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -78,68 +84,67 @@ fun AddTransactionContent(
             currency = selectedCurrency
         )
 
-        if (transactionType == TransactionType.EXPENSE) {
-            CurrencySelector(
-                currencies = availableCurrencies,
-                selectedCurrency = selectedCurrency,
-                onCurrencySelect = onCurrencySelect,
-                isLoading = isCurrenciesLoading,
-                error = currenciesError
+        CurrencySelector(
+            currencies = availableCurrencies,
+            selectedCurrency = selectedCurrency,
+            onCurrencySelect = onCurrencySelect,
+            favoriteCurrencies = favoriteCurrencies,
+            isLoading = isCurrenciesLoading,
+            error = currenciesError
+        )
+
+        if (selectedCurrency != "EUR") {
+            BankSelector(
+                banks = availableBanks,
+                selectedBank = selectedBank,
+                onBankSelect = onBankSelect
             )
 
-            if (selectedCurrency != "EUR") {
-                BankSelector(
-                    banks = availableBanks,
-                    selectedBank = selectedBank,
-                    onBankSelect = onBankSelect
+            // Conversion preview — hidden when user has entered exact EUR amount
+            if (isExactAmountEnabled && exactEurAmount.isNotBlank()) {
+                Text(
+                    text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
+            } else {
+                ConversionPreview(preview = convertedAmountPreview)
+            }
 
-                // Conversion preview — hidden when user has entered exact EUR amount
-                if (isExactAmountEnabled && exactEurAmount.isNotBlank()) {
-                    Text(
-                        text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF2E7D32),
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                } else {
-                    ConversionPreview(preview = convertedAmountPreview)
-                }
+            // Toggle: Уточнить сумму вручную
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = isExactAmountEnabled,
+                    onCheckedChange = onExactAmountToggle,
+                    colors = CheckboxDefaults.colors(checkedColor = AppBlue)
+                )
+                Text(
+                    text = stringResource(R.string.specify_amount_manually),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
-                // Toggle: Уточнить сумму вручную
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = isExactAmountEnabled,
-                        onCheckedChange = onExactAmountToggle,
-                        colors = CheckboxDefaults.colors(checkedColor = AppBlue)
+            // Exact EUR amount field — shown only when toggle is checked
+            if (isExactAmountEnabled) {
+                OutlinedTextField(
+                    value = exactEurAmount,
+                    onValueChange = onExactEurAmountChange,
+                    label = { Text(stringResource(R.string.exact_eur_amount)) },
+                    placeholder = { Text(stringResource(R.string.exact_eur_example)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppBlue,
+                        focusedLabelColor = AppBlue,
+                        cursorColor = AppBlue
                     )
-                    Text(
-                        text = stringResource(R.string.specify_amount_manually),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                // Exact EUR amount field — shown only when toggle is checked
-                if (isExactAmountEnabled) {
-                    OutlinedTextField(
-                        value = exactEurAmount,
-                        onValueChange = onExactEurAmountChange,
-                        label = { Text(stringResource(R.string.exact_eur_amount)) },
-                        placeholder = { Text(stringResource(R.string.exact_eur_example)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AppBlue,
-                            focusedLabelColor = AppBlue,
-                            cursorColor = AppBlue
-                        )
-                    )
-                }
+                )
             }
         }
 
@@ -147,7 +152,11 @@ fun AddTransactionContent(
             categories = categories,
             selectedCategory = selectedCategory,
             onCategorySelect = onCategorySelect,
-            transactionType = transactionType
+            transactionType = transactionType,
+            onCreateCategory = onCreateCategory,
+            onUpdateCategoryColor = onUpdateCategoryColor,
+            onUpdateCategory = onUpdateCategory,
+            onDeleteCategory = onDeleteCategory
         )
 
         DescriptionSection(

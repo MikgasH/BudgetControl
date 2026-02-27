@@ -21,6 +21,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
+import com.example.budgetcontrol.ui.util.displayName
+import com.example.budgetcontrol.ui.util.getCategoryIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +64,36 @@ fun StatisticsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Expenses / Incomes tabs
+            item {
+                TabRow(
+                    selectedTabIndex = if (uiState.selectedTab == StatisticsTab.EXPENSES) 0 else 1,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Tab(
+                        selected = uiState.selectedTab == StatisticsTab.EXPENSES,
+                        onClick = { viewModel.selectTab(StatisticsTab.EXPENSES) },
+                        text = {
+                            Text(
+                                text = stringResource(R.string.expense_tab),
+                                fontWeight = if (uiState.selectedTab == StatisticsTab.EXPENSES) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = uiState.selectedTab == StatisticsTab.INCOMES,
+                        onClick = { viewModel.selectTab(StatisticsTab.INCOMES) },
+                        text = {
+                            Text(
+                                text = stringResource(R.string.income_tab),
+                                fontWeight = if (uiState.selectedTab == StatisticsTab.INCOMES) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                }
+            }
+
             // Фильтр по периодам
             item {
                 PeriodSelector(
@@ -180,7 +212,7 @@ private fun CategoryStatisticItem(
             ) {
                 Icon(
                     imageVector = getCategoryIcon(statistic.category.iconName),
-                    contentDescription = statistic.category.name,
+                    contentDescription = statistic.category.displayName(),
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
@@ -191,12 +223,12 @@ private fun CategoryStatisticItem(
             // Информация о категории
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = statistic.category.name,
+                    text = statistic.category.displayName(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${statistic.expenseCount}${stringResource(R.string.expenses_count_suffix)}",
+                    text = "${statistic.transactionCount}${stringResource(R.string.transactions_count_suffix)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -217,18 +249,5 @@ private fun CategoryStatisticItem(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun getCategoryIcon(iconName: String): ImageVector {
-    return when (iconName) {
-        "shopping_cart" -> Icons.Default.ShoppingCart
-        "directions_car" -> Icons.Default.DirectionsCar
-        "movie" -> Icons.Default.Movie
-        "local_hospital" -> Icons.Default.LocalHospital
-        "home" -> Icons.Default.Home
-        "subscriptions" -> Icons.Default.Subscriptions
-        else -> Icons.Default.Category
     }
 }

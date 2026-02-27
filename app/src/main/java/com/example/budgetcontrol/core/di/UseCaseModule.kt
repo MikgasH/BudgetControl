@@ -30,9 +30,10 @@ object UseCaseModule {
     fun provideAddExpenseUseCase(
         @ApplicationContext context: Context,
         repository: ExpenseRepository,
-        cerpsRepository: CerpsRepository
+        cerpsRepository: CerpsRepository,
+        categoryRepository: CategoryRepository
     ): AddExpenseUseCase {
-        return AddExpenseUseCase(context, repository, cerpsRepository)
+        return AddExpenseUseCase(context, repository, cerpsRepository, categoryRepository)
     }
 
     @Provides
@@ -62,9 +63,12 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideAddIncomeUseCase(
-        repository: IncomeRepository
+        @ApplicationContext context: Context,
+        repository: IncomeRepository,
+        cerpsRepository: CerpsRepository,
+        categoryRepository: CategoryRepository
     ): AddIncomeUseCase {
-        return AddIncomeUseCase(repository)
+        return AddIncomeUseCase(context, repository, cerpsRepository, categoryRepository)
     }
 
     @Provides

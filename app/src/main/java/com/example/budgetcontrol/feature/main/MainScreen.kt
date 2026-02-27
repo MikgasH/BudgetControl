@@ -1,10 +1,16 @@
 package com.example.budgetcontrol.feature.main
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,13 +20,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.example.budgetcontrol.R
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
@@ -28,6 +42,8 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.core.theme.AppBlue
+import com.example.budgetcontrol.ui.util.displayName
+import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.util.Calendar
 
 @Composable
@@ -119,23 +135,90 @@ fun MainScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
+        val listState = rememberLazyListState()
+        val isEmpty = uiState.categoryStatistics.isEmpty()
+        var swipeCollapsed by remember { mutableStateOf(false) }
+
+        val density = LocalDensity.current
+        val fullHeight = 200.dp
+        val ringFraction = 0.22f
+        val collapsedBarHeight = fullHeight * ringFraction // 44dp — matches PieChart ring
+        val maxCollapseOffsetPx = with(density) { (fullHeight - collapsedBarHeight).toPx() }
+        var collapseOffsetPx by remember { mutableStateOf(0f) }
+
+        val nestedScrollConnection = remember(maxCollapseOffsetPx) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(
+                    available: Offset,
+                    source: NestedScrollSource
+                ): Offset {
+                    if (available.y < 0f) {
+                        // Scrolling down → collapse chart first
+                        val oldOffset = collapseOffsetPx
+                        collapseOffsetPx = (collapseOffsetPx - available.y)
+                            .coerceIn(0f, maxCollapseOffsetPx)
+                        return Offset(0f, -(collapseOffsetPx - oldOffset))
+                    }
+                    return Offset.Zero
+                }
+
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource
+                ): Offset {
+                    if (available.y > 0f) {
+                        // Scrolling up + list at top → expand chart
+                        val oldOffset = collapseOffsetPx
+                        collapseOffsetPx = (collapseOffsetPx - available.y)
+                            .coerceIn(0f, maxCollapseOffsetPx)
+                        return Offset(0f, oldOffset - collapseOffsetPx)
+                    }
+                    return Offset.Zero
+                }
+            }
+        }
+
+        val scrollFraction = if (maxCollapseOffsetPx > 0f) {
+            (collapseOffsetPx / maxCollapseOffsetPx).coerceIn(0f, 1f)
+        } else 0f
+
+        // Swipe for empty state is animated; scroll-driven is instant (follows finger)
+        val swipeTarget = if (swipeCollapsed) 1f else 0f
+        val animatedSwipeFraction by animateFloatAsState(
+            targetValue = swipeTarget,
+            animationSpec = tween(300),
+            label = "swipe_collapse"
+        )
+
+        // Sync scroll offset when swipe overrides
+        LaunchedEffect(swipeCollapsed) {
+            if (swipeCollapsed) {
+                collapseOffsetPx = maxCollapseOffsetPx
+            } else {
+                collapseOffsetPx = 0f
+            }
+        }
+
+        val collapseFraction = maxOf(animatedSwipeFraction, scrollFraction)
+        val chartHeight = lerp(fullHeight, collapsedBarHeight, collapseFraction)
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(paddingValues)
+                .nestedScroll(nestedScrollConnection)
         ) {
-            // Заголовок с переключением доходы/расходы
-            item {
+            // Fixed header: toggle, period selector, chart
+            Column(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 ExpenseIncomeToggle(
                     selectedType = uiState.selectedOperationType,
                     onTypeSelected = viewModel::selectOperationType
                 )
-            }
 
-            // Фильтр по периодам
-            item {
                 FixedPeriodTypeSelector(
                     selectedPeriod = uiState.selectedPeriodType,
                     onPeriodSelected = { period ->
@@ -146,31 +229,42 @@ fun MainScreen(
                         }
                     }
                 )
-            }
 
-            // Навигация по конкретным периодам с диаграммой
-            item {
                 PeriodNavigationCard(
                     uiState = uiState,
-                    onNavigate = viewModel::navigatePeriod
+                    onNavigate = viewModel::navigatePeriod,
+                    collapseFraction = collapseFraction,
+                    chartHeight = chartHeight,
+                    barHeight = collapsedBarHeight,
+                    isEmpty = isEmpty,
+                    onSwipeCollapse = { collapse -> swipeCollapsed = collapse }
                 )
             }
 
-            // Список категорий со статистикой
-            if (uiState.categoryStatistics.isNotEmpty()) {
-                items(uiState.categoryStatistics) { stat ->
-                    CategoryStatisticItem(
-                        statistic = stat,
-                        onClick = {
-                            onCategoryClick(stat.category.id, uiState.selectedOperationType)
-                        }
-                    )
+            // Scrollable category list
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(
+                    start = 16.dp, end = 16.dp,
+                    top = 16.dp, bottom = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (uiState.categoryStatistics.isNotEmpty()) {
+                    items(uiState.categoryStatistics) { stat ->
+                        CategoryStatisticItem(
+                            statistic = stat,
+                            onClick = {
+                                onCategoryClick(stat.category.id, uiState.selectedOperationType)
+                            }
+                        )
+                    }
                 }
-            }
 
-            // Отступ для FAB
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
         }
     }
@@ -269,131 +363,235 @@ private fun FixedPeriodTypeSelector(
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun PeriodNavigationCard(
     uiState: MainScreenUiState,
-    onNavigate: (Int) -> Unit
+    onNavigate: (Int) -> Unit,
+    collapseFraction: Float = 0f,
+    chartHeight: androidx.compose.ui.unit.Dp = 200.dp,
+    barHeight: androidx.compose.ui.unit.Dp = 44.dp,
+    isEmpty: Boolean = false,
+    onSwipeCollapse: (Boolean) -> Unit = {}
 ) {
+    val density = LocalDensity.current
+    val swipeThresholdPx = with(density) { 50.dp.toPx() }
+    val currentUiState by rememberUpdatedState(uiState)
+    val currentOnNavigate by rememberUpdatedState(onNavigate)
+
+    // Track navigation direction for animation: true = forward, false = backward
+    var isForward by remember { mutableStateOf(true) }
+
+    val isCollapsed = collapseFraction > 0.5f
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, dragAmount ->
+                    if (dragAmount < -20f) {
+                        onSwipeCollapse(true)
+                    } else if (dragAmount > 20f) {
+                        onSwipeCollapse(false)
+                    }
+                }
+            }
+            .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
+                if (currentUiState.isAllTimePeriod) return@pointerInput
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { totalDrag = 0f },
+                    onDragEnd = {
+                        if (totalDrag > swipeThresholdPx) {
+                            isForward = false
+                            currentOnNavigate(-1) // swipe right → previous
+                        } else if (totalDrag < -swipeThresholdPx) {
+                            if (canNavigateToFuture(currentUiState)) {
+                                isForward = true
+                                currentOnNavigate(1) // swipe left → next
+                            }
+                        }
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        totalDrag += dragAmount
+                    }
+                )
+            },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier
+                .padding(if (isCollapsed) PaddingValues(horizontal = 16.dp, vertical = 8.dp) else PaddingValues(20.dp)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Навигация по периодам
+            // Period navigation row — fixed height to prevent layout jumps
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Кнопка "назад" - всегда показываем если не "За все время"
                 if (uiState.isAllTimePeriod) {
-                    Spacer(modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp))
                 } else {
-                    IconButton(onClick = { onNavigate(-1) }) {
+                    IconButton(
+                        onClick = {
+                            isForward = false
+                            onNavigate(-1)
+                        },
+                        modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = stringResource(R.string.previous_period)
+                            contentDescription = stringResource(R.string.previous_period),
+                            modifier = if (isCollapsed) Modifier.size(20.dp) else Modifier
                         )
                     }
                 }
 
-                Text(
-                    text = uiState.periodDisplayText,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Кнопка "вперед" - показываем только если можем идти в будущее
-                if (uiState.isAllTimePeriod) {
-                    Spacer(modifier = Modifier.size(48.dp))
-                } else {
-                    val canGoForward = canNavigateToFuture(uiState)
-                    if (canGoForward) {
-                        IconButton(onClick = { onNavigate(1) }) {
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = stringResource(R.string.next_period)
+                AnimatedContent(
+                    targetState = uiState.periodDisplayText to uiState.totalAmount,
+                    transitionSpec = {
+                        if (isForward) {
+                            (slideInHorizontally { it } + fadeIn(tween(300))) togetherWith
+                                    (slideOutHorizontally { -it } + fadeOut(tween(300)))
+                        } else {
+                            (slideInHorizontally { -it } + fadeIn(tween(300))) togetherWith
+                                    (slideOutHorizontally { it } + fadeOut(tween(300)))
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    label = "period_text"
+                ) { (periodText, totalAmount) ->
+                    if (isCollapsed) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = periodText,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${String.format("%.2f", totalAmount)} €",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = AppBlue
                             )
                         }
                     } else {
-                        // Пустое место для сохранения центрирования
-                        Spacer(modifier = Modifier.size(48.dp))
+                        Text(
+                            text = periodText,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                if (uiState.isAllTimePeriod || !canNavigateToFuture(uiState)) {
+                    Spacer(modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp))
+                } else {
+                    IconButton(
+                        onClick = {
+                            isForward = true
+                            onNavigate(1)
+                        },
+                        modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = stringResource(R.string.next_period),
+                            modifier = if (isCollapsed) Modifier.size(20.dp) else Modifier
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Animated spacer between nav row and chart area
+            Spacer(modifier = Modifier.height(lerp(8.dp, 0.dp, collapseFraction)))
 
-            // Диаграмма или заглушка
-            if (uiState.categoryStatistics.isNotEmpty()) {
-                PieChart(
-                    data = uiState.categoryStatistics,
-                    totalAmount = uiState.totalAmount,
-                    modifier = Modifier.size(200.dp)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        when {
-                            uiState.isAllTimePeriod -> {
-                                Text(
-                                    text = if (uiState.selectedOperationType == OperationType.EXPENSES) {
-                                        stringResource(R.string.no_expenses_all_time)
-                                    } else {
-                                        stringResource(R.string.no_incomes_all_time)
-                                    },
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            uiState.selectedPeriodType == PeriodType.DAY -> {
-                                if (uiState.currentPeriodIndex == 0) {
-                                    Text(
-                                        text = if (uiState.selectedOperationType == OperationType.EXPENSES) {
+            // Chart area — fixed animated height prevents layout jumps
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(chartHeight),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isCollapsed) {
+                    // Segmented bar matching PieChart ring thickness
+                    if (uiState.categoryStatistics.isNotEmpty()) {
+                        CategorySegmentedBar(
+                            statistics = uiState.categoryStatistics,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(barHeight)
+                                .clip(RoundedCornerShape(barHeight / 2))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(barHeight)
+                                .clip(RoundedCornerShape(barHeight / 2))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        )
+                    }
+                } else {
+                    if (uiState.categoryStatistics.isNotEmpty()) {
+                        PieChart(
+                            data = uiState.categoryStatistics,
+                            totalAmount = uiState.totalAmount,
+                            modifier = Modifier.size(chartHeight)
+                        )
+                    } else {
+                        // Empty state: gray circle with "No data" text
+                        Box(
+                            modifier = Modifier
+                                .size(chartHeight)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                val emptyText = when {
+                                    uiState.isAllTimePeriod -> {
+                                        if (uiState.selectedOperationType == OperationType.EXPENSES) {
+                                            stringResource(R.string.no_expenses_all_time)
+                                        } else {
+                                            stringResource(R.string.no_incomes_all_time)
+                                        }
+                                    }
+                                    uiState.selectedPeriodType == PeriodType.DAY && uiState.currentPeriodIndex == 0 -> {
+                                        if (uiState.selectedOperationType == OperationType.EXPENSES) {
                                             stringResource(R.string.no_expenses_today)
                                         } else {
                                             stringResource(R.string.no_incomes_today)
-                                        },
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    Text(
-                                        text = stringResource(R.string.no_data_this_day),
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                        }
+                                    }
+                                    uiState.selectedPeriodType == PeriodType.DAY -> {
+                                        stringResource(R.string.no_data_this_day)
+                                    }
+                                    else -> {
+                                        stringResource(R.string.no_data_this_period)
+                                    }
                                 }
-                            }
-                            else -> {
                                 Text(
-                                    text = stringResource(R.string.no_data_this_period),
+                                    text = emptyText,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Medium
                                     ),
@@ -407,6 +605,43 @@ private fun PeriodNavigationCard(
             }
         }
     }
+}
+
+@Composable
+private fun CategorySegmentedBar(
+    statistics: List<CategoryStatistic>,
+    modifier: Modifier = Modifier
+) {
+    val segments = remember(statistics) {
+        val totalPercentage = statistics.sumOf { it.percentage.toDouble() }.toFloat()
+        statistics.map { stat ->
+            val color = try {
+                Color(android.graphics.Color.parseColor(stat.category.color))
+            } catch (_: Exception) {
+                Color.Gray
+            }
+            // Normalize so segments always fill the full bar width
+            val fraction = if (totalPercentage > 0f) stat.percentage / totalPercentage else 0f
+            color to fraction
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(3.dp))
+            .drawBehind {
+                var xOffset = 0f
+                segments.forEach { (color, fraction) ->
+                    val segmentWidth = size.width * fraction
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(xOffset, 0f),
+                        size = Size(segmentWidth, size.height)
+                    )
+                    xOffset += segmentWidth
+                }
+            }
+    )
 }
 
 /**
@@ -487,7 +722,7 @@ private fun CategoryStatisticItem(
             ) {
                 Icon(
                     imageVector = getCategoryIcon(statistic.category.iconName),
-                    contentDescription = statistic.category.name,
+                    contentDescription = statistic.category.displayName(),
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
@@ -498,7 +733,7 @@ private fun CategoryStatisticItem(
             // Информация о категории
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = statistic.category.name,
+                    text = statistic.category.displayName(),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Medium
                     )
@@ -526,23 +761,6 @@ private fun CategoryStatisticItem(
     }
 }
 
-@Composable
-private fun getCategoryIcon(iconName: String): ImageVector {
-    return when (iconName) {
-        "work" -> Icons.Default.Work
-        "computer" -> Icons.Default.Computer
-        "trending_up" -> Icons.Default.TrendingUp
-        "card_giftcard" -> Icons.Default.CardGiftcard
-        "sell" -> Icons.Default.Sell
-        "shopping_cart" -> Icons.Default.ShoppingCart
-        "directions_car" -> Icons.Default.DirectionsCar
-        "movie" -> Icons.Default.Movie
-        "local_hospital" -> Icons.Default.LocalHospital
-        "home" -> Icons.Default.Home
-        "subscriptions" -> Icons.Default.Subscriptions
-        else -> Icons.Default.Category
-    }
-}
 
 // Функция расчета баланса
 private fun calculateBalance(uiState: MainScreenUiState): Double {

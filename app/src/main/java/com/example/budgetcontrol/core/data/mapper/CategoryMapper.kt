@@ -14,7 +14,10 @@ fun CategoryEntity.toDomain(): Category {
         type = when (type) {
             "INCOME" -> CategoryType.INCOME
             else -> CategoryType.EXPENSE
-        }
+        },
+        nameKey = nameKey,
+        isSystem = isSystem,
+        usageCount = usageCount
     )
 }
 
@@ -25,7 +28,10 @@ fun Category.toEntity(): CategoryEntity {
         iconName = iconName,
         color = color,
         isDefault = isDefault,
-        type = type.name
+        type = type.name,
+        nameKey = nameKey,
+        isSystem = isSystem,
+        usageCount = usageCount
     )
 }
 

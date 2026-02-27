@@ -9,7 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +25,8 @@ import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
+import com.example.budgetcontrol.ui.util.displayName
+import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -38,6 +40,31 @@ fun TransactionDetailContent(
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.delete_transaction_title)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDeleteClick()
+                }) {
+                    Text(
+                        text = stringResource(R.string.delete_button),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel_button))
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -53,7 +80,7 @@ fun TransactionDetailContent(
         // Категория
         DetailItem(
             label = stringResource(R.string.category),
-            value = category?.name ?: stringResource(R.string.unknown_category),
+            value = category?.displayName() ?: stringResource(R.string.unknown_category),
             icon = getCategoryIcon(category?.iconName),
             iconColor = category?.let {
                 Color(android.graphics.Color.parseColor(it.color))
@@ -74,34 +101,52 @@ fun TransactionDetailContent(
                 .format(Date(transaction.date))
         )
 
-        // Оригинальная сумма и банк (только для конвертированных расходов)
-        if (transaction is Transaction.ExpenseTransaction &&
-            transaction.originalCurrency != "EUR"
-        ) {
-            val originalFormatted = String.format("%.2f", transaction.originalAmount)
+        // Оригинальная сумма и банк (для конвертированных транзакций)
+        val originalCurrency = when (transaction) {
+            is Transaction.ExpenseTransaction -> transaction.originalCurrency
+            is Transaction.IncomeTransaction -> transaction.originalCurrency
+        }
+        val originalAmount = when (transaction) {
+            is Transaction.ExpenseTransaction -> transaction.originalAmount
+            is Transaction.IncomeTransaction -> transaction.originalAmount
+        }
+        val txBankName = when (transaction) {
+            is Transaction.ExpenseTransaction -> transaction.bankName
+            is Transaction.IncomeTransaction -> transaction.bankName
+        }
+        val txBankCommission = when (transaction) {
+            is Transaction.ExpenseTransaction -> transaction.bankCommission
+            is Transaction.IncomeTransaction -> transaction.bankCommission
+        }
+        val txRateSource = when (transaction) {
+            is Transaction.ExpenseTransaction -> transaction.rateSource
+            is Transaction.IncomeTransaction -> transaction.rateSource
+        }
+
+        if (originalCurrency != "EUR") {
+            val originalFormatted = String.format("%.2f", originalAmount)
                 .trimEnd('0').trimEnd('.', ',')
             val displayName = try {
-                Currency.getInstance(transaction.originalCurrency)
+                Currency.getInstance(originalCurrency)
                     .getDisplayName(Locale.getDefault())
             } catch (_: IllegalArgumentException) {
-                transaction.originalCurrency
+                originalCurrency
             }
             DetailItem(
                 label = stringResource(R.string.original_amount),
-                value = "$originalFormatted ${transaction.originalCurrency} ($displayName)"
+                value = "$originalFormatted $originalCurrency ($displayName)"
             )
 
-            transaction.bankName?.let { name ->
-                val commission = transaction.bankCommission
-                val commissionStr = if (commission != null) {
-                    val trimmed = if (commission == commission.toLong().toDouble())
-                        commission.toLong().toString()
+            txBankName?.let { name ->
+                val commissionStr = if (txBankCommission != null) {
+                    val trimmed = if (txBankCommission == txBankCommission.toLong().toDouble())
+                        txBankCommission.toLong().toString()
                     else
-                        commission.toString()
+                        txBankCommission.toString()
                     " ($trimmed%)"
                 } else ""
                 val bankLabel = "$name$commissionStr"
-                val isUserCorrected = transaction.rateSource == "USER_CORRECTED"
+                val isUserCorrected = txRateSource == "USER_CORRECTED"
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -146,7 +191,7 @@ fun TransactionDetailContent(
 
         // Кнопка удаления
         Button(
-            onClick = onDeleteClick,
+            onClick = { showDeleteDialog = true },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error
@@ -252,28 +297,3 @@ private fun DetailItem(
     }
 }
 
-/**
- * Получение иконки для категории
- */
-@Composable
-private fun getCategoryIcon(iconName: String?): ImageVector {
-    return when (iconName) {
-        // Иконки для расходов
-        "shopping_cart" -> Icons.Default.ShoppingCart
-        "directions_car" -> Icons.Default.DirectionsCar
-        "movie" -> Icons.Default.Movie
-        "local_hospital" -> Icons.Default.LocalHospital
-        "home" -> Icons.Default.Home
-        "subscriptions" -> Icons.Default.Subscriptions
-
-        // Иконки для доходов
-        "work" -> Icons.Default.Work
-        "computer" -> Icons.Default.Computer
-        "trending_up" -> Icons.Default.TrendingUp
-        "card_giftcard" -> Icons.Default.CardGiftcard
-        "sell" -> Icons.Default.Sell
-
-        // По умолчанию
-        else -> Icons.Default.Category
-    }
-}

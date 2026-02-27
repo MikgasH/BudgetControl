@@ -204,6 +204,125 @@
     <!-- AddExpenseUseCase -->
     <string name="error_saving_expense">Error saving: %1$s</string>
 
+    <!-- Banks management -->
+    <string name="banks_and_commissions">Banks &amp; Commissions</string>
+    <string name="banks_description">Manage bank conversion commissions</string>
+    <string name="add_bank">Add bank</string>
+    <string name="bank_name_label">Bank name</string>
+    <string name="commission_percent_label">Commission %</string>
+    <string name="edit_bank">Edit bank</string>
+    <string name="reset_banks_to_defaults">Reset to defaults</string>
+    <string name="reset_banks_confirm">Delete all banks and restore defaults?</string>
+    <string name="bank_name_required">Enter a bank name</string>
+    <string name="default_bank">Default</string>
+    <string name="last_favorite_error">At least one bank must remain in favorites</string>
+    <string name="bank_min_one_required">At least one bank must be selected</string>
+    <string name="bank_checkbox_hint">☑ Select banks you use — they\'ll appear when adding expenses</string>
+    <string name="bank_star_hint">★ Star marks your primary bank — pre-selected automatically</string>
+    <string name="favorite">Favorite</string>
+
+    <!-- Favourite currencies -->
+    <string name="favourite_currencies">Favourite Currencies</string>
+    <string name="favourite_currencies_description">Select currencies you use frequently. They will appear first in the currency selector.</string>
+    <string name="loading_currencies">Loading currencies…</string>
+    <string name="last_favourite_currency_error">At least one currency must remain in favourites</string>
+    <string name="error_loading_currency_list">Could not load currencies: %1$s</string>
+
+    <!-- Bottom sheet management -->
+    <string name="manage">Manage</string>
+    <string name="banks_selected_count">%1$d banks selected</string>
+    <string name="currencies_selected_count">%1$d currencies selected</string>
+    <string name="search_banks">Search banks</string>
+    <string name="search_currencies">Search currencies</string>
+    <string name="no_banks_found">No banks found</string>
+    <string name="add_bank_with_name">Add \"%1$s\"?</string>
+    <string name="no_currencies_found">No currencies found</string>
+    <string name="manage_favourites_hint">Manage favourites in Settings</string>
+    <string name="add_favourites_hint">Add your most-used currencies in Settings</string>
+
+    <!-- System category names — Expenses -->
+    <string name="cat_groceries">Groceries</string>
+    <string name="cat_transport">Transport</string>
+    <string name="cat_entertainment">Entertainment</string>
+    <string name="cat_health">Health</string>
+    <string name="cat_home">Home</string>
+    <string name="cat_subscriptions">Subscriptions</string>
+    <string name="cat_restaurants">Restaurants</string>
+    <string name="cat_clothing">Clothing</string>
+    <string name="cat_education">Education</string>
+    <string name="cat_gifts">Gifts</string>
+    <string name="cat_travel">Travel</string>
+    <string name="cat_beauty">Beauty</string>
+    <string name="cat_pets">Pets</string>
+    <string name="cat_sport">Sport</string>
+    <string name="cat_electronics">Electronics</string>
+    <string name="cat_other_expense">Other</string>
+
+    <!-- System category names — Incomes -->
+    <string name="cat_salary">Salary</string>
+    <string name="cat_freelance">Freelance</string>
+    <string name="cat_investments">Investments</string>
+    <string name="cat_gifts_income">Gifts</string>
+    <string name="cat_sales">Sales</string>
+    <string name="cat_rental">Rental income</string>
+    <string name="cat_refund">Refund</string>
+    <string name="cat_other_income">Other</string>
+
+    <!-- Categories management -->
+    <string name="categories_management">Categories</string>
+    <string name="categories_description">%1$d expense, %2$d income categories</string>
+    <string name="expense_tab">Expenses</string>
+    <string name="income_tab">Incomes</string>
+    <string name="search_categories">Search categories</string>
+    <string name="add_custom_category">Add category</string>
+    <string name="category_name_label">Category name</string>
+    <string name="category_name_required">Enter a category name</string>
+    <string name="select_icon">Icon</string>
+    <string name="select_color">Color</string>
+    <string name="system_category">System</string>
+    <string name="no_categories_found">No categories found</string>
+    <string name="reset_categories_to_defaults">Reset to defaults</string>
+    <string name="reset_categories_confirm">Delete all custom categories and restore defaults?</string>
+
+    <!-- CategorySelector grid -->
+    <string name="frequently_used">Frequently used</string>
+    <string name="all_categories">All categories</string>
+    <string name="categories_manage_hint">To edit or delete categories, go to Settings</string>
+    <string name="long_press_hint">Long press a category to edit or delete it</string>
+    <string name="system_category_color_only">System category · color only</string>
+    <string name="edit_category">Edit category</string>
+    <string name="delete_category">Delete category</string>
+    <string name="delete_category_confirm">Delete category \"%1$s\"?</string>
+    <string name="category_in_use">Cannot delete: category is used in transactions</string>
+
+    <!-- Create category sheet -->
+    <string name="create_category">Create category</string>
+    <string name="more_icons">More icons</string>
+    <string name="custom_color">Custom color</string>
+    <string name="icon_group_finance">Finance</string>
+    <string name="icon_group_transport">Transport</string>
+    <string name="icon_group_food">Food &amp; Shopping</string>
+    <string name="icon_group_home">Home &amp; Life</string>
+    <string name="icon_group_entertainment">Entertainment</string>
+    <string name="icon_group_other">Other</string>
+    <string name="hex_color_label">HEX color</string>
+    <string name="discard_changes">Discard changes?</string>
+    <string name="discard_changes_confirm">You have unsaved changes. Discard them?</string>
+    <string name="close">Close</string>
+
+    <!-- Delete confirmation -->
+    <string name="delete_transaction_title">Delete transaction?</string>
+    <string name="delete_button">Delete</string>
+    <string name="cancel_button">Cancel</string>
+
+    <!-- Discard form (ADD mode back press) -->
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_button">Discard</string>
+    <string name="keep_editing_button">Keep editing</string>
+
+    <!-- Statistics tabs -->
+    <string name="transactions_count_suffix"> transactions</string>
+
     <!-- Date formats -->
     <string name="date_format_full">MMMM d, yyyy</string>
 </resources>

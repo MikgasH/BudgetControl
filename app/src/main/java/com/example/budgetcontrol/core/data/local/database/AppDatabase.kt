@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class],
-    version = 6,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,11 +32,29 @@ abstract class AppDatabase : RoomDatabase() {
         const val DATABASE_NAME = "budget_control_db"
 
         val DEFAULT_BANKS = listOf(
-            BankEntity(name = "Revolut", commissionPercent = 0.5, isDefault = true),
-            BankEntity(name = "Wise", commissionPercent = 0.5),
-            BankEntity(name = "SEB", commissionPercent = 3.0),
+            BankEntity(name = "Revolut", commissionPercent = 0.5, isDefault = true, isFavorite = true),
+            BankEntity(name = "Wise", commissionPercent = 0.5, isFavorite = true),
+            BankEntity(name = "Luminor", commissionPercent = 3.0),
+            BankEntity(name = "SEB", commissionPercent = 3.0, isFavorite = true),
             BankEntity(name = "Swedbank", commissionPercent = 3.5),
-            BankEntity(name = "Luminor", commissionPercent = 3.0)
+            BankEntity(name = "Citadele", commissionPercent = 3.0),
+            BankEntity(name = "LHV", commissionPercent = 2.5),
+            BankEntity(name = "PKO", commissionPercent = 3.0),
+            BankEntity(name = "mBank", commissionPercent = 3.0),
+            BankEntity(name = "Santander PL", commissionPercent = 3.5),
+            BankEntity(name = "Česká spořitelna", commissionPercent = 3.0),
+            BankEntity(name = "ČSOB", commissionPercent = 3.0),
+            BankEntity(name = "N26", commissionPercent = 0.0),
+            BankEntity(name = "DKB", commissionPercent = 1.75),
+            BankEntity(name = "Deutsche Bank", commissionPercent = 2.0),
+            BankEntity(name = "ING", commissionPercent = 1.99),
+            BankEntity(name = "bunq", commissionPercent = 0.0),
+            BankEntity(name = "BBVA", commissionPercent = 2.0),
+            BankEntity(name = "Santander ES", commissionPercent = 3.0),
+            BankEntity(name = "Nordea", commissionPercent = 2.5),
+            BankEntity(name = "Handelsbanken", commissionPercent = 2.0),
+            BankEntity(name = "Monzo", commissionPercent = 0.0),
+            BankEntity(name = "Starling", commissionPercent = 0.0)
         )
 
         val MIGRATION_3_4 = object : Migration(3, 4) {
@@ -85,14 +103,65 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE banks ADD COLUMN isFavorite INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE categories ADD COLUMN nameKey TEXT DEFAULT NULL"
+                )
+                database.execSQL(
+                    "ALTER TABLE categories ADD COLUMN isSystem INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "ALTER TABLE categories ADD COLUMN usageCount INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "UPDATE categories SET isSystem = 1 WHERE isDefault = 1"
+                )
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE incomes ADD COLUMN originalAmount REAL NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "ALTER TABLE incomes ADD COLUMN originalCurrency TEXT NOT NULL DEFAULT 'EUR'"
+                )
+                database.execSQL(
+                    "ALTER TABLE incomes ADD COLUMN exchangeRate REAL DEFAULT NULL"
+                )
+                database.execSQL(
+                    "ALTER TABLE incomes ADD COLUMN bankName TEXT DEFAULT NULL"
+                )
+                database.execSQL(
+                    "ALTER TABLE incomes ADD COLUMN bankCommission REAL DEFAULT NULL"
+                )
+                database.execSQL(
+                    "ALTER TABLE incomes ADD COLUMN rateSource TEXT DEFAULT NULL"
+                )
+                database.execSQL(
+                    "UPDATE incomes SET originalAmount = amount WHERE originalAmount = 0"
+                )
+            }
+        }
+
         val PREPOPULATE_CALLBACK = object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 CoroutineScope(Dispatchers.IO).launch {
                     DEFAULT_BANKS.forEach { bank ->
                         db.execSQL(
-                            "INSERT INTO banks (name, commissionPercent, isDefault) VALUES (?, ?, ?)",
-                            arrayOf(bank.name, bank.commissionPercent, if (bank.isDefault) 1 else 0)
+                            "INSERT INTO banks (name, commissionPercent, isDefault, isFavorite) VALUES (?, ?, ?, ?)",
+                            arrayOf(bank.name, bank.commissionPercent, if (bank.isDefault) 1 else 0, if (bank.isFavorite) 1 else 0)
                         )
                     }
                 }
@@ -107,8 +176,8 @@ abstract class AppDatabase : RoomDatabase() {
                     if (count == 0) {
                         DEFAULT_BANKS.forEach { bank ->
                             db.execSQL(
-                                "INSERT INTO banks (name, commissionPercent, isDefault) VALUES (?, ?, ?)",
-                                arrayOf(bank.name, bank.commissionPercent, if (bank.isDefault) 1 else 0)
+                                "INSERT INTO banks (name, commissionPercent, isDefault, isFavorite) VALUES (?, ?, ?, ?)",
+                                arrayOf(bank.name, bank.commissionPercent, if (bank.isDefault) 1 else 0, if (bank.isFavorite) 1 else 0)
                             )
                         }
                     }

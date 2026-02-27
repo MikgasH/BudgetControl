@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.transaction.common
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,9 +21,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
+import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.ui.components.common.AddTransactionContent
+import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,6 +86,11 @@ fun TransactionFormScreen(
         )
     }
 
+    // Intercept system back press in both ADD and EDIT modes when form has data
+    BackHandler(enabled = hasChanges) {
+        showExitDialog = true
+    }
+
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
@@ -90,19 +99,32 @@ fun TransactionFormScreen(
                     text = if (mode == TransactionFormMode.EDIT) {
                         stringResource(R.string.form_modified_title)
                     } else {
-                        stringResource(R.string.form_not_empty_title)
+                        stringResource(R.string.discard_changes_title)
                     }
                 )
             },
             text = { Text(stringResource(R.string.exit_without_saving)) },
             confirmButton = {
                 TextButton(onClick = onBackClick) {
-                    Text(stringResource(R.string.yes_upper))
+                    Text(
+                        text = if (mode == TransactionFormMode.EDIT) {
+                            stringResource(R.string.yes_upper)
+                        } else {
+                            stringResource(R.string.discard_button)
+                        },
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
-                    Text(stringResource(R.string.no_upper))
+                    Text(
+                        text = if (mode == TransactionFormMode.EDIT) {
+                            stringResource(R.string.no_upper)
+                        } else {
+                            stringResource(R.string.keep_editing_button)
+                        }
+                    )
                 }
             }
         )
@@ -130,7 +152,7 @@ fun TransactionFormScreen(
                 ) {
                     IconButton(
                         onClick = {
-                            if (hasChanges && mode == TransactionFormMode.EDIT) {
+                            if (hasChanges) {
                                 showExitDialog = true
                             } else {
                                 onBackClick()
@@ -147,7 +169,7 @@ fun TransactionFormScreen(
                     }
 
                     Text(
-                        text = getTitle(mode, uiState.transactionType, uiState.selectedCategory?.name),
+                        text = getTitle(mode, uiState.transactionType, uiState.selectedCategory?.displayName()),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -181,6 +203,10 @@ fun TransactionFormScreen(
                 onBankSelect = viewModel::selectBank,
                 onExactAmountToggle = viewModel::toggleExactAmount,
                 onExactEurAmountChange = viewModel::updateExactEurAmount,
+                onCreateCategory = viewModel::createCategory,
+                onUpdateCategoryColor = viewModel::updateCategoryColor,
+                onUpdateCategory = viewModel::updateCustomCategory,
+                onDeleteCategory = viewModel::deleteCustomCategory,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -191,7 +217,7 @@ fun TransactionFormScreen(
 private fun TransactionFormContent(
     uiState: TransactionFormUiState,
     onAmountChange: (String) -> Unit,
-    onCategorySelect: (com.example.budgetcontrol.core.domain.model.Category) -> Unit,
+    onCategorySelect: (Category) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onDateChange: (Long) -> Unit,
     onSaveClick: () -> Unit,
@@ -201,6 +227,10 @@ private fun TransactionFormContent(
     onBankSelect: (BankEntity) -> Unit,
     onExactAmountToggle: (Boolean) -> Unit,
     onExactEurAmountChange: (String) -> Unit,
+    onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
+    onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
+    onUpdateCategory: (Category) -> Unit = {},
+    onDeleteCategory: (Category) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (uiState.mode == TransactionFormMode.ADD) {
@@ -225,6 +255,7 @@ private fun TransactionFormContent(
             onCurrencySelect = onCurrencySelect,
             isCurrenciesLoading = uiState.isCurrenciesLoading,
             currenciesError = uiState.currenciesError,
+            favoriteCurrencies = uiState.favoriteCurrencies,
             availableBanks = uiState.availableBanks,
             selectedBank = uiState.selectedBank,
             onBankSelect = onBankSelect,
@@ -232,7 +263,11 @@ private fun TransactionFormContent(
             exactEurAmount = uiState.exactEurAmount,
             onExactEurAmountChange = onExactEurAmountChange,
             isExactAmountEnabled = uiState.isExactAmountEnabled,
-            onExactAmountToggle = onExactAmountToggle
+            onExactAmountToggle = onExactAmountToggle,
+            onCreateCategory = onCreateCategory,
+            onUpdateCategoryColor = onUpdateCategoryColor,
+            onUpdateCategory = onUpdateCategory,
+            onDeleteCategory = onDeleteCategory
         )
     } else {
         EditTransactionFormContent(
@@ -246,6 +281,10 @@ private fun TransactionFormContent(
             onTransactionTypeChange = onTransactionTypeChange,
             onCurrencySelect = onCurrencySelect,
             onBankSelect = onBankSelect,
+            onCreateCategory = onCreateCategory,
+            onUpdateCategoryColor = onUpdateCategoryColor,
+            onUpdateCategory = onUpdateCategory,
+            onDeleteCategory = onDeleteCategory,
             modifier = modifier
         )
     }
@@ -255,7 +294,7 @@ private fun TransactionFormContent(
 private fun EditTransactionFormContent(
     uiState: TransactionFormUiState,
     onAmountChange: (String) -> Unit,
-    onCategorySelect: (com.example.budgetcontrol.core.domain.model.Category) -> Unit,
+    onCategorySelect: (Category) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onDateChange: (Long) -> Unit,
     onSaveClick: () -> Unit,
@@ -263,6 +302,10 @@ private fun EditTransactionFormContent(
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
     onBankSelect: (BankEntity) -> Unit,
+    onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
+    onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
+    onUpdateCategory: (Category) -> Unit = {},
+    onDeleteCategory: (Category) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -281,8 +324,7 @@ private fun EditTransactionFormContent(
             TransactionTypeDisplay(uiState.transactionType)
         }
 
-        val isAmountLocked = uiState.transactionType == TransactionType.EXPENSE &&
-                uiState.selectedCurrency != "EUR"
+        val isAmountLocked = uiState.selectedCurrency != "EUR"
 
         com.example.budgetcontrol.ui.components.common.AmountInputCard(
             amount = if (isAmountLocked) uiState.originalAmount.toString() else uiState.amount,
@@ -299,7 +341,11 @@ private fun EditTransactionFormContent(
             categories = uiState.categories,
             selectedCategory = uiState.selectedCategory,
             onCategorySelect = onCategorySelect,
-            transactionType = uiState.transactionType
+            transactionType = uiState.transactionType,
+            onCreateCategory = onCreateCategory,
+            onUpdateCategoryColor = onUpdateCategoryColor,
+            onUpdateCategory = onUpdateCategory,
+            onDeleteCategory = onDeleteCategory
         )
 
         com.example.budgetcontrol.ui.components.common.DateSelector(

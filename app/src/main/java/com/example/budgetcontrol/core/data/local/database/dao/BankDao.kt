@@ -10,6 +10,9 @@ interface BankDao {
     @Query("SELECT * FROM banks ORDER BY isDefault DESC, name ASC")
     fun getAllBanks(): Flow<List<BankEntity>>
 
+    @Query("SELECT * FROM banks WHERE isFavorite = 1 ORDER BY isDefault DESC, name ASC")
+    fun getFavoriteBanks(): Flow<List<BankEntity>>
+
     @Query("SELECT COUNT(*) FROM banks")
     suspend fun getBankCount(): Int
 
@@ -21,5 +24,8 @@ interface BankDao {
 
     @Delete
     suspend fun deleteBank(bank: BankEntity)
+
+    @Query("DELETE FROM banks")
+    suspend fun deleteAllBanks()
 }
 

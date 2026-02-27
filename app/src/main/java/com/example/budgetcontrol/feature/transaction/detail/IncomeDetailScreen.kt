@@ -16,6 +16,7 @@ import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.components.common.TransactionDetailContent
 import com.example.budgetcontrol.feature.transaction.common.TransactionDetailViewModel
 import androidx.compose.ui.res.stringResource
+import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.theme.AppBlue
 
@@ -77,7 +78,7 @@ fun IncomeDetailScreen(
 
                     // Заголовок по центру
                     Text(
-                        text = uiState.category?.name?.uppercase() ?: stringResource(R.string.income_upper),
+                        text = uiState.category?.displayName()?.uppercase() ?: stringResource(R.string.income_upper),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),

@@ -21,6 +21,7 @@ import com.example.budgetcontrol.feature.transaction.common.TransactionsByCatego
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.theme.AppBlue
+import com.example.budgetcontrol.ui.util.displayName
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -79,7 +80,7 @@ fun IncomesByCategoryScreen(
                         modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text(
-                            text = uiState.category?.name?.uppercase() ?: stringResource(R.string.incomes_upper),
+                            text = uiState.category?.displayName()?.uppercase() ?: stringResource(R.string.incomes_upper),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),

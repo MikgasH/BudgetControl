@@ -13,5 +13,6 @@ interface CategoryRepository {
     suspend fun updateCategory(category: Category)
     suspend fun deleteCategory(category: Category)
     suspend fun deleteCategoryById(id: String)
+    suspend fun incrementUsageCount(id: String)
     suspend fun initializeDefaultCategories()
 }

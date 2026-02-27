@@ -51,101 +51,39 @@ class CategoryRepositoryImpl @Inject constructor(
         categoryDao.deleteCategoryById(id)
     }
 
+    override suspend fun incrementUsageCount(id: String) {
+        categoryDao.incrementUsageCount(id)
+    }
+
     override suspend fun initializeDefaultCategories() {
-        // Категории расходов
         val expenseCategories = listOf(
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Продукты",
-                iconName = "shopping_cart",
-                color = "#4CAF50",
-                isDefault = true,
-                type = CategoryType.EXPENSE
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Транспорт",
-                iconName = "directions_car",
-                color = "#2196F3",
-                isDefault = true,
-                type = CategoryType.EXPENSE
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Развлечения",
-                iconName = "movie",
-                color = "#FF9800",
-                isDefault = true,
-                type = CategoryType.EXPENSE
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Здоровье",
-                iconName = "local_hospital",
-                color = "#F44336",
-                isDefault = true,
-                type = CategoryType.EXPENSE
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Дом",
-                iconName = "home",
-                color = "#9C27B0",
-                isDefault = true,
-                type = CategoryType.EXPENSE
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Подписки",
-                iconName = "subscriptions",
-                color = "#607D8B",
-                isDefault = true,
-                type = CategoryType.EXPENSE
-            )
+            Category(id = UUID.randomUUID().toString(), name = "Groceries", iconName = "shopping_cart", color = "#4CAF50", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_groceries", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Transport", iconName = "directions_car", color = "#2196F3", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_transport", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Entertainment", iconName = "movie", color = "#FF9800", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_entertainment", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Health", iconName = "local_hospital", color = "#F44336", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_health", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Home", iconName = "home", color = "#9C27B0", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_home", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Subscriptions", iconName = "subscriptions", color = "#607D8B", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_subscriptions", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Restaurants", iconName = "restaurant", color = "#E91E63", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_restaurants", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Clothing", iconName = "checkroom", color = "#795548", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_clothing", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Education", iconName = "school", color = "#3F51B5", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_education", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Gifts", iconName = "card_giftcard", color = "#E91E63", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_gifts", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Travel", iconName = "flight", color = "#00BCD4", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_travel", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Beauty", iconName = "spa", color = "#FF4081", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_beauty", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Pets", iconName = "pets", color = "#8D6E63", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_pets", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Sport", iconName = "fitness_center", color = "#4CAF50", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_sport", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Electronics", iconName = "devices", color = "#455A64", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_electronics", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Other", iconName = "more_horiz", color = "#9E9E9E", isDefault = true, type = CategoryType.EXPENSE, nameKey = "cat_other_expense", isSystem = true)
         )
 
-        // Категории доходов
         val incomeCategories = listOf(
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Зарплата",
-                iconName = "work",
-                color = "#29B6F6",
-                isDefault = true,
-                type = CategoryType.INCOME
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Фриланс",
-                iconName = "computer",
-                color = "#26C6DA",
-                isDefault = true,
-                type = CategoryType.INCOME
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Инвестиции",
-                iconName = "trending_up",
-                color = "#66BB6A",
-                isDefault = true,
-                type = CategoryType.INCOME
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Подарки",
-                iconName = "card_giftcard",
-                color = "#EF5350",
-                isDefault = true,
-                type = CategoryType.INCOME
-            ),
-            Category(
-                id = UUID.randomUUID().toString(),
-                name = "Продажа",
-                iconName = "sell",
-                color = "#FFA726",
-                isDefault = true,
-                type = CategoryType.INCOME
-            )
+            Category(id = UUID.randomUUID().toString(), name = "Salary", iconName = "work", color = "#29B6F6", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_salary", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Freelance", iconName = "computer", color = "#26C6DA", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_freelance", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Investments", iconName = "trending_up", color = "#66BB6A", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_investments", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Gifts", iconName = "card_giftcard", color = "#EF5350", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_gifts_income", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Sales", iconName = "sell", color = "#FFA726", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_sales", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Rental income", iconName = "apartment", color = "#AB47BC", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_rental", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Refund", iconName = "replay", color = "#78909C", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_refund", isSystem = true),
+            Category(id = UUID.randomUUID().toString(), name = "Other", iconName = "more_horiz", color = "#9E9E9E", isDefault = true, type = CategoryType.INCOME, nameKey = "cat_other_income", isSystem = true)
         )
 
         insertCategories(expenseCategories + incomeCategories)

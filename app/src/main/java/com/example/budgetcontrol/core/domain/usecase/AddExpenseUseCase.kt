@@ -5,6 +5,7 @@ import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.domain.model.Expense
+import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.math.RoundingMode
@@ -20,7 +21,8 @@ sealed class AddExpenseResult {
 class AddExpenseUseCase @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: ExpenseRepository,
-    private val cerpsRepository: CerpsRepository
+    private val cerpsRepository: CerpsRepository,
+    private val categoryRepository: CategoryRepository
 ) {
     suspend operator fun invoke(
         amount: Double,
@@ -65,6 +67,7 @@ class AddExpenseUseCase @Inject constructor(
             )
 
             repository.insertExpense(expense)
+            categoryRepository.incrementUsageCount(categoryId)
             AddExpenseResult.Success
 
         } catch (e: Exception) {
@@ -111,6 +114,7 @@ class AddExpenseUseCase @Inject constructor(
                 rateSource = "USER_CORRECTED"
             )
             repository.insertExpense(expense)
+            categoryRepository.incrementUsageCount(categoryId)
             AddExpenseResult.Success
         } catch (e: Exception) {
             AddExpenseResult.Error(context.getString(R.string.error_saving_expense, e.message ?: ""))

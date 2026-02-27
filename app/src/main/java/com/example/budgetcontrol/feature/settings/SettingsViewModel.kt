@@ -6,13 +6,19 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
+import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
+import com.example.budgetcontrol.core.data.repository.BankRepository
 import com.example.budgetcontrol.core.domain.usecase.SyncDataUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,22 +28,34 @@ data class SettingsUiState(
     val isError: Boolean = false,
     val cloudExpensesCount: Int = -1,
     val currentOperation: String? = null,
-    val currentLanguage: String = ""
+    val currentLanguage: String = "",
+    val allCurrencies: List<String> = emptyList(),
+    val isCurrenciesLoading: Boolean = false,
+    val currenciesError: String? = null
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val syncDataUseCase: SyncDataUseCase,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val bankRepository: BankRepository,
+    private val cerpsRepository: CerpsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    val banks: StateFlow<List<BankEntity>> = bankRepository.getAllBanks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val favoriteCurrencies: StateFlow<Set<String>> = preferencesManager.favoriteCurrenciesFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PreferencesManager.DEFAULT_FAVORITE_CURRENCIES)
+
     init {
         loadCloudExpensesCount()
         observeLanguage()
+        loadCurrencies()
     }
 
     private fun observeLanguage() {
@@ -134,7 +152,100 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun addBank(name: String, commission: Double) {
+        viewModelScope.launch {
+            bankRepository.insertBank(
+                BankEntity(name = name, commissionPercent = commission)
+            )
+        }
+    }
+
+    fun updateBank(bank: BankEntity) {
+        viewModelScope.launch {
+            bankRepository.updateBank(bank)
+        }
+    }
+
+    fun deleteBank(bank: BankEntity) {
+        viewModelScope.launch {
+            bankRepository.deleteBank(bank)
+        }
+    }
+
+    fun toggleFavorite(bank: BankEntity) {
+        viewModelScope.launch {
+            if (bank.isFavorite) {
+                // Prevent unchecking the last favorite
+                if (banks.value.count { it.isFavorite } <= 1) return@launch
+                if (bank.isDefault) {
+                    val newDefault = banks.value.firstOrNull { it.isFavorite && it.id != bank.id }
+                    bankRepository.updateBank(bank.copy(isFavorite = false, isDefault = false))
+                    newDefault?.let { bankRepository.updateBank(it.copy(isDefault = true)) }
+                } else {
+                    bankRepository.updateBank(bank.copy(isFavorite = false))
+                }
+            } else {
+                bankRepository.updateBank(bank.copy(isFavorite = true))
+            }
+        }
+    }
+
+    fun setDefaultBank(bank: BankEntity) {
+        viewModelScope.launch {
+            // Default must be a favorite — ensure it is
+            banks.value.forEach { existing ->
+                val newDefault = existing.id == bank.id
+                bankRepository.updateBank(
+                    existing.copy(
+                        isDefault = newDefault,
+                        isFavorite = if (newDefault) true else existing.isFavorite
+                    )
+                )
+            }
+        }
+    }
+
+    fun resetBanksToDefaults() {
+        viewModelScope.launch {
+            bankRepository.deleteAllBanks()
+            bankRepository.insertDefaultBanks()
+        }
+    }
+
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(message = null)
     }
+
+    private fun loadCurrencies() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCurrenciesLoading = true)
+            when (val result = cerpsRepository.getCurrencies()) {
+                is CerpsResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        allCurrencies = result.data,
+                        isCurrenciesLoading = false,
+                        currenciesError = null
+                    )
+                }
+                is CerpsResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCurrenciesLoading = false,
+                        currenciesError = result.message
+                    )
+                }
+            }
+        }
+    }
+
+    fun toggleFavoriteCurrency(code: String) {
+        viewModelScope.launch {
+            val current = favoriteCurrencies.value
+            if (current.contains(code)) {
+                preferencesManager.setFavoriteCurrencies(current - code)
+            } else {
+                preferencesManager.setFavoriteCurrencies(current + code)
+            }
+        }
+    }
+
 }
