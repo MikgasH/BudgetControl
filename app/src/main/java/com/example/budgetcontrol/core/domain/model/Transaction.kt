@@ -36,7 +36,12 @@ sealed class Transaction {
         override val categoryId: String,
         override val description: String?,
         override val date: Long,
-        override val createdAt: Long
+        override val createdAt: Long,
+        val originalAmount: Double = amount,
+        val originalCurrency: String = "EUR",
+        val bankName: String? = null,
+        val bankCommission: Double? = null,
+        val rateSource: String? = null
     ) : Transaction() {
         override val type: TransactionType = TransactionType.INCOME
     }
@@ -79,7 +84,12 @@ fun Income.toTransaction(): Transaction.IncomeTransaction {
         categoryId = categoryId,
         description = description,
         date = date,
-        createdAt = createdAt
+        createdAt = createdAt,
+        originalAmount = originalAmount,
+        originalCurrency = originalCurrency,
+        bankName = bankName,
+        bankCommission = bankCommission,
+        rateSource = rateSource
     )
 }
 
@@ -108,7 +118,12 @@ fun Transaction.IncomeTransaction.toIncome(): Income {
         categoryId = categoryId,
         description = description,
         date = date,
-        createdAt = createdAt
+        createdAt = createdAt,
+        originalAmount = originalAmount,
+        originalCurrency = originalCurrency,
+        bankName = bankName,
+        bankCommission = bankCommission,
+        rateSource = rateSource
     )
 
     /**

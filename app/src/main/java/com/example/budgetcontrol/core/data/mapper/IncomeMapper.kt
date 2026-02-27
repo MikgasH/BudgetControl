@@ -10,7 +10,13 @@ fun IncomeEntity.toDomain(): Income {
         categoryId = categoryId,
         description = description,
         date = date,
-        createdAt = createdAt
+        createdAt = createdAt,
+        originalAmount = originalAmount,
+        originalCurrency = originalCurrency,
+        exchangeRate = exchangeRate,
+        bankName = bankName,
+        bankCommission = bankCommission,
+        rateSource = rateSource
     )
 }
 
@@ -21,7 +27,13 @@ fun Income.toEntity(): IncomeEntity {
         categoryId = categoryId,
         description = description,
         date = date,
-        createdAt = createdAt
+        createdAt = createdAt,
+        originalAmount = originalAmount,
+        originalCurrency = originalCurrency,
+        exchangeRate = exchangeRate,
+        bankName = bankName,
+        bankCommission = bankCommission,
+        rateSource = rateSource
     )
 }
 

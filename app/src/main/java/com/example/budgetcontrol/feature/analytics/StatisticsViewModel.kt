@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Expense
+import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
+import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
 import com.example.budgetcontrol.R
@@ -17,13 +19,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class StatisticsTab { EXPENSES, INCOMES }
+
 data class StatisticsUiState(
     val expenses: List<Expense> = emptyList(),
+    val incomes: List<Income> = emptyList(),
     val categories: List<Category> = emptyList(),
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
     val totalAmount: Double = 0.0,
     val isLoading: Boolean = true,
-    val selectedPeriod: TimePeriod = TimePeriod.THIS_MONTH
+    val selectedPeriod: TimePeriod = TimePeriod.THIS_MONTH,
+    val selectedTab: StatisticsTab = StatisticsTab.EXPENSES
 )
 
 enum class TimePeriod(@StringRes val displayNameRes: Int) {
@@ -36,6 +42,7 @@ enum class TimePeriod(@StringRes val displayNameRes: Int) {
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val getExpensesUseCase: GetExpensesUseCase,
+    private val getIncomesUseCase: GetIncomesUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase
 ) : ViewModel() {
 
@@ -50,19 +57,35 @@ class StatisticsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 getExpensesUseCase(),
+                getIncomesUseCase(),
                 getCategoriesUseCase()
-            ) { expenses, categories ->
-                val filteredExpenses = filterExpensesByPeriod(expenses, _uiState.value.selectedPeriod)
-                val totalAmount = filteredExpenses.sumOf { it.amount }
-                val categoryStats = calculateCategoryStatistics(filteredExpenses, categories, totalAmount)
+            ) { expenses, incomes, categories ->
+                val currentState = _uiState.value
+
+                val (stats, total) = when (currentState.selectedTab) {
+                    StatisticsTab.EXPENSES -> {
+                        val filtered = filterExpensesByPeriod(expenses, currentState.selectedPeriod)
+                        val totalAmount = filtered.sumOf { it.amount }
+                        val categoryStats = calculateExpenseCategoryStatistics(filtered, categories, totalAmount)
+                        categoryStats to totalAmount
+                    }
+                    StatisticsTab.INCOMES -> {
+                        val filtered = filterIncomesByPeriod(incomes, currentState.selectedPeriod)
+                        val totalAmount = filtered.sumOf { it.amount }
+                        val categoryStats = calculateIncomeCategoryStatistics(filtered, categories, totalAmount)
+                        categoryStats to totalAmount
+                    }
+                }
 
                 StatisticsUiState(
-                    expenses = filteredExpenses,
+                    expenses = expenses,
+                    incomes = incomes,
                     categories = categories,
-                    categoryStatistics = categoryStats,
-                    totalAmount = totalAmount,
+                    categoryStatistics = stats,
+                    totalAmount = total,
                     isLoading = false,
-                    selectedPeriod = _uiState.value.selectedPeriod
+                    selectedPeriod = currentState.selectedPeriod,
+                    selectedTab = currentState.selectedTab
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -71,8 +94,17 @@ class StatisticsViewModel @Inject constructor(
     }
 
     private fun filterExpensesByPeriod(expenses: List<Expense>, period: TimePeriod): List<Expense> {
-        val calendar = java.util.Calendar.getInstance()
+        val startTime = getStartTimeForPeriod(period) ?: return expenses
+        return expenses.filter { it.date >= startTime }
+    }
 
+    private fun filterIncomesByPeriod(incomes: List<Income>, period: TimePeriod): List<Income> {
+        val startTime = getStartTimeForPeriod(period) ?: return incomes
+        return incomes.filter { it.date >= startTime }
+    }
+
+    private fun getStartTimeForPeriod(period: TimePeriod): Long? {
+        val calendar = java.util.Calendar.getInstance()
         return when (period) {
             TimePeriod.THIS_WEEK -> {
                 calendar.apply {
@@ -82,8 +114,7 @@ class StatisticsViewModel @Inject constructor(
                     set(java.util.Calendar.SECOND, 0)
                     set(java.util.Calendar.MILLISECOND, 0)
                 }
-                val weekStart = calendar.timeInMillis
-                expenses.filter { it.date >= weekStart }
+                calendar.timeInMillis
             }
             TimePeriod.THIS_MONTH -> {
                 calendar.apply {
@@ -93,8 +124,7 @@ class StatisticsViewModel @Inject constructor(
                     set(java.util.Calendar.SECOND, 0)
                     set(java.util.Calendar.MILLISECOND, 0)
                 }
-                val monthStart = calendar.timeInMillis
-                expenses.filter { it.date >= monthStart }
+                calendar.timeInMillis
             }
             TimePeriod.THIS_YEAR -> {
                 calendar.apply {
@@ -104,14 +134,13 @@ class StatisticsViewModel @Inject constructor(
                     set(java.util.Calendar.SECOND, 0)
                     set(java.util.Calendar.MILLISECOND, 0)
                 }
-                val yearStart = calendar.timeInMillis
-                expenses.filter { it.date >= yearStart }
+                calendar.timeInMillis
             }
-            TimePeriod.ALL_TIME -> expenses
+            TimePeriod.ALL_TIME -> null
         }
     }
 
-    private fun calculateCategoryStatistics(
+    private fun calculateExpenseCategoryStatistics(
         expenses: List<Expense>,
         categories: List<Category>,
         totalAmount: Double
@@ -131,13 +160,45 @@ class StatisticsViewModel @Inject constructor(
                 category = category,
                 totalAmount = categoryTotal,
                 percentage = percentage,
-                expenseCount = categoryExpenses.size
+                expenseCount = categoryExpenses.size,
+                transactionCount = categoryExpenses.size
+            )
+        }.sortedByDescending { it.totalAmount }
+    }
+
+    private fun calculateIncomeCategoryStatistics(
+        incomes: List<Income>,
+        categories: List<Category>,
+        totalAmount: Double
+    ): List<CategoryStatistic> {
+        if (totalAmount == 0.0) return emptyList()
+
+        val incomesByCategory = incomes.groupBy { it.categoryId }
+
+        return categories.mapNotNull { category ->
+            val categoryIncomes = incomesByCategory[category.id] ?: emptyList()
+            if (categoryIncomes.isEmpty()) return@mapNotNull null
+
+            val categoryTotal = categoryIncomes.sumOf { it.amount }
+            val percentage = ((categoryTotal / totalAmount) * 100).toFloat()
+
+            CategoryStatistic(
+                category = category,
+                totalAmount = categoryTotal,
+                percentage = percentage,
+                expenseCount = categoryIncomes.size,
+                transactionCount = categoryIncomes.size
             )
         }.sortedByDescending { it.totalAmount }
     }
 
     fun selectPeriod(period: TimePeriod) {
         _uiState.value = _uiState.value.copy(selectedPeriod = period)
+        loadData()
+    }
+
+    fun selectTab(tab: StatisticsTab) {
+        _uiState.value = _uiState.value.copy(selectedTab = tab)
         loadData()
     }
 }

@@ -23,5 +23,11 @@ data class IncomeEntity(
     val categoryId: String,
     val description: String?,
     val date: Long,
-    val createdAt: Long
+    val createdAt: Long,
+    val originalAmount: Double = amount,
+    val originalCurrency: String = "EUR",
+    val exchangeRate: Double? = null,
+    val bankName: String? = null,
+    val bankCommission: Double? = null,
+    val rateSource: String? = null
 )
