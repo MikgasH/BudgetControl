@@ -20,7 +20,6 @@ import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
-import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.text.SimpleDateFormat

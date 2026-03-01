@@ -14,7 +14,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import java.text.SimpleDateFormat
 import java.util.*

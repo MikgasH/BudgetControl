@@ -85,7 +85,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setInitialBalance(amount: String) {
         viewModelScope.launch {
-            val value = amount.toDoubleOrNull() ?: 0.0
+            val value = amount.replace(',', '.').toDoubleOrNull() ?: 0.0
             preferencesManager.setInitialBalance(value)
         }
     }

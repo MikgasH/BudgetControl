@@ -182,6 +182,40 @@ fun AddTransactionContent(
                     lastCashExchange = lastCashExchange,
                     selectedCurrency = selectedCurrency
                 )
+
+                // Toggle: Specify amount manually (same as card mode)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = isExactAmountEnabled,
+                        onCheckedChange = onExactAmountToggle,
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                    )
+                    Text(
+                        text = stringResource(R.string.specify_amount_manually),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                if (isExactAmountEnabled) {
+                    OutlinedTextField(
+                        value = exactEurAmount,
+                        onValueChange = onExactEurAmountChange,
+                        label = { Text(stringResource(R.string.exact_eur_amount)) },
+                        placeholder = { Text(stringResource(R.string.exact_eur_example)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
             }
         }
 

@@ -149,19 +149,9 @@ class TransactionFormViewModel @Inject constructor(
                     }
                 )
             } else {
-                val cerpsAvailable = networkStatusRepository.isCerpsAvailable()
-                if (!cerpsAvailable) {
-                    val cachedRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
-                    _uiState.value = _uiState.value.copy(
-                        networkStatus = if (cachedRates.isNotEmpty()) {
-                            NetworkStatus.SERVICE_UNAVAILABLE
-                        } else {
-                            NetworkStatus.OFFLINE_NO_CACHE
-                        }
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(networkStatus = NetworkStatus.ONLINE)
-                }
+                // Don't probe CERPS health here — just check internet connectivity.
+                // The actual conversion call will handle CERPS errors gracefully.
+                _uiState.value = _uiState.value.copy(networkStatus = NetworkStatus.ONLINE)
             }
         }
     }
@@ -390,7 +380,7 @@ class TransactionFormViewModel @Inject constructor(
      * convertedAmount = originalAmount / realRate
      */
     private fun buildPreview(amountStr: String, interBankRate: Double, bank: BankEntity): String {
-        val amount = amountStr.toDoubleOrNull() ?: return ""
+        val amount = amountStr.replace(',', '.').toDoubleOrNull() ?: return ""
         if (amount <= 0) return ""
         val realRate = interBankRate * (1.0 - bank.commissionPercent / 100.0)
         if (realRate <= 0) return ""
@@ -644,7 +634,7 @@ class TransactionFormViewModel @Inject constructor(
             return
         }
 
-        val amountDouble = currentState.amount.toDouble()
+        val amountDouble = currentState.amount.replace(',', '.').toDouble()
 
         _uiState.value = currentState.copy(isLoading = true, showError = null)
 
@@ -657,10 +647,34 @@ class TransactionFormViewModel @Inject constructor(
 
                         when (currentState.transactionType) {
                             TransactionType.EXPENSE -> {
-                                val result = if (isCashMode) {
+                                val result = if (isCashMode &&
+                                    currentState.isExactAmountEnabled &&
+                                    currentState.exactEurAmount.isNotBlank()
+                                ) {
+                                    // Cash mode with manual EUR amount
+                                    val exactEurCash = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
+                                    if (exactEurCash == null || exactEurCash <= 0) {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = context.getString(R.string.error_enter_valid_eur)
+                                        )
+                                        return@launch
+                                    }
+                                    addExpenseUseCase.addWithExactEurAmount(
+                                        originalAmount = amountDouble,
+                                        originalCurrency = currentState.selectedCurrency,
+                                        exactEurAmount = exactEurCash,
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = null,
+                                        bankCommission = null,
+                                        rateSource = "CASH_EXCHANGE"
+                                    )
+                                } else if (isCashMode) {
                                     // Cash mode: use the cash rate directly
-                                    val cashRateValue = currentState.cashRate.toDoubleOrNull()
-                                        ?: currentState.cashRatePlaceholder.toDoubleOrNull()
+                                    val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
+                                        ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
                                     if (cashRateValue == null || cashRateValue <= 0) {
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
@@ -685,7 +699,7 @@ class TransactionFormViewModel @Inject constructor(
                                     currentState.exactEurAmount.isNotBlank() &&
                                     currentState.selectedCurrency != "EUR"
                                 ) {
-                                    val exactEur = currentState.exactEurAmount.toDoubleOrNull()
+                                    val exactEur = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
                                     if (exactEur == null || exactEur <= 0) {
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
@@ -732,10 +746,34 @@ class TransactionFormViewModel @Inject constructor(
                                 return@launch
                             }
                             TransactionType.INCOME -> {
-                                val result = if (isCashMode) {
+                                val result = if (isCashMode &&
+                                    currentState.isExactAmountEnabled &&
+                                    currentState.exactEurAmount.isNotBlank()
+                                ) {
+                                    // Cash mode with manual EUR amount
+                                    val exactEurCash = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
+                                    if (exactEurCash == null || exactEurCash <= 0) {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = context.getString(R.string.error_enter_valid_eur)
+                                        )
+                                        return@launch
+                                    }
+                                    addIncomeUseCase.addWithExactEurAmount(
+                                        originalAmount = amountDouble,
+                                        originalCurrency = currentState.selectedCurrency,
+                                        exactEurAmount = exactEurCash,
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = null,
+                                        bankCommission = null,
+                                        rateSource = "CASH_EXCHANGE"
+                                    )
+                                } else if (isCashMode) {
                                     // Cash mode: use the cash rate directly
-                                    val cashRateValue = currentState.cashRate.toDoubleOrNull()
-                                        ?: currentState.cashRatePlaceholder.toDoubleOrNull()
+                                    val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
+                                        ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
                                     if (cashRateValue == null || cashRateValue <= 0) {
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
@@ -760,7 +798,7 @@ class TransactionFormViewModel @Inject constructor(
                                     currentState.exactEurAmount.isNotBlank() &&
                                     currentState.selectedCurrency != "EUR"
                                 ) {
-                                    val exactEur = currentState.exactEurAmount.toDoubleOrNull()
+                                    val exactEur = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
                                     if (exactEur == null || exactEur <= 0) {
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,

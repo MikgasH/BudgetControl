@@ -309,4 +309,14 @@ class MainScreenViewModel @Inject constructor(
     fun getCurrentSelectedOperationType(): OperationType {
         return _uiState.value.selectedOperationType
     }
+
+    fun getCurrentPeriodDateRange(): Pair<Long, Long> {
+        val currentState = _uiState.value
+        return DateRangeHelper.getDateRange(
+            periodType = currentState.selectedPeriodType,
+            periodOffset = currentState.currentPeriodIndex,
+            customStartDate = currentState.customStartDate,
+            customEndDate = currentState.customEndDate
+        )
+    }
 }

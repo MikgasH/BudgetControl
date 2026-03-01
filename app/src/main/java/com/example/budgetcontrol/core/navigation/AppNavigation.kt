@@ -105,13 +105,13 @@ fun AppNavigation(
                 onExpensesListClick = {
                     navController.navigate(Screen.Expenses.route)
                 },
-                onCategoryClick = { categoryId, operationType ->
+                onCategoryClick = { categoryId, operationType, startDate, endDate, isAllTime ->
                     when (operationType) {
                         OperationType.INCOMES -> {
-                            navController.navigate("${Screen.IncomesByCategory.route}/$categoryId")
+                            navController.navigate("${Screen.IncomesByCategory.route}/$categoryId?startDate=$startDate&endDate=$endDate&isAllTime=$isAllTime")
                         }
                         OperationType.EXPENSES -> {
-                            navController.navigate("${Screen.ExpensesByCategory.route}/$categoryId")
+                            navController.navigate("${Screen.ExpensesByCategory.route}/$categoryId?startDate=$startDate&endDate=$endDate&isAllTime=$isAllTime")
                         }
                     }
                 },
@@ -237,10 +237,15 @@ fun AppNavigation(
         }
 
         // Расходы по категории
-        composable("${Screen.ExpensesByCategory.route}/{categoryId}") { backStackEntry ->
+        composable("${Screen.ExpensesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}") { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+            val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
+            val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
+            val isAllTime = backStackEntry.arguments?.getString("isAllTime")?.toBooleanStrictOrNull() ?: false
             ExpensesByCategoryScreen(
                 categoryId = categoryId,
+                startDate = if (isAllTime) null else startDate,
+                endDate = if (isAllTime) null else endDate,
                 onBackClick = { navController.popBackStack() },
                 onExpenseClick = { expenseId ->
                     navController.navigate("${Screen.ExpenseDetail.route}/$expenseId")
@@ -332,10 +337,15 @@ fun AppNavigation(
         }
 
         // Доходы по категории
-        composable("${Screen.IncomesByCategory.route}/{categoryId}") { backStackEntry ->
+        composable("${Screen.IncomesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}") { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+            val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
+            val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
+            val isAllTime = backStackEntry.arguments?.getString("isAllTime")?.toBooleanStrictOrNull() ?: false
             IncomesByCategoryScreen(
                 categoryId = categoryId,
+                startDate = if (isAllTime) null else startDate,
+                endDate = if (isAllTime) null else endDate,
                 onBackClick = { navController.popBackStack() },
                 onIncomeClick = { incomeId ->
                     navController.navigate("${Screen.IncomeDetail.route}/$incomeId")

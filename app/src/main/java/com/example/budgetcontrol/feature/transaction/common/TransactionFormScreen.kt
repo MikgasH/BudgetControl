@@ -23,7 +23,6 @@ import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
-import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.ui.components.common.AddTransactionContent
 import com.example.budgetcontrol.ui.util.displayName
@@ -135,7 +134,7 @@ fun TransactionFormScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppBlue
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(0.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -395,7 +394,7 @@ private fun EditTransactionFormContent(
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = AppBlue
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
             if (uiState.isLoading) {

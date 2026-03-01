@@ -21,10 +21,11 @@ object ValidationHelper {
      * Валидация суммы
      */
     fun validateAmount(context: Context, amount: String): ValidationResult {
+        val normalized = amount.replace(',', '.')
         return when {
-            amount.isBlank() -> ValidationResult.Error(context.getString(R.string.validation_enter_amount))
-            amount.toDoubleOrNull() == null -> ValidationResult.Error(context.getString(R.string.validation_enter_valid_amount))
-            amount.toDouble() <= 0 -> ValidationResult.Error(context.getString(R.string.validation_amount_positive))
+            normalized.isBlank() -> ValidationResult.Error(context.getString(R.string.validation_enter_amount))
+            normalized.toDoubleOrNull() == null -> ValidationResult.Error(context.getString(R.string.validation_enter_valid_amount))
+            normalized.toDouble() <= 0 -> ValidationResult.Error(context.getString(R.string.validation_amount_positive))
             else -> ValidationResult.Success
         }
     }
@@ -41,10 +42,12 @@ object ValidationHelper {
     }
 
     /**
-     * Фильтрация ввода суммы (только цифры и одна точка)
+     * Фильтрация ввода суммы (только цифры и одна точка/запятая → точка)
      */
     fun filterAmountInput(input: String): String {
-        val filtered = input.filter { it.isDigit() || it == '.' }
+        // Replace comma with dot first (European decimal separator)
+        val normalized = input.replace(',', '.')
+        val filtered = normalized.filter { it.isDigit() || it == '.' }
         return if (filtered.count { it == '.' } <= 1) {
             filtered
         } else {
@@ -53,6 +56,13 @@ object ValidationHelper {
             filtered.substring(0, firstDotIndex + 1) +
                     filtered.substring(firstDotIndex + 1).replace(".", "")
         }
+    }
+
+    /**
+     * Safely parse amount string to Double, handling comma as decimal separator
+     */
+    fun parseAmount(input: String): Double? {
+        return input.replace(',', '.').toDoubleOrNull()
     }
 
     /**

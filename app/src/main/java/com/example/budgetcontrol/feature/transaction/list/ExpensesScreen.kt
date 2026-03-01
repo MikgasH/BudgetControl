@@ -20,7 +20,6 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.common.TransactionItem
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.theme.AppBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +60,7 @@ fun ExpensesScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBlue,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = Color.White,
                         navigationIconContentColor = Color.White,
                         actionIconContentColor = Color.White
@@ -85,7 +84,7 @@ fun ExpensesScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBlue,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = Color.White,
                         actionIconContentColor = Color.White
                     )
@@ -95,7 +94,7 @@ fun ExpensesScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddExpenseClick,
-                containerColor = AppBlue
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,

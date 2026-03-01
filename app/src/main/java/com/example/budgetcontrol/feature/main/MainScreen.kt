@@ -53,7 +53,7 @@ fun MainScreen(
     onAddExpenseClick: (Long) -> Unit,
     onAddIncomeClick: (Long) -> Unit,
     onExpensesListClick: () -> Unit,
-    onCategoryClick: (String, OperationType) -> Unit = { _, _ -> },
+    onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean) -> Unit = { _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
     onTransactionClick: (Transaction) -> Unit = {},
     viewModel: MainScreenViewModel = hiltViewModel()
@@ -259,7 +259,26 @@ fun MainScreen(
             // Scrollable category list
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
+                        if (uiState.isAllTimePeriod) return@pointerInput
+                        val swipeThresholdPx = 50.dp.toPx()
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onDragEnd = {
+                                if (totalDrag > swipeThresholdPx) {
+                                    viewModel.navigatePeriod(-1)
+                                } else if (totalDrag < -swipeThresholdPx) {
+                                    viewModel.navigatePeriod(1)
+                                }
+                            },
+                            onHorizontalDrag = { _, dragAmount ->
+                                totalDrag += dragAmount
+                            }
+                        )
+                    },
                 contentPadding = PaddingValues(
                     start = 16.dp, end = 16.dp,
                     top = 16.dp, bottom = 16.dp
@@ -271,7 +290,14 @@ fun MainScreen(
                         CategoryStatisticItem(
                             statistic = stat,
                             onClick = {
-                                onCategoryClick(stat.category.id, uiState.selectedOperationType)
+                                val (startDate, endDate) = viewModel.getCurrentPeriodDateRange()
+                                onCategoryClick(
+                                    stat.category.id,
+                                    uiState.selectedOperationType,
+                                    startDate,
+                                    endDate,
+                                    uiState.isAllTimePeriod
+                                )
                             }
                         )
                     }

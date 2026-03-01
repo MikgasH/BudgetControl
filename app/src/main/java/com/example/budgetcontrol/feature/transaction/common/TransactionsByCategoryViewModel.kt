@@ -39,7 +39,12 @@ class TransactionsByCategoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TransactionsByCategoryUiState())
     val uiState: StateFlow<TransactionsByCategoryUiState> = _uiState.asStateFlow()
 
-    fun loadTransactions(categoryId: String, transactionType: TransactionType) {
+    fun loadTransactions(
+        categoryId: String,
+        transactionType: TransactionType,
+        startDate: Long? = null,
+        endDate: Long? = null
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 transactionType = transactionType,
@@ -52,7 +57,12 @@ class TransactionsByCategoryViewModel @Inject constructor(
                 when (transactionType) {
                     TransactionType.EXPENSE -> {
                         getExpensesUseCase.getByCategory(categoryId).collect { expenses ->
-                            val transactions = expenses.map { it.toTransaction() }
+                            val filtered = if (startDate != null && endDate != null) {
+                                expenses.filter { it.date in startDate..endDate }
+                            } else {
+                                expenses
+                            }
+                            val transactions = filtered.map { it.toTransaction() }
                                 .sortedByDescending { it.date }
 
                             _uiState.value = TransactionsByCategoryUiState(
@@ -67,7 +77,12 @@ class TransactionsByCategoryViewModel @Inject constructor(
                     }
                     TransactionType.INCOME -> {
                         getIncomesUseCase.getByCategory(categoryId).collect { incomes ->
-                            val transactions = incomes.map { it.toTransaction() }
+                            val filtered = if (startDate != null && endDate != null) {
+                                incomes.filter { it.date in startDate..endDate }
+                            } else {
+                                incomes
+                            }
+                            val transactions = filtered.map { it.toTransaction() }
                                 .sortedByDescending { it.date }
 
                             _uiState.value = TransactionsByCategoryUiState(

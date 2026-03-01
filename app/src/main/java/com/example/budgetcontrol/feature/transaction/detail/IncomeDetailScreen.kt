@@ -18,7 +18,6 @@ import com.example.budgetcontrol.feature.transaction.common.TransactionDetailVie
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.theme.AppBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +47,7 @@ fun IncomeDetailScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppBlue
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(0.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)

@@ -20,7 +20,6 @@ import com.example.budgetcontrol.ui.components.common.TransactionItemDetailed
 import com.example.budgetcontrol.feature.transaction.common.TransactionsByCategoryViewModel
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.ui.util.displayName
 import java.text.SimpleDateFormat
 import java.util.*
@@ -29,6 +28,8 @@ import java.util.*
 @Composable
 fun ExpensesByCategoryScreen(
     categoryId: String,
+    startDate: Long? = null,
+    endDate: Long? = null,
     onBackClick: () -> Unit,
     onExpenseClick: (String) -> Unit,
     onAddExpenseClick: (Long) -> Unit,
@@ -37,8 +38,8 @@ fun ExpensesByCategoryScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     // Загружаем транзакции при создании экрана
-    LaunchedEffect(categoryId) {
-        viewModel.loadTransactions(categoryId, TransactionType.EXPENSE)
+    LaunchedEffect(categoryId, startDate, endDate) {
+        viewModel.loadTransactions(categoryId, TransactionType.EXPENSE, startDate, endDate)
     }
 
     Scaffold(
@@ -46,7 +47,7 @@ fun ExpensesByCategoryScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppBlue
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(0.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -101,7 +102,7 @@ fun ExpensesByCategoryScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onAddExpenseClick(System.currentTimeMillis()) },
-                containerColor = AppBlue
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
