@@ -1,11 +1,9 @@
 package com.example.budgetcontrol.feature.settings
 
-import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
@@ -13,9 +11,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.data.repository.BankRepository
-import com.example.budgetcontrol.core.domain.usecase.SyncDataUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,11 +21,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val isLoading: Boolean = false,
-    val message: String? = null,
-    val isError: Boolean = false,
-    val cloudExpensesCount: Int = -1,
-    val currentOperation: String? = null,
     val currentLanguage: String = "",
     val currentTheme: String = "system",
     val allCurrencies: List<String> = emptyList(),
@@ -47,8 +38,6 @@ sealed class LookupState {
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val syncDataUseCase: SyncDataUseCase,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,
@@ -68,7 +57,6 @@ class SettingsViewModel @Inject constructor(
     val initialBalance: StateFlow<String> = _initialBalance.asStateFlow()
 
     init {
-        loadCloudExpensesCount()
         observeLanguage()
         observeTheme()
         loadCurrencies()
@@ -121,80 +109,6 @@ class SettingsViewModel @Inject constructor(
                 LocaleListCompat.forLanguageTags(tag)
             }
             AppCompatDelegate.setApplicationLocales(locales)
-        }
-    }
-
-    private fun loadCloudExpensesCount() {
-        viewModelScope.launch {
-            try {
-                val count = syncDataUseCase.getCloudExpensesCount()
-                _uiState.value = _uiState.value.copy(cloudExpensesCount = count)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(cloudExpensesCount = 0)
-            }
-        }
-    }
-
-    fun backupToCloud() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoading = true,
-                message = null,
-                currentOperation = "backup"
-            )
-
-            val result = syncDataUseCase.backupToCloud()
-
-            result.fold(
-                onSuccess = { message ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        message = message,
-                        isError = false,
-                        currentOperation = null
-                    )
-                    loadCloudExpensesCount()
-                },
-                onFailure = { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        message = context.getString(R.string.error_backup, exception.message ?: ""),
-                        isError = true,
-                        currentOperation = null
-                    )
-                }
-            )
-        }
-    }
-
-    fun restoreFromCloud() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoading = true,
-                message = null,
-                currentOperation = "restore"
-            )
-
-            val result = syncDataUseCase.restoreFromCloud()
-
-            result.fold(
-                onSuccess = { message ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        message = message,
-                        isError = false,
-                        currentOperation = null
-                    )
-                },
-                onFailure = { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        message = context.getString(R.string.error_restore, exception.message ?: ""),
-                        isError = true,
-                        currentOperation = null
-                    )
-                }
-            )
         }
     }
 
@@ -275,10 +189,6 @@ class SettingsViewModel @Inject constructor(
 
     fun resetCommissionLookup() {
         _commissionLookupState.value = LookupState.Idle
-    }
-
-    fun clearMessage() {
-        _uiState.value = _uiState.value.copy(message = null)
     }
 
     private fun loadCurrencies() {

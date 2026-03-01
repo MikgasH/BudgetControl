@@ -7,7 +7,6 @@ plugins {
     id("kotlin-kapt")
     id("dagger.hilt.android.plugin")
     id("kotlin-parcelize")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -101,9 +100,6 @@ dependencies {
     implementation("co.yml:ycharts:2.1.0")
 
     implementation("androidx.appcompat:appcompat:1.7.0")
-
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-firestore-ktx")
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")

@@ -1,7 +1,6 @@
 package com.example.budgetcontrol.core.di
 
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
-import com.example.budgetcontrol.core.data.remote.FirestoreExpenseRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
@@ -13,7 +12,6 @@ import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
-import com.example.budgetcontrol.core.domain.usecase.SyncDataUseCase
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -90,13 +88,4 @@ object UseCaseModule {
         return DeleteIncomeUseCase(repository)
     }
 
-    @Provides
-    @Singleton
-    fun provideSyncDataUseCase(
-        @ApplicationContext context: Context,
-        localRepository: ExpenseRepository,
-        remoteRepository: FirestoreExpenseRepository
-    ): SyncDataUseCase {
-        return SyncDataUseCase(context, localRepository, remoteRepository)
-    }
 }

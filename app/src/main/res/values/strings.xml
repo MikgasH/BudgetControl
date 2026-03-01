@@ -58,11 +58,6 @@
     <string name="expenses_count_suffix"> expenses</string>
 
     <!-- SettingsScreen -->
-    <string name="data_sync">Data synchronization</string>
-    <string name="create_backup_description">Create a backup of your data in the cloud</string>
-    <string name="cloud_expenses_count">In cloud: %1$d expenses</string>
-    <string name="create_backup">Create Backup</string>
-    <string name="restore_data">Restore data</string>
     <string name="about_app">About app</string>
     <string name="app_version">Budget Control v1.0</string>
     <string name="app_description">Your personal finance management assistant</string>
@@ -78,17 +73,6 @@
     <string name="language_system">System default</string>
     <string name="language_english">English</string>
     <string name="language_russian">Russian</string>
-
-    <!-- SyncDataUseCase -->
-    <string name="backup_success">Backup created successfully! Saved %1$d expenses.</string>
-    <string name="backup_create_error">Error creating backup</string>
-    <string name="sync_complete">Sync complete! Processed %1$d expenses from cloud.</string>
-    <string name="sync_error">Sync error</string>
-    <string name="expense_not_found">Expense not found</string>
-
-    <!-- SettingsViewModel errors -->
-    <string name="error_backup">Backup error: %1$s</string>
-    <string name="error_restore">Restore error: %1$s</string>
 
     <!-- TransactionFormScreen -->
     <string name="form_modified_title">Operation was modified</string>

@@ -58,11 +58,6 @@
     <string name="expenses_count_suffix"> трат</string>
 
     <!-- SettingsScreen -->
-    <string name="data_sync">Синхронизация данных</string>
-    <string name="create_backup_description">Создавайте backup ваших данных в облаке</string>
-    <string name="cloud_expenses_count">В облаке: %1$d трат</string>
-    <string name="create_backup">Создать Backup</string>
-    <string name="restore_data">Восстановить данные</string>
     <string name="about_app">О приложении</string>
     <string name="app_version">Budget Control v1.0</string>
     <string name="app_description">Ваш персональный помощник для управления финансами</string>
@@ -78,17 +73,6 @@
     <string name="language_system">Системный</string>
     <string name="language_english">English</string>
     <string name="language_russian">Русский</string>
-
-    <!-- SyncDataUseCase -->
-    <string name="backup_success">Backup создан успешно! Сохранено %1$d трат.</string>
-    <string name="backup_create_error">Ошибка при создании backup</string>
-    <string name="sync_complete">Синхронизация завершена! Обработано %1$d трат из облака.</string>
-    <string name="sync_error">Ошибка синхронизации</string>
-    <string name="expense_not_found">Трата не найдена</string>
-
-    <!-- SettingsViewModel errors -->
-    <string name="error_backup">Ошибка backup: %1$s</string>
-    <string name="error_restore">Ошибка восстановления: %1$s</string>
 
     <!-- TransactionFormScreen -->
     <string name="form_modified_title">Операция была изменена</string>
