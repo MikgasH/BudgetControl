@@ -14,4 +14,7 @@ interface CerpsApiService {
 
     @POST("api/v1/currencies/convert")
     suspend fun convert(@Body request: ConversionRequest): Response<ConversionResponse>
+
+    @GET("actuator/health")
+    suspend fun healthCheck(): Response<Any>
 }

@@ -277,7 +277,8 @@ private fun TransactionFormContent(
             cashRate = uiState.cashRate,
             onCashRateChange = onCashRateChange,
             cashRatePlaceholder = uiState.cashRatePlaceholder,
-            lastCashExchange = uiState.lastCashExchange
+            lastCashExchange = uiState.lastCashExchange,
+            networkStatus = uiState.networkStatus
         )
     } else {
         EditTransactionFormContent(

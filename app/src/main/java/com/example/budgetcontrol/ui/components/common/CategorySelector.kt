@@ -632,6 +632,13 @@ private fun CustomCategorySettings(
     var selectedColor by remember { mutableStateOf(category.color) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showMoreIcons by remember { mutableStateOf(false) }
+    var showCustomColor by remember { mutableStateOf(false) }
+    // RGB sliders state
+    val initialRgb = remember { parseHexColor(category.color) }
+    var red by remember { mutableIntStateOf(initialRgb.first) }
+    var green by remember { mutableIntStateOf(initialRgb.second) }
+    var blue by remember { mutableIntStateOf(initialRgb.third) }
+    var hexDraft by remember { mutableStateOf(category.color.removePrefix("#")) }
 
     // Delete confirmation dialog
     if (showDeleteConfirm) {
@@ -801,7 +808,10 @@ private fun CustomCategorySettings(
                 SettingsColorCircle(
                     hex = hex,
                     isSelected = selectedColor.equals(hex, ignoreCase = true),
-                    onClick = { selectedColor = hex }
+                    onClick = {
+                        selectedColor = hex
+                        showCustomColor = false
+                    }
                 )
             }
         }
@@ -813,7 +823,107 @@ private fun CustomCategorySettings(
                 SettingsColorCircle(
                     hex = hex,
                     isSelected = selectedColor.equals(hex, ignoreCase = true),
-                    onClick = { selectedColor = hex }
+                    onClick = {
+                        selectedColor = hex
+                        showCustomColor = false
+                    }
+                )
+            }
+        }
+
+        // Custom color toggle
+        TextButton(
+            onClick = { showCustomColor = !showCustomColor },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.custom_color),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        // Custom color picker with RGB sliders + HEX input
+        AnimatedVisibility(visible = showCustomColor) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Color preview
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(red, green, blue)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = getCategoryIcon(selectedIcon),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                // HEX input
+                OutlinedTextField(
+                    value = hexDraft,
+                    onValueChange = { input ->
+                        val filtered = input.filter { it.isLetterOrDigit() }.take(6)
+                        hexDraft = filtered
+                        if (filtered.length == 6) {
+                            val (r, g, b) = parseHexColor("#$filtered")
+                            red = r; green = g; blue = b
+                            selectedColor = "#${filtered.uppercase()}"
+                        }
+                    },
+                    label = { Text(stringResource(R.string.hex_color_label)) },
+                    prefix = { Text("#") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+
+                // R slider
+                SettingsColorSliderRow(
+                    label = "R",
+                    value = red,
+                    color = Color.Red,
+                    onValueChange = {
+                        red = it
+                        val hex = buildHex(red, green, blue)
+                        selectedColor = hex
+                        hexDraft = hex.removePrefix("#")
+                    }
+                )
+
+                // G slider
+                SettingsColorSliderRow(
+                    label = "G",
+                    value = green,
+                    color = Color(0xFF4CAF50),
+                    onValueChange = {
+                        green = it
+                        val hex = buildHex(red, green, blue)
+                        selectedColor = hex
+                        hexDraft = hex.removePrefix("#")
+                    }
+                )
+
+                // B slider
+                SettingsColorSliderRow(
+                    label = "B",
+                    value = blue,
+                    color = Color.Blue,
+                    onValueChange = {
+                        blue = it
+                        val hex = buildHex(red, green, blue)
+                        selectedColor = hex
+                        hexDraft = hex.removePrefix("#")
+                    }
                 )
             }
         }
@@ -933,6 +1043,58 @@ private fun SettingsIconCircle(
         )
     }
 }
+
+@Composable
+private fun SettingsColorSliderRow(
+    label: String,
+    value: Int,
+    color: Color,
+    onValueChange: (Int) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(20.dp)
+        )
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            valueRange = 0f..255f,
+            modifier = Modifier.weight(1f),
+            colors = SliderDefaults.colors(
+                thumbColor = color,
+                activeTrackColor = color
+            )
+        )
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.width(30.dp),
+            fontSize = 12.sp
+        )
+    }
+}
+
+private fun parseHexColor(hex: String): Triple<Int, Int, Int> {
+    return try {
+        val c = android.graphics.Color.parseColor(hex)
+        Triple(
+            android.graphics.Color.red(c),
+            android.graphics.Color.green(c),
+            android.graphics.Color.blue(c)
+        )
+    } catch (_: Exception) {
+        Triple(33, 150, 243)
+    }
+}
+
+private fun buildHex(r: Int, g: Int, b: Int): String =
+    "#%02X%02X%02X".format(r.coerceIn(0, 255), g.coerceIn(0, 255), b.coerceIn(0, 255))
 
 // ═══════════════════════════════════════════════════════════════════════
 // Icon & color data (reused from CreateCategoryBottomSheet)

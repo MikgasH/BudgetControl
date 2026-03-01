@@ -2,12 +2,14 @@ package com.example.budgetcontrol.core.domain.usecase
 
 import android.content.Context
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.firstOrNull
 import java.math.RoundingMode
 import java.util.UUID
 import javax.inject.Inject
@@ -21,7 +23,8 @@ class AddIncomeUseCase @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: IncomeRepository,
     private val cerpsRepository: CerpsRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val preferencesManager: PreferencesManager
 ) {
     suspend operator fun invoke(
         amount: Double,
@@ -33,34 +36,46 @@ class AddIncomeUseCase @Inject constructor(
         bankCommission: Double? = null
     ): AddIncomeResult {
         return try {
-            val (finalAmount, exchangeRate) = if (currency == "EUR") {
-                amount to null
+            data class ConversionResult(val finalAmount: Double, val exchangeRate: Double?, val rateSource: String?)
+
+            val conversion = if (currency == "EUR") {
+                ConversionResult(amount, null, null)
             } else {
                 when (val result = cerpsRepository.convert(currency, "EUR", amount)) {
                     is CerpsResult.Success -> {
                         val roundedAmount = result.data.convertedAmount
                             .setScale(2, RoundingMode.HALF_UP)
                             .toDouble()
-                        roundedAmount to result.data.exchangeRate.toDouble()
+                        ConversionResult(roundedAmount, result.data.exchangeRate.toDouble(), null)
                     }
                     is CerpsResult.Error -> {
-                        return AddIncomeResult.Error(result.message)
+                        // Offline fallback: try cached rates
+                        val cachedRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
+                        val rateKey = "${currency}_EUR"
+                        val cachedRate = cachedRates[rateKey]
+                        if (cachedRate != null && cachedRate > 0) {
+                            val convertedAmount = (amount * cachedRate * 100).toLong() / 100.0
+                            ConversionResult(convertedAmount, cachedRate, "CACHED_RATE")
+                        } else {
+                            return AddIncomeResult.Error(result.message)
+                        }
                     }
                 }
             }
 
             val income = Income(
                 id = UUID.randomUUID().toString(),
-                amount = finalAmount,
+                amount = conversion.finalAmount,
                 categoryId = categoryId,
                 description = description,
                 date = date,
                 createdAt = System.currentTimeMillis(),
                 originalAmount = amount,
                 originalCurrency = currency,
-                exchangeRate = exchangeRate,
+                exchangeRate = conversion.exchangeRate,
                 bankName = bankName,
-                bankCommission = bankCommission
+                bankCommission = bankCommission,
+                rateSource = conversion.rateSource
             )
 
             repository.insertIncome(income)

@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
-import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -79,6 +78,15 @@ fun CurrencyExchangeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Description text
+            item {
+                Text(
+                    text = stringResource(R.string.currency_exchange_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // Add exchange form
             item {
                 AddExchangeForm(

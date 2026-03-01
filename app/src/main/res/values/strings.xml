@@ -219,6 +219,11 @@
     <!-- AddExpenseUseCase -->
     <string name="error_saving_expense">Error saving: %1$s</string>
 
+    <!-- Offline mode -->
+    <string name="offline_no_internet">⚠ No internet · exchange rate may be outdated</string>
+    <string name="offline_service_unavailable">⚠ Exchange service unavailable · rate may be outdated</string>
+    <string name="offline_no_rates">✕ Cannot get exchange rate · please enter amount in EUR manually</string>
+
     <!-- Initial balance -->
     <string name="initial_balance">Initial balance</string>
     <string name="initial_balance_desc">Starting amount before you began tracking</string>
@@ -376,4 +381,18 @@
     <string name="onboarding_next">Next</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_add_custom_bank">Add custom bank</string>
+
+    <!-- Bank dialog -->
+    <string name="bank_name_placeholder">e.g. Revolut, N26, Monzo…</string>
+
+    <!-- Initial balance dialog -->
+    <string name="initial_balance_not_set">Not set</string>
+    <string name="initial_balance_warning">Changing the initial balance will recalculate your total balance.</string>
+
+    <!-- Currency exchange screen -->
+    <string name="currency_exchange_desc">Record cash exchanges so the app can suggest rates when you pay with cash.</string>
+
+    <!-- Cash mode hints -->
+    <string name="cash_rate_desc">Enter the exchange rate you received at the exchange point.</string>
+    <string name="cash_rate_placeholder">e.g. %1$s</string>
 </resources>

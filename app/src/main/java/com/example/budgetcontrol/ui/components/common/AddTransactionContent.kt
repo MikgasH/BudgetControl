@@ -21,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
-import com.example.budgetcontrol.core.theme.AppBlue
+import com.example.budgetcontrol.feature.transaction.common.NetworkStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,7 +67,9 @@ fun AddTransactionContent(
     cashRate: String = "",
     onCashRateChange: (String) -> Unit = {},
     cashRatePlaceholder: String = "",
-    lastCashExchange: CurrencyExchange? = null
+    lastCashExchange: CurrencyExchange? = null,
+    // Network status
+    networkStatus: NetworkStatus = NetworkStatus.ONLINE
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -104,6 +106,11 @@ fun AddTransactionContent(
             isLoading = isCurrenciesLoading,
             error = currenciesError
         )
+
+        // Network status banner (only when currency != EUR)
+        if (selectedCurrency != "EUR" && networkStatus != NetworkStatus.ONLINE) {
+            NetworkStatusBanner(networkStatus = networkStatus)
+        }
 
         if (selectedCurrency != "EUR") {
             // Payment method toggle: Card / Cash
@@ -227,7 +234,7 @@ fun AddTransactionContent(
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = AppBlue
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
             if (isLoading) {
@@ -342,13 +349,21 @@ private fun CashRateSection(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        // Cash mode description
+        Text(
+            text = stringResource(R.string.cash_rate_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        )
+
         OutlinedTextField(
             value = cashRate,
             onValueChange = onCashRateChange,
             label = { Text(stringResource(R.string.exchange_rate_label)) },
             placeholder = {
                 if (cashRatePlaceholder.isNotBlank()) {
-                    Text(cashRatePlaceholder)
+                    Text(stringResource(R.string.cash_rate_placeholder, cashRatePlaceholder))
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -389,5 +404,43 @@ private fun CashRateSection(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun NetworkStatusBanner(
+    networkStatus: NetworkStatus,
+    modifier: Modifier = Modifier
+) {
+    val (backgroundColor, textColor, text) = when (networkStatus) {
+        NetworkStatus.NO_INTERNET -> Triple(
+            Color(0xFFFFF3CD),
+            Color(0xFF856404),
+            stringResource(R.string.offline_no_internet)
+        )
+        NetworkStatus.SERVICE_UNAVAILABLE -> Triple(
+            Color(0xFFFFF3CD),
+            Color(0xFF856404),
+            stringResource(R.string.offline_service_unavailable)
+        )
+        NetworkStatus.OFFLINE_NO_CACHE -> Triple(
+            Color(0xFFF8D7DA),
+            Color(0xFF721C24),
+            stringResource(R.string.offline_no_rates)
+        )
+        NetworkStatus.ONLINE -> return
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+            modifier = Modifier.padding(12.dp)
+        )
     }
 }

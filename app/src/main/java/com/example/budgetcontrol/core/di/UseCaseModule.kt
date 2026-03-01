@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.di
 
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.FirestoreExpenseRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
@@ -31,9 +32,10 @@ object UseCaseModule {
         @ApplicationContext context: Context,
         repository: ExpenseRepository,
         cerpsRepository: CerpsRepository,
-        categoryRepository: CategoryRepository
+        categoryRepository: CategoryRepository,
+        preferencesManager: PreferencesManager
     ): AddExpenseUseCase {
-        return AddExpenseUseCase(context, repository, cerpsRepository, categoryRepository)
+        return AddExpenseUseCase(context, repository, cerpsRepository, categoryRepository, preferencesManager)
     }
 
     @Provides
@@ -66,9 +68,10 @@ object UseCaseModule {
         @ApplicationContext context: Context,
         repository: IncomeRepository,
         cerpsRepository: CerpsRepository,
-        categoryRepository: CategoryRepository
+        categoryRepository: CategoryRepository,
+        preferencesManager: PreferencesManager
     ): AddIncomeUseCase {
-        return AddIncomeUseCase(context, repository, cerpsRepository, categoryRepository)
+        return AddIncomeUseCase(context, repository, cerpsRepository, categoryRepository, preferencesManager)
     }
 
     @Provides

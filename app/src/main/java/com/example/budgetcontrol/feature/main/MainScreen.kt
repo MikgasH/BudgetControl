@@ -44,7 +44,6 @@ import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
-import com.example.budgetcontrol.core.theme.AppBlue
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.util.Calendar
@@ -79,7 +78,7 @@ fun MainScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppBlue
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(0.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
@@ -128,7 +127,7 @@ fun MainScreen(
                         OperationType.INCOMES -> onAddIncomeClick(selectedDate)
                     }
                 },
-                containerColor = AppBlue
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,

@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.feature.settings.LookupState
 import kotlinx.coroutines.launch
 import java.util.Currency
 
@@ -42,6 +44,7 @@ fun OnboardingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val banks by viewModel.banks.collectAsState()
+    val commissionLookupState by viewModel.commissionLookupState.collectAsState()
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()
 
@@ -70,7 +73,10 @@ fun OnboardingScreen(
                     2 -> BanksPage(
                         banks = banks,
                         onToggleFavorite = viewModel::toggleBankFavorite,
-                        onAddBank = viewModel::addBank
+                        onAddBank = viewModel::addBank,
+                        lookupState = commissionLookupState,
+                        onLookup = viewModel::lookupBankCommission,
+                        onResetLookup = viewModel::resetCommissionLookup
                     )
                     3 -> BalancePage(
                         balance = uiState.initialBalance,
@@ -424,7 +430,10 @@ private fun CurrencyPage(
 private fun BanksPage(
     banks: List<BankEntity>,
     onToggleFavorite: (BankEntity) -> Unit,
-    onAddBank: (String, Double) -> Unit
+    onAddBank: (String, Double) -> Unit,
+    lookupState: LookupState = LookupState.Idle,
+    onLookup: (String) -> Unit = {},
+    onResetLookup: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -537,10 +546,16 @@ private fun BanksPage(
 
     if (showAddDialog) {
         AddBankDialog(
-            onDismiss = { showAddDialog = false },
+            lookupState = lookupState,
+            onLookup = onLookup,
+            onDismiss = {
+                showAddDialog = false
+                onResetLookup()
+            },
             onConfirm = { name, commission ->
                 onAddBank(name, commission)
                 showAddDialog = false
+                onResetLookup()
             }
         )
     }
@@ -548,12 +563,26 @@ private fun BanksPage(
 
 @Composable
 private fun AddBankDialog(
+    lookupState: LookupState = LookupState.Idle,
+    onLookup: (String) -> Unit = {},
     onDismiss: () -> Unit,
     onConfirm: (String, Double) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var commission by remember { mutableStateOf("") }
     var nameError by remember { mutableStateOf(false) }
+
+    // Fill commission when AI lookup succeeds
+    LaunchedEffect(lookupState) {
+        if (lookupState is LookupState.Success) {
+            val v = lookupState.value
+            commission = if (v == v.toLong().toDouble()) {
+                "${v.toLong()}"
+            } else {
+                "$v"
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -567,6 +596,7 @@ private fun AddBankDialog(
                         nameError = false
                     },
                     label = { Text(stringResource(R.string.bank_name_label)) },
+                    placeholder = { Text(stringResource(R.string.bank_name_placeholder)) },
                     isError = nameError,
                     supportingText = if (nameError) {
                         { Text(stringResource(R.string.bank_name_required)) }
@@ -580,8 +610,54 @@ private fun AddBankDialog(
                     label = { Text(stringResource(R.string.commission_percent_label)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
+                    supportingText = when (lookupState) {
+                        is LookupState.Success -> {
+                            {
+                                Text(
+                                    stringResource(R.string.ai_estimate_hint),
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                        is LookupState.NotFound -> {
+                            {
+                                Text(
+                                    stringResource(R.string.not_found_hint),
+                                    color = Color(0xFFFF9800)
+                                )
+                            }
+                        }
+                        is LookupState.Error -> {
+                            {
+                                Text(
+                                    stringResource(R.string.lookup_error_hint),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        else -> null
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // AI lookup button
+                OutlinedButton(
+                    onClick = { onLookup(name) },
+                    enabled = name.isNotBlank() && lookupState !is LookupState.Loading,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    if (lookupState is LookupState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.find_with_ai))
+                    } else {
+                        Text("\uD83E\uDD16 " + stringResource(R.string.find_with_ai))
+                    }
+                }
             }
         },
         confirmButton = {

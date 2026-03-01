@@ -7,6 +7,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.repository.BankRepository
+import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
@@ -32,6 +33,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -71,8 +73,17 @@ data class TransactionFormUiState(
     val paymentMethod: String = "CARD",
     val cashRate: String = "",
     val cashRatePlaceholder: String = "",
-    val lastCashExchange: CurrencyExchange? = null
+    val lastCashExchange: CurrencyExchange? = null,
+    // Network status
+    val networkStatus: NetworkStatus = NetworkStatus.ONLINE
 )
+
+enum class NetworkStatus {
+    ONLINE,
+    NO_INTERNET,
+    SERVICE_UNAVAILABLE,
+    OFFLINE_NO_CACHE
+}
 
 enum class TransactionFormMode { ADD, EDIT }
 
@@ -87,7 +98,8 @@ class TransactionFormViewModel @Inject constructor(
     private val cerpsRepository: CerpsRepository,
     private val bankRepository: BankRepository,
     private val preferencesManager: PreferencesManager,
-    private val currencyExchangeRepository: CurrencyExchangeRepository
+    private val currencyExchangeRepository: CurrencyExchangeRepository,
+    private val networkStatusRepository: NetworkStatusRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionFormUiState())
@@ -124,6 +136,36 @@ class TransactionFormViewModel @Inject constructor(
         }
     }
 
+    private fun checkNetworkStatus() {
+        viewModelScope.launch {
+            val hasInternet = networkStatusRepository.isInternetAvailable()
+            if (!hasInternet) {
+                val cachedRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
+                _uiState.value = _uiState.value.copy(
+                    networkStatus = if (cachedRates.isNotEmpty()) {
+                        NetworkStatus.NO_INTERNET
+                    } else {
+                        NetworkStatus.OFFLINE_NO_CACHE
+                    }
+                )
+            } else {
+                val cerpsAvailable = networkStatusRepository.isCerpsAvailable()
+                if (!cerpsAvailable) {
+                    val cachedRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
+                    _uiState.value = _uiState.value.copy(
+                        networkStatus = if (cachedRates.isNotEmpty()) {
+                            NetworkStatus.SERVICE_UNAVAILABLE
+                        } else {
+                            NetworkStatus.OFFLINE_NO_CACHE
+                        }
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(networkStatus = NetworkStatus.ONLINE)
+                }
+            }
+        }
+    }
+
     /**
      * Инициализация ViewModel
      */
@@ -143,6 +185,7 @@ class TransactionFormViewModel @Inject constructor(
 
         // Загружаем валюты для расходов и доходов
         loadCurrencies()
+        checkNetworkStatus()
 
         when (mode) {
             TransactionFormMode.ADD -> {
@@ -206,30 +249,41 @@ class TransactionFormViewModel @Inject constructor(
      */
     fun selectCurrency(currency: String) {
         val current = _uiState.value
-        val defaultBank = if (currency != "EUR") {
-            current.availableBanks.firstOrNull { it.isDefault }
-                ?: current.availableBanks.firstOrNull()
-        } else null
 
-        _uiState.value = current.copy(
-            selectedCurrency = currency,
-            selectedBank = defaultBank,
-            convertedAmountPreview = "",
-            // Reset exact amount when currency changes
-            isExactAmountEnabled = if (currency == "EUR") false else current.isExactAmountEnabled,
-            exactEurAmount = if (currency == "EUR") "" else current.exactEurAmount,
-            // Reset cash mode when currency changes
-            paymentMethod = if (currency == "EUR") "CARD" else current.paymentMethod,
-            cashRate = "",
-            cashRatePlaceholder = "",
-            lastCashExchange = null,
-            showError = null
-        )
+        viewModelScope.launch {
+            val lastMethod = if (currency != "EUR") {
+                preferencesManager.lastPaymentMethodFlow.firstOrNull() ?: "CARD"
+            } else "CARD"
 
-        if (currency != "EUR") {
-            fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
-            if (current.paymentMethod == "CASH" || _uiState.value.paymentMethod == "CASH") {
-                loadCashExchangeRate(currency)
+            val defaultBank = if (currency != "EUR") {
+                current.availableBanks.firstOrNull { it.isDefault }
+                    ?: current.availableBanks.firstOrNull()
+            } else null
+
+            _uiState.value = current.copy(
+                selectedCurrency = currency,
+                selectedBank = defaultBank,
+                convertedAmountPreview = "",
+                // Reset exact amount when currency changes
+                isExactAmountEnabled = if (currency == "EUR") false else current.isExactAmountEnabled,
+                exactEurAmount = if (currency == "EUR") "" else current.exactEurAmount,
+                // Restore last payment method
+                paymentMethod = if (currency == "EUR") "CARD" else lastMethod,
+                cashRate = "",
+                cashRatePlaceholder = "",
+                lastCashExchange = null,
+                showError = null
+            )
+
+            if (currency != "EUR") {
+                if (lastMethod == "CARD") {
+                    fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
+                } else {
+                    loadCashExchangeRate(currency)
+                }
+                checkNetworkStatus()
+            } else {
+                _uiState.value = _uiState.value.copy(networkStatus = NetworkStatus.ONLINE)
             }
         }
     }
@@ -242,6 +296,9 @@ class TransactionFormViewModel @Inject constructor(
         )
         if (method == "CASH" && current.selectedCurrency != "EUR") {
             loadCashExchangeRate(current.selectedCurrency)
+        }
+        viewModelScope.launch {
+            preferencesManager.setLastPaymentMethod(method)
         }
     }
 

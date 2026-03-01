@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.data.remote.gemini
 
+import android.util.Log
 import com.example.budgetcontrol.BuildConfig
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,7 +35,10 @@ class GeminiRepository @Inject constructor(
                 request = request
             )
 
-            if (!response.isSuccessful) return GeminiResult.Error
+            if (!response.isSuccessful) {
+                Log.e("GeminiRepository", "API error: ${response.code()} ${response.errorBody()?.string()}")
+                return GeminiResult.Error
+            }
 
             val body = response.body() ?: return GeminiResult.Error
             val text = body.candidates
@@ -56,7 +60,8 @@ class GeminiRepository @Inject constructor(
             } else {
                 GeminiResult.NotFound
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("GeminiRepository", "getBankCommission failed", e)
             GeminiResult.Error
         }
     }

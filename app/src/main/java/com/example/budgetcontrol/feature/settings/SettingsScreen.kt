@@ -43,6 +43,7 @@ fun SettingsScreen(
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingBank by remember { mutableStateOf<BankEntity?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
+    var showBalanceDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -326,48 +327,39 @@ fun SettingsScreen(
                 }
             }
 
-            // Initial balance
+            // Initial balance — clickable row
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                ),
+                onClick = { showBalanceDialog = true }
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = stringResource(R.string.initial_balance),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = stringResource(R.string.initial_balance_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    var balanceText by remember(initialBalance) { mutableStateOf(initialBalance) }
-
-                    OutlinedTextField(
-                        value = balanceText,
-                        onValueChange = { balanceText = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        suffix = { Text("EUR") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { viewModel.setInitialBalance(balanceText) }
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = MaterialTheme.colorScheme.primary
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.initial_balance),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (initialBalance.isBlank()) stringResource(R.string.initial_balance_not_set)
+                                   else "$initialBalance EUR",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(R.string.edit),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -572,6 +564,59 @@ fun SettingsScreen(
                 showAddEditDialog = false
                 editingBank = null
                 viewModel.resetCommissionLookup()
+            }
+        )
+    }
+
+    // Initial balance dialog
+    if (showBalanceDialog) {
+        var balanceText by remember(initialBalance) { mutableStateOf(initialBalance) }
+
+        AlertDialog(
+            onDismissRequest = { showBalanceDialog = false },
+            title = { Text(stringResource(R.string.initial_balance)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.initial_balance_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.initial_balance_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    OutlinedTextField(
+                        value = balanceText,
+                        onValueChange = { balanceText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        suffix = { Text("EUR") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setInitialBalance(balanceText)
+                    showBalanceDialog = false
+                }) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBalanceDialog = false }) {
+                    Text(stringResource(R.string.cancel_upper))
+                }
             }
         )
     }
@@ -1099,6 +1144,7 @@ private fun AddEditBankDialog(
                         nameError = false
                     },
                     label = { Text(stringResource(R.string.bank_name_label)) },
+                    placeholder = { Text(stringResource(R.string.bank_name_placeholder)) },
                     isError = nameError,
                     supportingText = if (nameError) {
                         { Text(stringResource(R.string.bank_name_required)) }

@@ -219,6 +219,11 @@
     <!-- AddExpenseUseCase -->
     <string name="error_saving_expense">Ошибка сохранения: %1$s</string>
 
+    <!-- Offline mode -->
+    <string name="offline_no_internet">⚠ Нет интернета · курс может быть неактуальным</string>
+    <string name="offline_service_unavailable">⚠ Сервис курсов недоступен · курс может быть неактуальным</string>
+    <string name="offline_no_rates">✕ Не удалось получить курс · введите сумму в EUR вручную</string>
+
     <!-- Initial balance -->
     <string name="initial_balance">Начальный баланс</string>
     <string name="initial_balance_desc">Сумма до начала ведения учёта</string>
@@ -376,4 +381,18 @@
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_add_custom_bank">Добавить свой банк</string>
+
+    <!-- Bank dialog -->
+    <string name="bank_name_placeholder">напр. Revolut, N26, Monzo…</string>
+
+    <!-- Initial balance dialog -->
+    <string name="initial_balance_not_set">Не задан</string>
+    <string name="initial_balance_warning">Изменение начального баланса пересчитает общий баланс.</string>
+
+    <!-- Currency exchange screen -->
+    <string name="currency_exchange_desc">Записывайте обмены наличных, чтобы приложение могло предлагать курс при оплате наличными.</string>
+
+    <!-- Cash mode hints -->
+    <string name="cash_rate_desc">Введите курс обмена, полученный в обменном пункте.</string>
+    <string name="cash_rate_placeholder">напр. %1$s</string>
 </resources>

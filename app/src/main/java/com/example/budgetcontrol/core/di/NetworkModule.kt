@@ -1,9 +1,11 @@
 package com.example.budgetcontrol.core.di
 
 import com.example.budgetcontrol.BuildConfig
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiApiService
+import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -57,9 +59,19 @@ object NetworkModule {
     @Singleton
     fun provideCerpsRepository(
         @ApplicationContext context: Context,
-        apiService: CerpsApiService
+        apiService: CerpsApiService,
+        preferencesManager: PreferencesManager
     ): CerpsRepository {
-        return CerpsRepository(context, apiService)
+        return CerpsRepository(context, apiService, preferencesManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkStatusRepository(
+        @ApplicationContext context: Context,
+        cerpsApiService: CerpsApiService
+    ): NetworkStatusRepository {
+        return NetworkStatusRepository(context, cerpsApiService)
     }
 
     @Provides

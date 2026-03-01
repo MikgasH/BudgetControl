@@ -5,9 +5,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -86,6 +89,40 @@ class PreferencesManager @Inject constructor(
         }
     }
 
+    // Last payment method (CARD/CASH)
+    val lastPaymentMethodFlow: Flow<String> = dataStore.data.map { preferences ->
+        preferences[LAST_PAYMENT_METHOD_KEY] ?: "CARD"
+    }
+
+    suspend fun setLastPaymentMethod(method: String) {
+        dataStore.edit { preferences ->
+            preferences[LAST_PAYMENT_METHOD_KEY] = method
+        }
+    }
+
+    // Cached exchange rates
+    suspend fun saveLastRates(rates: Map<String, Double>, timestamp: Long) {
+        val json = Gson().toJson(rates)
+        dataStore.edit { preferences ->
+            preferences[LAST_RATES_KEY] = json
+            preferences[LAST_RATES_TIMESTAMP_KEY] = timestamp
+        }
+    }
+
+    fun getLastRates(): Flow<Map<String, Double>> = dataStore.data.map { preferences ->
+        val json = preferences[LAST_RATES_KEY] ?: return@map emptyMap()
+        try {
+            val type = object : TypeToken<Map<String, Double>>() {}.type
+            Gson().fromJson(json, type)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun getLastRatesTimestamp(): Flow<Long> = dataStore.data.map { preferences ->
+        preferences[LAST_RATES_TIMESTAMP_KEY] ?: 0L
+    }
+
     companion object {
         private val LANGUAGE_KEY = stringPreferencesKey("language")
         private val FAVORITE_CURRENCIES_KEY = stringSetPreferencesKey("favorite_currencies")
@@ -93,6 +130,9 @@ class PreferencesManager @Inject constructor(
         private val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
         private val INITIAL_BALANCE_KEY = stringPreferencesKey("initial_balance")
         private val BASE_CURRENCY_KEY = stringPreferencesKey("base_currency")
+        private val LAST_PAYMENT_METHOD_KEY = stringPreferencesKey("last_payment_method")
+        private val LAST_RATES_KEY = stringPreferencesKey("last_exchange_rates")
+        private val LAST_RATES_TIMESTAMP_KEY = longPreferencesKey("last_exchange_rates_timestamp")
         val DEFAULT_FAVORITE_CURRENCIES = setOf("EUR", "USD", "GBP", "PLN", "BYN")
     }
 }
