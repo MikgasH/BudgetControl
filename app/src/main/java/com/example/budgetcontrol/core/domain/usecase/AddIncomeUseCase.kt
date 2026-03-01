@@ -89,7 +89,8 @@ class AddIncomeUseCase @Inject constructor(
         description: String?,
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
-        bankCommission: Double? = null
+        bankCommission: Double? = null,
+        rateSource: String = "USER_CORRECTED"
     ): AddIncomeResult {
         return try {
             val income = Income(
@@ -104,7 +105,7 @@ class AddIncomeUseCase @Inject constructor(
                 exchangeRate = if (originalAmount > 0) originalAmount / exactEurAmount else null,
                 bankName = bankName,
                 bankCommission = bankCommission,
-                rateSource = "USER_CORRECTED"
+                rateSource = rateSource
             )
             repository.insertIncome(income)
             categoryRepository.incrementUsageCount(categoryId)

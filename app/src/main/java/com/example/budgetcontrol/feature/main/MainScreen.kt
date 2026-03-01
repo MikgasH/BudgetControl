@@ -32,10 +32,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import com.example.budgetcontrol.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.core.domain.model.Transaction
@@ -136,6 +139,7 @@ fun MainScreen(
         }
     ) { paddingValues ->
         val listState = rememberLazyListState()
+        val scope = rememberCoroutineScope()
 
         val density = LocalDensity.current
         val fullHeight = 200.dp
@@ -143,6 +147,23 @@ fun MainScreen(
         val collapsedBarHeight = fullHeight * ringFraction // 44dp — matches PieChart ring
         val maxCollapseOffsetPx = with(density) { (fullHeight - collapsedBarHeight).toPx() }
         var collapseOffsetPx by remember { mutableStateOf(0f) }
+        var snapAnimJob by remember { mutableStateOf<Job?>(null) }
+
+        fun snapCollapseToNearest() {
+            val fraction = if (maxCollapseOffsetPx > 0f) collapseOffsetPx / maxCollapseOffsetPx else 0f
+            val target = if (fraction > 0.5f) maxCollapseOffsetPx else 0f
+            if (collapseOffsetPx == target) return
+            snapAnimJob?.cancel()
+            snapAnimJob = scope.launch {
+                animate(
+                    initialValue = collapseOffsetPx,
+                    targetValue = target,
+                    animationSpec = tween(300)
+                ) { value, _ ->
+                    collapseOffsetPx = value
+                }
+            }
+        }
 
         val nestedScrollConnection = remember(maxCollapseOffsetPx) {
             object : NestedScrollConnection {
@@ -151,6 +172,7 @@ fun MainScreen(
                     source: NestedScrollSource
                 ): Offset {
                     if (available.y < 0f) {
+                        snapAnimJob?.cancel()
                         // Scrolling down → collapse chart first
                         val oldOffset = collapseOffsetPx
                         collapseOffsetPx = (collapseOffsetPx - available.y)
@@ -166,6 +188,7 @@ fun MainScreen(
                     source: NestedScrollSource
                 ): Offset {
                     if (available.y > 0f) {
+                        snapAnimJob?.cancel()
                         // Scrolling up + list at top → expand chart
                         val oldOffset = collapseOffsetPx
                         collapseOffsetPx = (collapseOffsetPx - available.y)
@@ -173,6 +196,11 @@ fun MainScreen(
                         return Offset(0f, oldOffset - collapseOffsetPx)
                     }
                     return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    snapCollapseToNearest()
+                    return Velocity.Zero
                 }
             }
         }
@@ -193,7 +221,11 @@ fun MainScreen(
                 modifier = Modifier
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                     .pointerInput(maxCollapseOffsetPx) {
-                        detectVerticalDragGestures { _, dragAmount ->
+                        detectVerticalDragGestures(
+                            onDragStart = { snapAnimJob?.cancel() },
+                            onDragEnd = { snapCollapseToNearest() },
+                            onDragCancel = { snapCollapseToNearest() }
+                        ) { _, dragAmount ->
                             collapseOffsetPx = (collapseOffsetPx - dragAmount)
                                 .coerceIn(0f, maxCollapseOffsetPx)
                         }
@@ -739,5 +771,5 @@ private fun CategoryStatisticItem(
 private fun calculateBalance(uiState: MainScreenUiState): Double {
     val totalIncomes = uiState.incomes.sumOf { it.amount }
     val totalExpenses = uiState.expenses.sumOf { it.amount }
-    return totalIncomes - totalExpenses
+    return uiState.initialBalance + totalIncomes - totalExpenses
 }

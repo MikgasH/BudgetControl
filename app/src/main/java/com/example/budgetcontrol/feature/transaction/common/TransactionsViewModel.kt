@@ -9,12 +9,14 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.repository.BankRepository
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.toExpense
 import com.example.budgetcontrol.core.domain.model.toIncome
 import com.example.budgetcontrol.core.domain.model.toTransaction
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
+import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
@@ -64,7 +66,12 @@ data class TransactionFormUiState(
     val isExactAmountEnabled: Boolean = false,
     // Оригинальная сумма в исходной валюте (заполняется только в EDIT mode)
     val originalAmount: Double = 0.0,
-    val favoriteCurrencies: Set<String> = emptySet()
+    val favoriteCurrencies: Set<String> = emptySet(),
+    // Cash mode
+    val paymentMethod: String = "CARD",
+    val cashRate: String = "",
+    val cashRatePlaceholder: String = "",
+    val lastCashExchange: CurrencyExchange? = null
 )
 
 enum class TransactionFormMode { ADD, EDIT }
@@ -79,7 +86,8 @@ class TransactionFormViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val cerpsRepository: CerpsRepository,
     private val bankRepository: BankRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val currencyExchangeRepository: CurrencyExchangeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionFormUiState())
@@ -210,11 +218,66 @@ class TransactionFormViewModel @Inject constructor(
             // Reset exact amount when currency changes
             isExactAmountEnabled = if (currency == "EUR") false else current.isExactAmountEnabled,
             exactEurAmount = if (currency == "EUR") "" else current.exactEurAmount,
+            // Reset cash mode when currency changes
+            paymentMethod = if (currency == "EUR") "CARD" else current.paymentMethod,
+            cashRate = "",
+            cashRatePlaceholder = "",
+            lastCashExchange = null,
             showError = null
         )
 
         if (currency != "EUR") {
             fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
+            if (current.paymentMethod == "CASH" || _uiState.value.paymentMethod == "CASH") {
+                loadCashExchangeRate(currency)
+            }
+        }
+    }
+
+    fun selectPaymentMethod(method: String) {
+        val current = _uiState.value
+        _uiState.value = current.copy(
+            paymentMethod = method,
+            showError = null
+        )
+        if (method == "CASH" && current.selectedCurrency != "EUR") {
+            loadCashExchangeRate(current.selectedCurrency)
+        }
+    }
+
+    fun updateCashRate(rate: String) {
+        _uiState.value = _uiState.value.copy(cashRate = rate, showError = null)
+    }
+
+    private fun loadCashExchangeRate(currency: String) {
+        viewModelScope.launch {
+            // Try to load last saved cash exchange rate
+            val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(currency, "EUR")
+            val placeholder = if (lastExchange != null) {
+                String.format("%.4f", lastExchange.exchangeRate)
+            } else {
+                // Fall back to interbank rate
+                val rate = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
+                    cachedInterBankRate
+                } else {
+                    when (val result = cerpsRepository.convert("EUR", currency, 1.0)) {
+                        is CerpsResult.Success -> {
+                            val r = result.data.exchangeRate.toDouble()
+                            cachedInterBankRate = r
+                            cachedRateCurrency = currency
+                            r
+                        }
+                        is CerpsResult.Error -> null
+                    }
+                }
+                if (rate != null) String.format("%.4f", rate) else ""
+            }
+
+            _uiState.value = _uiState.value.copy(
+                lastCashExchange = lastExchange,
+                cashRatePlaceholder = placeholder,
+                cashRate = if (lastExchange != null) String.format("%.4f", lastExchange.exchangeRate) else _uiState.value.cashRate
+            )
         }
     }
 
@@ -532,10 +595,35 @@ class TransactionFormViewModel @Inject constructor(
             try {
                 when (currentState.mode) {
                     TransactionFormMode.ADD -> {
+                        val isCashMode = currentState.paymentMethod == "CASH" &&
+                                currentState.selectedCurrency != "EUR"
+
                         when (currentState.transactionType) {
                             TransactionType.EXPENSE -> {
-                                // Используем UseCase с валютой
-                                val result = if (
+                                val result = if (isCashMode) {
+                                    // Cash mode: use the cash rate directly
+                                    val cashRateValue = currentState.cashRate.toDoubleOrNull()
+                                        ?: currentState.cashRatePlaceholder.toDoubleOrNull()
+                                    if (cashRateValue == null || cashRateValue <= 0) {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = context.getString(R.string.error_enter_valid_eur)
+                                        )
+                                        return@launch
+                                    }
+                                    val eurAmount = amountDouble / cashRateValue
+                                    addExpenseUseCase.addWithExactEurAmount(
+                                        originalAmount = amountDouble,
+                                        originalCurrency = currentState.selectedCurrency,
+                                        exactEurAmount = String.format("%.2f", eurAmount).toDouble(),
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = null,
+                                        bankCommission = null,
+                                        rateSource = "CASH_EXCHANGE"
+                                    )
+                                } else if (
                                     currentState.isExactAmountEnabled &&
                                     currentState.exactEurAmount.isNotBlank() &&
                                     currentState.selectedCurrency != "EUR"
@@ -587,7 +675,30 @@ class TransactionFormViewModel @Inject constructor(
                                 return@launch
                             }
                             TransactionType.INCOME -> {
-                                val result = if (
+                                val result = if (isCashMode) {
+                                    // Cash mode: use the cash rate directly
+                                    val cashRateValue = currentState.cashRate.toDoubleOrNull()
+                                        ?: currentState.cashRatePlaceholder.toDoubleOrNull()
+                                    if (cashRateValue == null || cashRateValue <= 0) {
+                                        _uiState.value = _uiState.value.copy(
+                                            isLoading = false,
+                                            showError = context.getString(R.string.error_enter_valid_eur)
+                                        )
+                                        return@launch
+                                    }
+                                    val eurAmount = amountDouble / cashRateValue
+                                    addIncomeUseCase.addWithExactEurAmount(
+                                        originalAmount = amountDouble,
+                                        originalCurrency = currentState.selectedCurrency,
+                                        exactEurAmount = String.format("%.2f", eurAmount).toDouble(),
+                                        categoryId = currentState.selectedCategory!!.id,
+                                        description = currentState.description.ifBlank { null },
+                                        date = currentState.selectedDate,
+                                        bankName = null,
+                                        bankCommission = null,
+                                        rateSource = "CASH_EXCHANGE"
+                                    )
+                                } else if (
                                     currentState.isExactAmountEnabled &&
                                     currentState.exactEurAmount.isNotBlank() &&
                                     currentState.selectedCurrency != "EUR"

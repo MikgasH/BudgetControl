@@ -127,6 +127,15 @@
     <string name="currency">Currency</string>
     <string name="default_label">(default)</string>
 
+    <!-- Payment method -->
+    <string name="payment_method">Payment method</string>
+    <string name="card">Card</string>
+    <string name="cash">Cash</string>
+    <string name="exchange_rate_label">Exchange rate</string>
+    <string name="last_exchange">Last exchange</string>
+    <string name="using_interbank_rate">Using interbank rate</string>
+    <string name="cash_rate_hint">1 EUR = %1$s %2$s</string>
+
     <!-- BankSelector -->
     <string name="bank_payment_method">Bank / Payment method</string>
 
@@ -209,6 +218,22 @@
 
     <!-- AddExpenseUseCase -->
     <string name="error_saving_expense">Error saving: %1$s</string>
+
+    <!-- Initial balance -->
+    <string name="initial_balance">Initial balance</string>
+    <string name="initial_balance_desc">Starting amount before you began tracking</string>
+
+    <!-- Currency exchanges -->
+    <string name="currency_exchanges">Currency exchanges</string>
+    <string name="add_exchange">Add exchange</string>
+    <string name="exchange_location">Location (optional)</string>
+    <string name="save_exchange">Save exchange</string>
+    <string name="no_exchanges">No exchanges recorded yet</string>
+    <string name="exchange_history">Exchange history</string>
+    <string name="exchange_from">From</string>
+    <string name="exchange_to">To</string>
+    <string name="exchange_rate">Rate</string>
+    <string name="exchange_amount_required">Enter amounts</string>
 
     <!-- Banks management -->
     <string name="banks_and_commissions">Banks &amp; Commissions</string>

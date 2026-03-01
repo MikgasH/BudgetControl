@@ -20,6 +20,7 @@ import com.example.budgetcontrol.feature.main.MainScreen
 import com.example.budgetcontrol.feature.main.OperationType
 import com.example.budgetcontrol.feature.analytics.StatisticsScreen
 import com.example.budgetcontrol.feature.onboarding.OnboardingScreen
+import com.example.budgetcontrol.feature.settings.CurrencyExchangeScreen
 import com.example.budgetcontrol.feature.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
@@ -36,6 +37,7 @@ sealed class Screen(val route: String) {
     object IncomeDetail : Screen("income_detail")
     object IncomesByCategory : Screen("incomes_by_category")
     object Settings : Screen("settings")
+    object CurrencyExchange : Screen("currency_exchange")
 }
 
 const val ANIMATION_DURATION = 200
@@ -346,6 +348,15 @@ fun AppNavigation(
 
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onBackClick = { navController.popBackStack() },
+                onCurrencyExchangesClick = {
+                    navController.navigate(Screen.CurrencyExchange.route)
+                }
+            )
+        }
+
+        composable(Screen.CurrencyExchange.route) {
+            CurrencyExchangeScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

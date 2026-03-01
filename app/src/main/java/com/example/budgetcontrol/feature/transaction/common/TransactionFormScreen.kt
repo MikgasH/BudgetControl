@@ -207,6 +207,8 @@ fun TransactionFormScreen(
                 onUpdateCategoryColor = viewModel::updateCategoryColor,
                 onUpdateCategory = viewModel::updateCustomCategory,
                 onDeleteCategory = viewModel::deleteCustomCategory,
+                onPaymentMethodSelect = viewModel::selectPaymentMethod,
+                onCashRateChange = viewModel::updateCashRate,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -231,6 +233,8 @@ private fun TransactionFormContent(
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
     onDeleteCategory: (Category) -> Unit = {},
+    onPaymentMethodSelect: (String) -> Unit = {},
+    onCashRateChange: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (uiState.mode == TransactionFormMode.ADD) {
@@ -267,7 +271,13 @@ private fun TransactionFormContent(
             onCreateCategory = onCreateCategory,
             onUpdateCategoryColor = onUpdateCategoryColor,
             onUpdateCategory = onUpdateCategory,
-            onDeleteCategory = onDeleteCategory
+            onDeleteCategory = onDeleteCategory,
+            paymentMethod = uiState.paymentMethod,
+            onPaymentMethodSelect = onPaymentMethodSelect,
+            cashRate = uiState.cashRate,
+            onCashRateChange = onCashRateChange,
+            cashRatePlaceholder = uiState.cashRatePlaceholder,
+            lastCashExchange = uiState.lastCashExchange
         )
     } else {
         EditTransactionFormContent(

@@ -127,6 +127,15 @@
     <string name="currency">Валюта</string>
     <string name="default_label">(по умолчанию)</string>
 
+    <!-- Payment method -->
+    <string name="payment_method">Способ оплаты</string>
+    <string name="card">Карта</string>
+    <string name="cash">Наличные</string>
+    <string name="exchange_rate_label">Курс обмена</string>
+    <string name="last_exchange">Последний обмен</string>
+    <string name="using_interbank_rate">Используется межбанковский курс</string>
+    <string name="cash_rate_hint">1 EUR = %1$s %2$s</string>
+
     <!-- BankSelector -->
     <string name="bank_payment_method">Банк / Способ оплаты</string>
 
@@ -209,6 +218,22 @@
 
     <!-- AddExpenseUseCase -->
     <string name="error_saving_expense">Ошибка сохранения: %1$s</string>
+
+    <!-- Initial balance -->
+    <string name="initial_balance">Начальный баланс</string>
+    <string name="initial_balance_desc">Сумма до начала ведения учёта</string>
+
+    <!-- Currency exchanges -->
+    <string name="currency_exchanges">Обмен валюты</string>
+    <string name="add_exchange">Добавить обмен</string>
+    <string name="exchange_location">Место обмена (необязательно)</string>
+    <string name="save_exchange">Сохранить обмен</string>
+    <string name="no_exchanges">Обменов пока нет</string>
+    <string name="exchange_history">История обменов</string>
+    <string name="exchange_from">Из</string>
+    <string name="exchange_to">В</string>
+    <string name="exchange_rate">Курс</string>
+    <string name="exchange_amount_required">Введите суммы</string>
 
     <!-- Banks management -->
     <string name="banks_and_commissions">Банки и комиссии</string>

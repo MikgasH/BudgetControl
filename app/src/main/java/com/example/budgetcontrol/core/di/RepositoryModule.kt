@@ -1,9 +1,11 @@
 package com.example.budgetcontrol.core.di
 
 import com.example.budgetcontrol.core.data.repository.CategoryRepositoryImpl
+import com.example.budgetcontrol.core.data.repository.CurrencyExchangeRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.ExpenseRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.IncomeRepositoryImpl
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
+import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import dagger.Binds
@@ -33,4 +35,10 @@ abstract class RepositoryModule {
     abstract fun bindIncomeRepository(
         incomeRepositoryImpl: IncomeRepositoryImpl
     ): IncomeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCurrencyExchangeRepository(
+        currencyExchangeRepositoryImpl: CurrencyExchangeRepositoryImpl
+    ): CurrencyExchangeRepository
 }

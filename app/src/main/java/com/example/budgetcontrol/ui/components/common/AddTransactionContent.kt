@@ -12,14 +12,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.theme.AppBlue
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun AddTransactionContent(
@@ -55,7 +60,14 @@ fun AddTransactionContent(
     onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType) -> Unit)? = null,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
-    onDeleteCategory: (Category) -> Unit = {}
+    onDeleteCategory: (Category) -> Unit = {},
+    // Cash mode
+    paymentMethod: String = "CARD",
+    onPaymentMethodSelect: (String) -> Unit = {},
+    cashRate: String = "",
+    onCashRateChange: (String) -> Unit = {},
+    cashRatePlaceholder: String = "",
+    lastCashExchange: CurrencyExchange? = null
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -94,56 +106,74 @@ fun AddTransactionContent(
         )
 
         if (selectedCurrency != "EUR") {
-            BankSelector(
-                banks = availableBanks,
-                selectedBank = selectedBank,
-                onBankSelect = onBankSelect
+            // Payment method toggle: Card / Cash
+            PaymentMethodSelector(
+                selectedMethod = paymentMethod,
+                onMethodSelect = onPaymentMethodSelect
             )
 
-            // Conversion preview — hidden when user has entered exact EUR amount
-            if (isExactAmountEnabled && exactEurAmount.isNotBlank()) {
-                Text(
-                    text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF2E7D32),
-                    modifier = Modifier.padding(horizontal = 4.dp)
+            if (paymentMethod == "CARD") {
+                // Card mode: existing bank selector + conversion preview
+                BankSelector(
+                    banks = availableBanks,
+                    selectedBank = selectedBank,
+                    onBankSelect = onBankSelect
                 )
-            } else {
-                ConversionPreview(preview = convertedAmountPreview)
-            }
 
-            // Toggle: Уточнить сумму вручную
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(
-                    checked = isExactAmountEnabled,
-                    onCheckedChange = onExactAmountToggle,
-                    colors = CheckboxDefaults.colors(checkedColor = AppBlue)
-                )
-                Text(
-                    text = stringResource(R.string.specify_amount_manually),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            // Exact EUR amount field — shown only when toggle is checked
-            if (isExactAmountEnabled) {
-                OutlinedTextField(
-                    value = exactEurAmount,
-                    onValueChange = onExactEurAmountChange,
-                    label = { Text(stringResource(R.string.exact_eur_amount)) },
-                    placeholder = { Text(stringResource(R.string.exact_eur_example)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppBlue,
-                        focusedLabelColor = AppBlue,
-                        cursorColor = AppBlue
+                // Conversion preview — hidden when user has entered exact EUR amount
+                if (isExactAmountEnabled && exactEurAmount.isNotBlank()) {
+                    Text(
+                        text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     )
+                } else {
+                    ConversionPreview(preview = convertedAmountPreview)
+                }
+
+                // Toggle: Уточнить сумму вручную
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = isExactAmountEnabled,
+                        onCheckedChange = onExactAmountToggle,
+                        colors = CheckboxDefaults.colors(checkedColor = AppBlue)
+                    )
+                    Text(
+                        text = stringResource(R.string.specify_amount_manually),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                // Exact EUR amount field — shown only when toggle is checked
+                if (isExactAmountEnabled) {
+                    OutlinedTextField(
+                        value = exactEurAmount,
+                        onValueChange = onExactEurAmountChange,
+                        label = { Text(stringResource(R.string.exact_eur_amount)) },
+                        placeholder = { Text(stringResource(R.string.exact_eur_example)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AppBlue,
+                            focusedLabelColor = AppBlue,
+                            cursorColor = AppBlue
+                        )
+                    )
+                }
+            } else {
+                // Cash mode: exchange rate input
+                CashRateSection(
+                    cashRate = cashRate,
+                    onCashRateChange = onCashRateChange,
+                    cashRatePlaceholder = cashRatePlaceholder,
+                    lastCashExchange = lastCashExchange,
+                    selectedCurrency = selectedCurrency
                 )
             }
         }
@@ -254,5 +284,110 @@ private fun DescriptionSection(
                 cursorColor = AppBlue
             )
         )
+    }
+}
+
+@Composable
+private fun PaymentMethodSelector(
+    selectedMethod: String,
+    onMethodSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.payment_method),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = selectedMethod == "CARD",
+                onClick = { onMethodSelect("CARD") },
+                label = { Text(stringResource(R.string.card)) },
+                modifier = Modifier.weight(1f),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AppBlue,
+                    selectedLabelColor = Color.White
+                )
+            )
+            FilterChip(
+                selected = selectedMethod == "CASH",
+                onClick = { onMethodSelect("CASH") },
+                label = { Text(stringResource(R.string.cash)) },
+                modifier = Modifier.weight(1f),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AppBlue,
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun CashRateSection(
+    cashRate: String,
+    onCashRateChange: (String) -> Unit,
+    cashRatePlaceholder: String,
+    lastCashExchange: CurrencyExchange?,
+    selectedCurrency: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        OutlinedTextField(
+            value = cashRate,
+            onValueChange = onCashRateChange,
+            label = { Text(stringResource(R.string.exchange_rate_label)) },
+            placeholder = {
+                if (cashRatePlaceholder.isNotBlank()) {
+                    Text(cashRatePlaceholder)
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            supportingText = {
+                if (cashRatePlaceholder.isNotBlank()) {
+                    Text(
+                        text = stringResource(R.string.cash_rate_hint, cashRatePlaceholder, selectedCurrency),
+                        fontSize = 12.sp
+                    )
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppBlue,
+                focusedLabelColor = AppBlue,
+                cursorColor = AppBlue
+            )
+        )
+
+        // Hint about last exchange or interbank rate
+        if (lastCashExchange != null) {
+            val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            val dateStr = dateFormat.format(Date(lastCashExchange.date))
+            val locationStr = lastCashExchange.location?.let { " · $it" } ?: ""
+            Text(
+                text = stringResource(R.string.last_exchange) + ": $dateStr$locationStr",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.using_interbank_rate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
     }
 }

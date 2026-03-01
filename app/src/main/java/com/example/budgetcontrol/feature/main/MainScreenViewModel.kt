@@ -15,6 +15,7 @@ import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
@@ -33,7 +34,7 @@ import javax.inject.Inject
 data class MainScreenUiState(
     val expenses: List<Expense> = emptyList(),
     val incomes: List<Income> = emptyList(),
-    val transactions: List<Transaction> = emptyList(), // ДОБАВИЛИ список транзакций
+    val transactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
     val totalAmount: Double = 0.0,
@@ -44,7 +45,8 @@ data class MainScreenUiState(
     val periodDisplayText: String = "",
     val customStartDate: Long? = null,
     val customEndDate: Long? = null,
-    val isAllTimePeriod: Boolean = false
+    val isAllTimePeriod: Boolean = false,
+    val initialBalance: Double = 0.0
 )
 
 enum class PeriodType(@StringRes val displayNameRes: Int) {
@@ -62,7 +64,8 @@ class MainScreenViewModel @Inject constructor(
     private val getIncomesUseCase: GetIncomesUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
-    private val deleteIncomeUseCase: DeleteIncomeUseCase
+    private val deleteIncomeUseCase: DeleteIncomeUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainScreenUiState())
@@ -77,20 +80,19 @@ class MainScreenViewModel @Inject constructor(
             combine(
                 getExpensesUseCase(),
                 getIncomesUseCase(),
-                getCategoriesUseCase()
-            ) { expenses, incomes, categories ->
+                getCategoriesUseCase(),
+                preferencesManager.initialBalanceFlow
+            ) { expenses, incomes, categories, initialBalance ->
                 val currentState = _uiState.value
 
                 val filteredExpenses = filterExpensesByCurrentPeriod(expenses)
                 val filteredIncomes = filterIncomesByCurrentPeriod(incomes)
 
-                // Создаем список транзакций для текущего периода
                 val currentTransactions = when (currentState.selectedOperationType) {
                     OperationType.EXPENSES -> filteredExpenses.map { it.toTransaction() }
                     OperationType.INCOMES -> filteredIncomes.map { it.toTransaction() }
                 }.sortedByDescending { it.date }
 
-                // Для статистики используем данные за период
                 val (totalAmount, categoryStats) = when (currentState.selectedOperationType) {
                     OperationType.EXPENSES -> {
                         val total = filteredExpenses.sumOf { it.amount }
@@ -107,14 +109,15 @@ class MainScreenViewModel @Inject constructor(
                 val periodText = getPeriodDisplayText()
 
                 currentState.copy(
-                    expenses = expenses, // Все расходы для расчета баланса
-                    incomes = incomes,   // Все доходы для расчета баланса
-                    transactions = currentTransactions, // ДОБАВИЛИ транзакции за период
+                    expenses = expenses,
+                    incomes = incomes,
+                    transactions = currentTransactions,
                     categories = categories,
                     categoryStatistics = categoryStats,
                     totalAmount = totalAmount,
                     isLoading = false,
-                    periodDisplayText = periodText
+                    periodDisplayText = periodText,
+                    initialBalance = initialBalance
                 )
             }.collect { state ->
                 _uiState.value = state

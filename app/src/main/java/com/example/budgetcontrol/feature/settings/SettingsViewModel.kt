@@ -53,11 +53,30 @@ class SettingsViewModel @Inject constructor(
     val favoriteCurrencies: StateFlow<Set<String>> = preferencesManager.favoriteCurrenciesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PreferencesManager.DEFAULT_FAVORITE_CURRENCIES)
 
+    private val _initialBalance = MutableStateFlow("")
+    val initialBalance: StateFlow<String> = _initialBalance.asStateFlow()
+
     init {
         loadCloudExpensesCount()
         observeLanguage()
         observeTheme()
         loadCurrencies()
+        observeInitialBalance()
+    }
+
+    private fun observeInitialBalance() {
+        viewModelScope.launch {
+            preferencesManager.initialBalanceFlow.collect { balance ->
+                _initialBalance.value = if (balance == 0.0) "" else String.format("%.2f", balance)
+            }
+        }
+    }
+
+    fun setInitialBalance(amount: String) {
+        viewModelScope.launch {
+            val value = amount.toDoubleOrNull() ?: 0.0
+            preferencesManager.setInitialBalance(value)
+        }
     }
 
     private fun observeLanguage() {
