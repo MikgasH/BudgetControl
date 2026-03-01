@@ -3,6 +3,7 @@ package com.example.budgetcontrol.core.di
 import com.example.budgetcontrol.BuildConfig
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
+import com.example.budgetcontrol.core.data.remote.gemini.GeminiApiService
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -14,6 +15,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -58,5 +60,22 @@ object NetworkModule {
         apiService: CerpsApiService
     ): CerpsRepository {
         return CerpsRepository(context, apiService)
+    }
+
+    @Provides
+    @Singleton
+    @Named("gemini")
+    fun provideGeminiRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://generativelanguage.googleapis.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGeminiApiService(@Named("gemini") retrofit: Retrofit): GeminiApiService {
+        return retrofit.create(GeminiApiService::class.java)
     }
 }

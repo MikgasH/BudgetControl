@@ -10,6 +10,8 @@ import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
+import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
+import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.data.repository.BankRepository
 import com.example.budgetcontrol.core.domain.usecase.SyncDataUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,13 +37,22 @@ data class SettingsUiState(
     val currenciesError: String? = null
 )
 
+sealed class LookupState {
+    object Idle : LookupState()
+    object Loading : LookupState()
+    data class Success(val value: Double) : LookupState()
+    object NotFound : LookupState()
+    object Error : LookupState()
+}
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val syncDataUseCase: SyncDataUseCase,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
-    private val cerpsRepository: CerpsRepository
+    private val cerpsRepository: CerpsRepository,
+    private val geminiRepository: GeminiRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -245,6 +256,25 @@ class SettingsViewModel @Inject constructor(
             bankRepository.deleteAllBanks()
             bankRepository.insertDefaultBanks()
         }
+    }
+
+    private val _commissionLookupState = MutableStateFlow<LookupState>(LookupState.Idle)
+    val commissionLookupState: StateFlow<LookupState> = _commissionLookupState.asStateFlow()
+
+    fun lookupBankCommission(bankName: String) {
+        if (bankName.isBlank()) return
+        viewModelScope.launch {
+            _commissionLookupState.value = LookupState.Loading
+            _commissionLookupState.value = when (val result = geminiRepository.getBankCommission(bankName)) {
+                is GeminiResult.Success -> LookupState.Success(result.commission)
+                is GeminiResult.NotFound -> LookupState.NotFound
+                is GeminiResult.Error -> LookupState.Error
+            }
+        }
+    }
+
+    fun resetCommissionLookup() {
+        _commissionLookupState.value = LookupState.Idle
     }
 
     fun clearMessage() {

@@ -26,6 +26,7 @@ android {
         val localProperties = Properties()
         localProperties.load(rootProject.file("local.properties").inputStream())
         buildConfigField("String", "CERPS_BASE_URL", "\"${localProperties["cerps.base.url"]}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties["gemini.api.key"]}\"")
     }
 
     buildTypes {

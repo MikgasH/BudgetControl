@@ -245,6 +245,10 @@
     <string name="reset_banks_to_defaults">Сбросить к настройкам по умолчанию</string>
     <string name="reset_banks_confirm">Удалить все банки и восстановить по умолчанию?</string>
     <string name="bank_name_required">Введите название банка</string>
+    <string name="find_with_ai">Найти через AI</string>
+    <string name="ai_estimate_hint">Оценка AI · проверьте перед сохранением</string>
+    <string name="not_found_hint">Не найдено · введите вручную</string>
+    <string name="lookup_error_hint">Ошибка запроса · попробуйте снова</string>
     <string name="default_bank">По умолчанию</string>
     <string name="last_favorite_error">Хотя бы один банк должен остаться в избранном</string>
     <string name="bank_min_one_required">Должен быть выбран хотя бы один банк</string>

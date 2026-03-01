@@ -245,6 +245,10 @@
     <string name="reset_banks_to_defaults">Reset to defaults</string>
     <string name="reset_banks_confirm">Delete all banks and restore defaults?</string>
     <string name="bank_name_required">Enter a bank name</string>
+    <string name="find_with_ai">Find with AI</string>
+    <string name="ai_estimate_hint">AI estimate · verify before saving</string>
+    <string name="not_found_hint">Not found · enter manually</string>
+    <string name="lookup_error_hint">Request failed · try again</string>
     <string name="default_bank">Default</string>
     <string name="last_favorite_error">At least one bank must remain in favorites</string>
     <string name="bank_min_one_required">At least one bank must be selected</string>

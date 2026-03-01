@@ -549,11 +549,16 @@ fun SettingsScreen(
 
     // Add/Edit bank dialog
     if (showAddEditDialog) {
+        val lookupState by viewModel.commissionLookupState.collectAsState()
+
         AddEditBankDialog(
             bank = editingBank,
+            lookupState = lookupState,
+            onLookup = { bankName -> viewModel.lookupBankCommission(bankName) },
             onDismiss = {
                 showAddEditDialog = false
                 editingBank = null
+                viewModel.resetCommissionLookup()
             },
             onConfirm = { name, commission ->
                 val existing = editingBank
@@ -566,6 +571,7 @@ fun SettingsScreen(
                 }
                 showAddEditDialog = false
                 editingBank = null
+                viewModel.resetCommissionLookup()
             }
         )
     }
@@ -1050,6 +1056,8 @@ private fun formatCommission(value: Double): String {
 @Composable
 private fun AddEditBankDialog(
     bank: BankEntity?,
+    lookupState: LookupState,
+    onLookup: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, Double) -> Unit
 ) {
@@ -1060,6 +1068,18 @@ private fun AddEditBankDialog(
         )
     }
     var nameError by remember { mutableStateOf(false) }
+
+    // Fill commission when AI lookup succeeds
+    LaunchedEffect(lookupState) {
+        if (lookupState is LookupState.Success) {
+            val v = lookupState.value
+            commission = if (v == v.toLong().toDouble()) {
+                "${v.toLong()}"
+            } else {
+                "$v"
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1093,8 +1113,54 @@ private fun AddEditBankDialog(
                     label = { Text(stringResource(R.string.commission_percent_label)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
+                    supportingText = when (lookupState) {
+                        is LookupState.Success -> {
+                            {
+                                Text(
+                                    stringResource(R.string.ai_estimate_hint),
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                        is LookupState.NotFound -> {
+                            {
+                                Text(
+                                    stringResource(R.string.not_found_hint),
+                                    color = Color(0xFFFF9800)
+                                )
+                            }
+                        }
+                        is LookupState.Error -> {
+                            {
+                                Text(
+                                    stringResource(R.string.lookup_error_hint),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        else -> null
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // AI lookup button
+                OutlinedButton(
+                    onClick = { onLookup(name) },
+                    enabled = name.isNotBlank() && lookupState !is LookupState.Loading,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    if (lookupState is LookupState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.find_with_ai))
+                    } else {
+                        Text("\uD83E\uDD16 " + stringResource(R.string.find_with_ai))
+                    }
+                }
             }
         },
         confirmButton = {
