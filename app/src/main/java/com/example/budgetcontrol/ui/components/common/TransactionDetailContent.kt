@@ -84,7 +84,7 @@ fun TransactionDetailContent(
             icon = getCategoryIcon(category?.iconName),
             iconColor = category?.let {
                 Color(android.graphics.Color.parseColor(it.color))
-            } ?: AppBlue
+            } ?: MaterialTheme.colorScheme.primary
         )
 
         // Дата
@@ -221,7 +221,7 @@ private fun TransactionAmountCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = AppBlue
+            containerColor = MaterialTheme.colorScheme.primary
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(12.dp)
@@ -250,7 +250,7 @@ private fun DetailItem(
     label: String,
     value: String,
     icon: ImageVector? = null,
-    iconColor: Color = AppBlue,
+    iconColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
     Column(

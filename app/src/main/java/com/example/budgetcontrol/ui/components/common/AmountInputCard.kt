@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.TransactionType
-import com.example.budgetcontrol.core.theme.AppBlue
 import java.util.Currency
 
 @Composable
@@ -40,10 +39,12 @@ fun AmountInputCard(
         currency
     }
 
+    val accent = MaterialTheme.colorScheme.primary
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = AppBlue.copy(alpha = 0.1f)
+            containerColor = accent.copy(alpha = 0.1f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(12.dp)
@@ -55,7 +56,7 @@ fun AmountInputCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = AppBlue,
+                color = accent,
                 fontWeight = FontWeight.Medium
             )
 
@@ -84,7 +85,7 @@ fun AmountInputCard(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = AppBlue
+                        color = accent
                     )
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -93,18 +94,18 @@ fun AmountInputCard(
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
                     fontSize = 32.sp,
-                    color = AppBlue
+                    color = accent
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AppBlue,
-                    unfocusedBorderColor = AppBlue.copy(alpha = 0.5f),
-                    focusedTextColor = AppBlue,
-                    unfocusedTextColor = AppBlue,
-                    focusedLabelColor = AppBlue,
-                    cursorColor = AppBlue,
-                    disabledTextColor = AppBlue,
-                    disabledBorderColor = AppBlue.copy(alpha = 0.4f)
+                    focusedBorderColor = accent,
+                    unfocusedBorderColor = accent.copy(alpha = 0.5f),
+                    focusedTextColor = accent,
+                    unfocusedTextColor = accent,
+                    focusedLabelColor = accent,
+                    cursorColor = accent,
+                    disabledTextColor = accent,
+                    disabledBorderColor = accent.copy(alpha = 0.4f)
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -115,7 +116,7 @@ fun AmountInputCard(
         Text(
             text = hint,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, top = 4.dp)
         )
     }

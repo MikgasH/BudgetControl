@@ -209,7 +209,7 @@ private fun CompactCategoryItem(
 ) {
     val backgroundColor = if (isSelected) {
         try { Color(android.graphics.Color.parseColor(category.color)) }
-        catch (_: Exception) { AppBlue }
+        catch (_: Exception) { MaterialTheme.colorScheme.primary }
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
@@ -244,7 +244,7 @@ private fun CompactCategoryItem(
         Text(
             text = category.displayName(),
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) AppBlue else MaterialTheme.colorScheme.onSurface,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             textAlign = TextAlign.Center,
             modifier = Modifier
@@ -537,7 +537,7 @@ private fun SystemCategorySettings(
                 .clip(CircleShape)
                 .background(
                     try { Color(android.graphics.Color.parseColor(selectedColor)) }
-                    catch (_: Exception) { AppBlue }
+                    catch (_: Exception) { MaterialTheme.colorScheme.primary }
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -607,7 +607,7 @@ private fun SystemCategorySettings(
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(
                 text = stringResource(R.string.save),
@@ -671,7 +671,7 @@ private fun CustomCategorySettings(
                 .clip(CircleShape)
                 .background(
                     try { Color(android.graphics.Color.parseColor(selectedColor)) }
-                    catch (_: Exception) { AppBlue }
+                    catch (_: Exception) { MaterialTheme.colorScheme.primary }
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -700,9 +700,9 @@ private fun CustomCategorySettings(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppBlue,
-                focusedLabelColor = AppBlue,
-                cursorColor = AppBlue
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
         )
 
@@ -836,7 +836,7 @@ private fun CustomCategorySettings(
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(
                 text = stringResource(R.string.save),
@@ -911,7 +911,7 @@ private fun SettingsIconCircle(
 ) {
     val bgColor = if (isSelected) {
         try { Color(android.graphics.Color.parseColor(selectedColor)) }
-        catch (_: Exception) { AppBlue }
+        catch (_: Exception) { MaterialTheme.colorScheme.primary }
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }

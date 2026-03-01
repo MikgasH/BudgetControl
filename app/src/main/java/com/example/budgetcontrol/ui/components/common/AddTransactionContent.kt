@@ -125,7 +125,7 @@ fun AddTransactionContent(
                     Text(
                         text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF2E7D32),
+                        color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 } else {
@@ -140,7 +140,7 @@ fun AddTransactionContent(
                     Checkbox(
                         checked = isExactAmountEnabled,
                         onCheckedChange = onExactAmountToggle,
-                        colors = CheckboxDefaults.colors(checkedColor = AppBlue)
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                     )
                     Text(
                         text = stringResource(R.string.specify_amount_manually),
@@ -160,9 +160,9 @@ fun AddTransactionContent(
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AppBlue,
-                            focusedLabelColor = AppBlue,
-                            cursorColor = AppBlue
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -279,9 +279,9 @@ private fun DescriptionSection(
             maxLines = 3,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppBlue,
-                focusedLabelColor = AppBlue,
-                cursorColor = AppBlue
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
         )
     }
@@ -311,8 +311,8 @@ private fun PaymentMethodSelector(
                 label = { Text(stringResource(R.string.card)) },
                 modifier = Modifier.weight(1f),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppBlue,
-                    selectedLabelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
             FilterChip(
@@ -321,8 +321,8 @@ private fun PaymentMethodSelector(
                 label = { Text(stringResource(R.string.cash)) },
                 modifier = Modifier.weight(1f),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppBlue,
-                    selectedLabelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -364,9 +364,9 @@ private fun CashRateSection(
                 }
             },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppBlue,
-                focusedLabelColor = AppBlue,
-                cursorColor = AppBlue
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
         )
 

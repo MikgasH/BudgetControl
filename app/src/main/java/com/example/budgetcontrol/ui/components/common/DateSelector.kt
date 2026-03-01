@@ -55,7 +55,7 @@ fun DateSelector(
                 Icon(
                     imageVector = Icons.Default.CalendarToday,
                     contentDescription = stringResource(R.string.select_date),
-                    tint = AppBlue
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -133,7 +133,7 @@ private fun QuickDateOptions(
                 },
                 selected = isSelected,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppBlue,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = Color.White,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
@@ -178,7 +178,7 @@ private fun QuickDateOptions(
                 },
                 selected = true,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppBlue,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = Color.White
                 ),
                 modifier = Modifier

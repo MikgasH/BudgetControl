@@ -305,7 +305,7 @@ private fun ExpenseIncomeToggle(
                     .weight(1f)
                     .padding(8.dp)
                     .clickable { onTypeSelected(OperationType.EXPENSES) },
-                color = if (selectedType == OperationType.EXPENSES) AppBlue else Color.Transparent,
+                color = if (selectedType == OperationType.EXPENSES) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
@@ -324,7 +324,7 @@ private fun ExpenseIncomeToggle(
                     .weight(1f)
                     .padding(8.dp)
                     .clickable { onTypeSelected(OperationType.INCOMES) },
-                color = if (selectedType == OperationType.INCOMES) AppBlue else Color.Transparent,
+                color = if (selectedType == OperationType.INCOMES) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
@@ -357,7 +357,7 @@ private fun FixedPeriodTypeSelector(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onPeriodSelected(period) },
-                color = if (isSelected) AppBlue else Color(0xFFE0E0E0),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
@@ -370,7 +370,7 @@ private fun FixedPeriodTypeSelector(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 12.sp
                     ),
-                    color = if (isSelected) Color.White else Color.Black,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
@@ -491,7 +491,7 @@ private fun PeriodNavigationCard(
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = AppBlue
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     } else {
@@ -752,7 +752,7 @@ private fun CategoryStatisticItem(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = AppBlue
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = "${String.format("%.2f", statistic.totalAmount)} €",

@@ -187,7 +187,7 @@ fun TransactionFormScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = AppBlue)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             TransactionFormContent(
@@ -422,7 +422,7 @@ private fun TransactionTypeSelector(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = AppBlue
+            containerColor = MaterialTheme.colorScheme.primary
         )
     ) {
         Row(
@@ -508,7 +508,7 @@ private fun TransactionTypeDisplay(transactionType: TransactionType) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = AppBlue
+            containerColor = MaterialTheme.colorScheme.primary
         )
     ) {
         Row(
@@ -599,9 +599,9 @@ private fun DescriptionField(
         maxLines = 3,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = AppBlue,
-            focusedLabelColor = AppBlue,
-            cursorColor = AppBlue
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary
         )
     )
 }

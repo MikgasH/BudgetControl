@@ -116,7 +116,7 @@ fun ExpensesScreen(
                     .fillMaxWidth()
                     .padding(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppBlue.copy(alpha = 0.1f)
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
@@ -127,7 +127,7 @@ fun ExpensesScreen(
                     Text(
                         text = stringResource(R.string.total_spent),
                         style = MaterialTheme.typography.titleMedium,
-                        color = AppBlue,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -135,7 +135,7 @@ fun ExpensesScreen(
                         text = "${String.format("%.2f", uiState.totalAmount)} €",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color = AppBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -147,7 +147,7 @@ fun ExpensesScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = AppBlue)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
 

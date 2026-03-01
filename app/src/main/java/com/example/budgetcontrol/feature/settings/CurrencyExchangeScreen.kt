@@ -176,9 +176,9 @@ private fun AddExchangeForm(
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppBlue,
-                        focusedLabelColor = AppBlue,
-                        cursorColor = AppBlue
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
                 CurrencyDropdown(
@@ -203,9 +203,9 @@ private fun AddExchangeForm(
                     shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AppBlue,
-                        focusedLabelColor = AppBlue,
-                        cursorColor = AppBlue
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
                 CurrencyDropdown(
@@ -223,7 +223,7 @@ private fun AddExchangeForm(
                 Text(
                     text = "${stringResource(R.string.exchange_rate)}: ${String.format("%.4f", rate)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AppBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -237,9 +237,9 @@ private fun AddExchangeForm(
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AppBlue,
-                    focusedLabelColor = AppBlue,
-                    cursorColor = AppBlue
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -269,7 +269,7 @@ private fun AddExchangeForm(
                 onClick = onSave,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text(
                     text = stringResource(R.string.save_exchange),

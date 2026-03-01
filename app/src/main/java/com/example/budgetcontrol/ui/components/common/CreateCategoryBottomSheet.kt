@@ -255,9 +255,9 @@ fun CreateCategoryBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AppBlue,
-                    focusedLabelColor = AppBlue,
-                    cursorColor = AppBlue
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -438,9 +438,9 @@ fun CreateCategoryBottomSheet(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AppBlue,
-                            focusedLabelColor = AppBlue,
-                            cursorColor = AppBlue
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
 
@@ -498,7 +498,7 @@ fun CreateCategoryBottomSheet(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AppBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text(
                     text = stringResource(R.string.create_category),
@@ -523,7 +523,7 @@ private fun IconCircle(
 ) {
     val bgColor = if (isSelected) {
         try { Color(android.graphics.Color.parseColor(selectedColor)) }
-        catch (_: Exception) { AppBlue }
+        catch (_: Exception) { MaterialTheme.colorScheme.primary }
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }

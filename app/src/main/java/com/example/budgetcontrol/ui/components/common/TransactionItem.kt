@@ -84,7 +84,7 @@ fun TransactionItem(
                     .clip(CircleShape)
                     .background(
                         color = category?.let { Color(android.graphics.Color.parseColor(it.color)) }
-                            ?: AppBlue
+                            ?: MaterialTheme.colorScheme.primary
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -139,7 +139,7 @@ fun TransactionItem(
 
                 val amountColor = when (transaction.type) {
                     TransactionType.EXPENSE -> MaterialTheme.colorScheme.error
-                    TransactionType.INCOME -> Color(0xFF4CAF50) // Можно оставить зеленый для суммы дохода
+                    TransactionType.INCOME -> MaterialTheme.colorScheme.secondary // Можно оставить зеленый для суммы дохода
                 }
 
                 Text(
@@ -198,7 +198,7 @@ fun TransactionItemDetailed(
                     .clip(CircleShape)
                     .background(
                         category?.let { Color(android.graphics.Color.parseColor(it.color)) }
-                            ?: AppBlue
+                            ?: MaterialTheme.colorScheme.primary
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -255,7 +255,7 @@ fun TransactionItemDetailed(
 
             val amountColor = when (transaction.type) {
                 TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
-                TransactionType.INCOME -> Color(0xFF4CAF50)
+                TransactionType.INCOME -> MaterialTheme.colorScheme.secondary
             }
 
             Text(
