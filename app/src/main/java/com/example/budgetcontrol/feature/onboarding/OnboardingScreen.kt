@@ -30,11 +30,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.feature.settings.LookupState
 import kotlinx.coroutines.launch
 import java.util.Currency
 
-private const val PAGE_COUNT = 5
+private const val PAGE_COUNT = 6
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -78,15 +79,22 @@ fun OnboardingScreen(
                         onLookup = viewModel::lookupBankCommission,
                         onResetLookup = viewModel::resetCommissionLookup
                     )
-                    3 -> BalancePage(
+                    3 -> FavoriteCurrenciesPage(
+                        currencies = uiState.currencies,
+                        favoriteCurrencies = uiState.favoriteCurrencies,
+                        isLoading = uiState.currenciesLoading,
+                        onToggleCurrency = viewModel::toggleFavoriteCurrency
+                    )
+                    4 -> BalancePage(
                         balance = uiState.initialBalance,
                         currency = uiState.selectedCurrency,
                         onBalanceChanged = viewModel::setInitialBalance
                     )
-                    4 -> ReadyPage(
+                    5 -> ReadyPage(
                         language = uiState.selectedLanguage,
                         currency = uiState.selectedCurrency,
-                        banksCount = banks.count { it.isFavorite }
+                        banksCount = banks.count { it.isFavorite },
+                        favoriteCurrenciesCount = uiState.favoriteCurrencies.size
                     )
                 }
             }
@@ -124,12 +132,12 @@ fun OnboardingScreen(
                     .padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (pagerState.currentPage == 3) {
+                if (pagerState.currentPage == 4) {
                     // Balance page: Skip + Next
                     OutlinedButton(
                         onClick = {
                             viewModel.setInitialBalance("")
-                            scope.launch { pagerState.animateScrollToPage(4) }
+                            scope.launch { pagerState.animateScrollToPage(5) }
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -137,13 +145,13 @@ fun OnboardingScreen(
                     }
                     Button(
                         onClick = {
-                            scope.launch { pagerState.animateScrollToPage(4) }
+                            scope.launch { pagerState.animateScrollToPage(5) }
                         },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.onboarding_next))
                     }
-                } else if (pagerState.currentPage == 4) {
+                } else if (pagerState.currentPage == 5) {
                     // Ready page: Start button
                     Button(
                         onClick = {
@@ -158,7 +166,7 @@ fun OnboardingScreen(
                         )
                     }
                 } else {
-                    // Pages 0-2: Next button
+                    // Pages 0-3: Next button
                     Button(
                         onClick = {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -682,7 +690,132 @@ private fun AddBankDialog(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Page 4: Initial Balance
+// Page 4: Favorite Currencies
+// ═══════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun FavoriteCurrenciesPage(
+    currencies: List<String>,
+    favoriteCurrencies: Set<String>,
+    isLoading: Boolean,
+    onToggleCurrency: (String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredCurrencies = remember(currencies, searchQuery) {
+        val list = currencies.ifEmpty { PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES }
+        if (searchQuery.isBlank()) list
+        else list.filter { code ->
+            code.contains(searchQuery, ignoreCase = true) ||
+                    getCurrencyName(code).contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .padding(top = 48.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.onboarding_currencies_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.onboarding_currencies_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text(stringResource(R.string.search_currencies)) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items(filteredCurrencies, key = { it }) { code ->
+                    val isChecked = favoriteCurrencies.contains(code)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onToggleCurrency(code) }
+                            .background(
+                                if (isChecked) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surface
+                            )
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isChecked,
+                            onCheckedChange = { onToggleCurrency(code) },
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = code,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.width(52.dp)
+                        )
+                        Text(
+                            text = getCurrencyName(code),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Page 5: Balance
 // ═══════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -745,7 +878,8 @@ private fun BalancePage(
 private fun ReadyPage(
     language: String,
     currency: String,
-    banksCount: Int
+    banksCount: Int,
+    favoriteCurrenciesCount: Int = 0
 ) {
     Column(
         modifier = Modifier
@@ -809,6 +943,11 @@ private fun ReadyPage(
                     icon = Icons.Default.AccountBalance,
                     label = stringResource(R.string.onboarding_banks_title),
                     value = stringResource(R.string.banks_selected_count, banksCount)
+                )
+                SummaryRow(
+                    icon = Icons.Default.Payments,
+                    label = stringResource(R.string.onboarding_currencies_summary),
+                    value = stringResource(R.string.currencies_selected_summary, favoriteCurrenciesCount)
                 )
             }
         }

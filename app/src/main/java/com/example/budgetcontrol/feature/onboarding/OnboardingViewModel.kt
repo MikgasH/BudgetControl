@@ -29,7 +29,8 @@ data class OnboardingUiState(
     val selectedCurrency: String = "EUR",
     val initialBalance: String = "",
     val currencies: List<String> = emptyList(),
-    val currenciesLoading: Boolean = false
+    val currenciesLoading: Boolean = false,
+    val favoriteCurrencies: Set<String> = PreferencesManager.DEFAULT_FAVORITE_CURRENCIES
 )
 
 @HiltViewModel
@@ -108,6 +109,17 @@ class OnboardingViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(initialBalance = amount)
     }
 
+    fun toggleFavoriteCurrency(currency: String) {
+        val current = _uiState.value.favoriteCurrencies
+        val updated = if (current.contains(currency)) {
+            if (current.size <= 1) return // Keep at least one
+            current - currency
+        } else {
+            current + currency
+        }
+        _uiState.value = _uiState.value.copy(favoriteCurrencies = updated)
+    }
+
     fun addBank(name: String, commission: Double) {
         viewModelScope.launch {
             bankRepository.insertBank(
@@ -139,12 +151,9 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             val selectedCurrency = _uiState.value.selectedCurrency
             preferencesManager.setBaseCurrency(selectedCurrency)
-            // Ensure base currency is always in favorites
-            val currentFavorites = preferencesManager.favoriteCurrenciesFlow.firstOrNull()
-                ?: PreferencesManager.DEFAULT_FAVORITE_CURRENCIES
-            if (!currentFavorites.contains(selectedCurrency)) {
-                preferencesManager.setFavoriteCurrencies(currentFavorites + selectedCurrency)
-            }
+            // Save selected favorite currencies, ensuring base currency is included
+            val favorites = _uiState.value.favoriteCurrencies + selectedCurrency
+            preferencesManager.setFavoriteCurrencies(favorites)
             val balance = _uiState.value.initialBalance.toDoubleOrNull() ?: 0.0
             if (balance > 0) {
                 preferencesManager.setInitialBalance(balance)

@@ -256,11 +256,27 @@ fun MainScreen(
                 )
             }
 
+            val isEmpty = uiState.categoryStatistics.isEmpty()
+
             // Scrollable category list
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .weight(1f)
+                    .then(
+                        if (isEmpty) {
+                            Modifier.pointerInput(maxCollapseOffsetPx) {
+                                detectVerticalDragGestures(
+                                    onDragStart = { snapAnimJob?.cancel() },
+                                    onDragEnd = { snapCollapseToNearest() },
+                                    onDragCancel = { snapCollapseToNearest() }
+                                ) { _, dragAmount ->
+                                    collapseOffsetPx = (collapseOffsetPx - dragAmount)
+                                        .coerceIn(0f, maxCollapseOffsetPx)
+                                }
+                            }
+                        } else Modifier
+                    )
                     .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
                         if (uiState.isAllTimePeriod) return@pointerInput
                         val swipeThresholdPx = 50.dp.toPx()

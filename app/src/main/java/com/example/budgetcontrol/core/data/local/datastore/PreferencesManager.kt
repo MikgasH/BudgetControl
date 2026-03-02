@@ -123,6 +123,24 @@ class PreferencesManager @Inject constructor(
         preferences[LAST_RATES_TIMESTAMP_KEY] ?: 0L
     }
 
+    // Cached available currencies list (for offline mode)
+    suspend fun saveAvailableCurrencies(currencies: List<String>) {
+        val json = Gson().toJson(currencies)
+        dataStore.edit { preferences ->
+            preferences[AVAILABLE_CURRENCIES_KEY] = json
+        }
+    }
+
+    fun getAvailableCurrencies(): Flow<List<String>> = dataStore.data.map { preferences ->
+        val json = preferences[AVAILABLE_CURRENCIES_KEY] ?: return@map DEFAULT_AVAILABLE_CURRENCIES
+        try {
+            val type = object : TypeToken<List<String>>() {}.type
+            Gson().fromJson(json, type)
+        } catch (_: Exception) {
+            DEFAULT_AVAILABLE_CURRENCIES
+        }
+    }
+
     companion object {
         private val LANGUAGE_KEY = stringPreferencesKey("language")
         private val FAVORITE_CURRENCIES_KEY = stringSetPreferencesKey("favorite_currencies")
@@ -133,6 +151,12 @@ class PreferencesManager @Inject constructor(
         private val LAST_PAYMENT_METHOD_KEY = stringPreferencesKey("last_payment_method")
         private val LAST_RATES_KEY = stringPreferencesKey("last_exchange_rates")
         private val LAST_RATES_TIMESTAMP_KEY = longPreferencesKey("last_exchange_rates_timestamp")
+        private val AVAILABLE_CURRENCIES_KEY = stringPreferencesKey("available_currencies")
         val DEFAULT_FAVORITE_CURRENCIES = setOf("EUR", "USD", "GBP", "PLN", "BYN")
+        val DEFAULT_AVAILABLE_CURRENCIES = listOf(
+            "EUR", "USD", "GBP", "CHF", "JPY", "PLN", "CZK",
+            "HUF", "BYN", "UAH", "GEL", "SEK", "NOK", "DKK",
+            "TRY", "CAD", "AUD", "NZD"
+        )
     }
 }

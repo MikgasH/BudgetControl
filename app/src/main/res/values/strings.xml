@@ -208,9 +208,9 @@
     <string name="offline_service_unavailable">⚠ Exchange service unavailable · rate may be outdated</string>
     <string name="offline_no_rates">✕ Cannot get exchange rate · please enter amount in EUR manually</string>
 
-    <!-- Initial balance -->
-    <string name="initial_balance">Initial balance</string>
-    <string name="initial_balance_desc">Starting amount before you began tracking</string>
+    <!-- Current balance -->
+    <string name="current_balance">Current balance</string>
+    <string name="current_balance_desc">Your balance when you started using the app</string>
 
     <!-- Currency exchanges -->
     <string name="currency_exchanges">Currency exchanges</string>
@@ -344,6 +344,10 @@
     <string name="discard_button">Discard</string>
     <string name="keep_editing_button">Keep editing</string>
 
+    <!-- Save cash rate dialog -->
+    <string name="save_cash_rate_title">Save this exchange rate for future use?</string>
+    <string name="save_cash_rate_skip">Skip</string>
+
     <!-- Statistics tabs -->
     <string name="transactions_count_suffix"> transactions</string>
 
@@ -354,11 +358,14 @@
     <string name="onboarding_welcome">Welcome to BudgetControl</string>
     <string name="onboarding_language_title">Choose your language</string>
     <string name="onboarding_currency_title">Your base currency</string>
-    <string name="onboarding_currency_desc">All expenses will be converted to this currency</string>
+    <string name="onboarding_currency_desc">All expenses will be converted to this currency for tracking</string>
     <string name="onboarding_banks_title">Your banks</string>
-    <string name="onboarding_banks_desc">Select banks you use for foreign currency expenses</string>
+    <string name="onboarding_banks_desc">Select banks you use for foreign currency payments. We\'ll apply their real commission rates for accurate conversion.</string>
+    <string name="onboarding_currencies_title">Your currencies</string>
+    <string name="onboarding_currencies_desc">Select currencies you work with — they\'ll appear first in lists</string>
+    <string name="onboarding_currencies_subtitle">These currencies will appear at the top of selection lists for quick access.</string>
     <string name="onboarding_balance_title">Your current balance</string>
-    <string name="onboarding_balance_desc">Optional — helps track your net worth accurately</string>
+    <string name="onboarding_balance_desc">Optional. Enter how much money you have now to track your net worth accurately from day one.</string>
     <string name="onboarding_ready_title">You\'re all set!</string>
     <string name="onboarding_ready_desc">Your app is configured and ready to use</string>
     <string name="onboarding_start">Start</string>
@@ -369,14 +376,32 @@
     <!-- Bank dialog -->
     <string name="bank_name_placeholder">e.g. Revolut, N26, Monzo…</string>
 
-    <!-- Initial balance dialog -->
-    <string name="initial_balance_not_set">Not set</string>
-    <string name="initial_balance_warning">Changing the initial balance will recalculate your total balance.</string>
+    <!-- Current balance dialog -->
+    <string name="current_balance_not_set">Not set</string>
+    <string name="current_balance_warning">Changing the balance will recalculate your total balance.</string>
 
     <!-- Currency exchange screen -->
     <string name="currency_exchange_desc">Record cash exchanges so the app can suggest rates when you pay with cash.</string>
 
+    <!-- Rate history -->
+    <string name="rate_history">Rate History</string>
+    <string name="rate_history_view">View</string>
+    <string name="rate_history_from">From</string>
+    <string name="rate_history_to">To</string>
+    <string name="rate_history_period">Period</string>
+    <string name="rate_history_change">Change</string>
+    <string name="rate_history_start_rate">Start rate</string>
+    <string name="rate_history_end_rate">End rate</string>
+    <string name="rate_history_data_source">Data from interbank rates \u00B7 updated hourly</string>
+    <string name="rate_history_error">Failed to load rate data</string>
+    <string name="rate_history_retry">Retry</string>
+
     <!-- Cash mode hints -->
     <string name="cash_rate_desc">Enter the exchange rate you received at the exchange point.</string>
     <string name="cash_rate_placeholder">e.g. %1$s</string>
+    <string name="using_interbank_rate_hint">Using interbank rate · not exact</string>
+
+    <!-- Onboarding summary -->
+    <string name="onboarding_currencies_summary">Currencies</string>
+    <string name="currencies_selected_summary">%1$d selected</string>
 </resources>

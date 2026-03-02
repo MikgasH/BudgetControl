@@ -208,9 +208,9 @@
     <string name="offline_service_unavailable">⚠ Сервис курсов недоступен · курс может быть неактуальным</string>
     <string name="offline_no_rates">✕ Не удалось получить курс · введите сумму в EUR вручную</string>
 
-    <!-- Initial balance -->
-    <string name="initial_balance">Начальный баланс</string>
-    <string name="initial_balance_desc">Сумма до начала ведения учёта</string>
+    <!-- Current balance -->
+    <string name="current_balance">Текущий баланс</string>
+    <string name="current_balance_desc">Ваш баланс на момент начала использования приложения</string>
 
     <!-- Currency exchanges -->
     <string name="currency_exchanges">Обмен валюты</string>
@@ -341,8 +341,12 @@
 
     <!-- Discard form (ADD mode back press) -->
     <string name="discard_changes_title">Отменить изменения?</string>
-    <string name="discard_button">Отменить</string>
-    <string name="keep_editing_button">Продолжить</string>
+    <string name="discard_button">Выйти</string>
+    <string name="keep_editing_button">Остаться</string>
+
+    <!-- Save cash rate dialog -->
+    <string name="save_cash_rate_title">Сохранить этот курс для будущего использования?</string>
+    <string name="save_cash_rate_skip">Пропустить</string>
 
     <!-- Statistics tabs -->
     <string name="transactions_count_suffix"> операций</string>
@@ -354,11 +358,14 @@
     <string name="onboarding_welcome">Добро пожаловать в BudgetControl</string>
     <string name="onboarding_language_title">Выберите язык</string>
     <string name="onboarding_currency_title">Ваша основная валюта</string>
-    <string name="onboarding_currency_desc">Все расходы будут конвертированы в эту валюту</string>
+    <string name="onboarding_currency_desc">Все расходы будут конвертированы в эту валюту для учёта</string>
     <string name="onboarding_banks_title">Ваши банки</string>
-    <string name="onboarding_banks_desc">Выберите банки, которые вы используете для расходов в иностранной валюте</string>
+    <string name="onboarding_banks_desc">Выберите банки которыми платите в иностранной валюте. Мы применим их реальные комиссии для точной конвертации.</string>
+    <string name="onboarding_currencies_title">Ваши валюты</string>
+    <string name="onboarding_currencies_desc">Выберите валюты с которыми работаете — они будут первыми в списках</string>
+    <string name="onboarding_currencies_subtitle">Эти валюты будут отображаться первыми в списках выбора для быстрого доступа.</string>
     <string name="onboarding_balance_title">Ваш текущий баланс</string>
-    <string name="onboarding_balance_desc">Необязательно — помогает точно отслеживать ваши финансы</string>
+    <string name="onboarding_balance_desc">Необязательно. Введите сколько у вас сейчас денег чтобы точно отслеживать состояние с первого дня.</string>
     <string name="onboarding_ready_title">Всё готово!</string>
     <string name="onboarding_ready_desc">Приложение настроено и готово к использованию</string>
     <string name="onboarding_start">Начать</string>
@@ -369,14 +376,32 @@
     <!-- Bank dialog -->
     <string name="bank_name_placeholder">напр. Revolut, N26, Monzo…</string>
 
-    <!-- Initial balance dialog -->
-    <string name="initial_balance_not_set">Не задан</string>
-    <string name="initial_balance_warning">Изменение начального баланса пересчитает общий баланс.</string>
+    <!-- Current balance dialog -->
+    <string name="current_balance_not_set">Не задан</string>
+    <string name="current_balance_warning">Изменение баланса пересчитает общий баланс.</string>
 
     <!-- Currency exchange screen -->
     <string name="currency_exchange_desc">Записывайте обмены наличных, чтобы приложение могло предлагать курс при оплате наличными.</string>
 
+    <!-- Rate history -->
+    <string name="rate_history">История курсов</string>
+    <string name="rate_history_view">Открыть</string>
+    <string name="rate_history_from">Из</string>
+    <string name="rate_history_to">В</string>
+    <string name="rate_history_period">Период</string>
+    <string name="rate_history_change">Изменение</string>
+    <string name="rate_history_start_rate">Начальный курс</string>
+    <string name="rate_history_end_rate">Конечный курс</string>
+    <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждый час</string>
+    <string name="rate_history_error">Не удалось загрузить данные о курсах</string>
+    <string name="rate_history_retry">Повторить</string>
+
     <!-- Cash mode hints -->
     <string name="cash_rate_desc">Введите курс обмена, полученный в обменном пункте.</string>
     <string name="cash_rate_placeholder">напр. %1$s</string>
+    <string name="using_interbank_rate_hint">Используется межбанковский курс · неточно</string>
+
+    <!-- Onboarding summary -->
+    <string name="onboarding_currencies_summary">Валюты</string>
+    <string name="currencies_selected_summary">Выбрано: %1$d</string>
 </resources>

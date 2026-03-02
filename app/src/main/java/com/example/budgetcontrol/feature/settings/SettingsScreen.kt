@@ -31,6 +31,7 @@ import java.util.Currency
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onCurrencyExchangesClick: () -> Unit = {},
+    onRateHistoryClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -222,13 +223,13 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.initial_balance),
+                            text = stringResource(R.string.current_balance),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (initialBalance.isBlank()) stringResource(R.string.initial_balance_not_set)
+                            text = if (initialBalance.isBlank()) stringResource(R.string.current_balance_not_set)
                                    else "$initialBalance EUR",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -271,6 +272,45 @@ fun SettingsScreen(
                     }
                     FilledTonalButton(onClick = onCurrencyExchangesClick) {
                         Text(stringResource(R.string.manage))
+                    }
+                }
+            }
+
+            // Rate history
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.rate_history),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.rate_history_data_source),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    FilledTonalButton(onClick = onRateHistoryClick) {
+                        Icon(
+                            imageVector = Icons.Default.ShowChart,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.rate_history_view))
                     }
                 }
             }
@@ -452,16 +492,16 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { showBalanceDialog = false },
-            title = { Text(stringResource(R.string.initial_balance)) },
+            title = { Text(stringResource(R.string.current_balance)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = stringResource(R.string.initial_balance_desc),
+                        text = stringResource(R.string.current_balance_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = stringResource(R.string.initial_balance_warning),
+                        text = stringResource(R.string.current_balance_warning),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )

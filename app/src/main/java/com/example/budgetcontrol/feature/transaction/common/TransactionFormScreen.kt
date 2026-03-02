@@ -69,9 +69,26 @@ fun TransactionFormScreen(
     }
 
     LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
+        if (uiState.isSuccess && !uiState.showSaveRateDialog) {
             onSuccess()
         }
+    }
+
+    if (uiState.showSaveRateDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissSaveRateDialog() },
+            title = { Text(stringResource(R.string.save_cash_rate_title)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmSaveRate() }) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissSaveRateDialog() }) {
+                    Text(stringResource(R.string.save_cash_rate_skip))
+                }
+            }
+        )
     }
 
     if (showDatePicker) {
@@ -276,6 +293,7 @@ private fun TransactionFormContent(
             cashRate = uiState.cashRate,
             onCashRateChange = onCashRateChange,
             cashRatePlaceholder = uiState.cashRatePlaceholder,
+            cashRateHint = uiState.cashRateHint,
             lastCashExchange = uiState.lastCashExchange,
             networkStatus = uiState.networkStatus
         )

@@ -67,6 +67,7 @@ fun AddTransactionContent(
     cashRate: String = "",
     onCashRateChange: (String) -> Unit = {},
     cashRatePlaceholder: String = "",
+    cashRateHint: String = "",
     lastCashExchange: CurrencyExchange? = null,
     // Network status
     networkStatus: NetworkStatus = NetworkStatus.ONLINE
@@ -179,6 +180,7 @@ fun AddTransactionContent(
                     cashRate = cashRate,
                     onCashRateChange = onCashRateChange,
                     cashRatePlaceholder = cashRatePlaceholder,
+                    cashRateHint = cashRateHint,
                     lastCashExchange = lastCashExchange,
                     selectedCurrency = selectedCurrency
                 )
@@ -375,6 +377,7 @@ private fun CashRateSection(
     cashRate: String,
     onCashRateChange: (String) -> Unit,
     cashRatePlaceholder: String,
+    cashRateHint: String = "",
     lastCashExchange: CurrencyExchange?,
     selectedCurrency: String,
     modifier: Modifier = Modifier
@@ -420,19 +423,19 @@ private fun CashRateSection(
         )
 
         // Hint about last exchange or interbank rate
-        if (lastCashExchange != null) {
+        if (cashRateHint.isNotBlank()) {
+            Text(
+                text = cashRateHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        } else if (lastCashExchange != null) {
             val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
             val dateStr = dateFormat.format(Date(lastCashExchange.date))
             val locationStr = lastCashExchange.location?.let { " · $it" } ?: ""
             Text(
                 text = stringResource(R.string.last_exchange) + ": $dateStr$locationStr",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        } else {
-            Text(
-                text = stringResource(R.string.using_interbank_rate),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp)

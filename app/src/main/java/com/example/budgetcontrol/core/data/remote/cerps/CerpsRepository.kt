@@ -5,6 +5,7 @@ import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionRequest
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
+import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
@@ -26,12 +27,21 @@ class CerpsRepository @Inject constructor(
         return try {
             val response = apiService.getCurrencies()
             if (response.isSuccessful && response.body() != null) {
-                CerpsResult.Success(response.body()!!)
+                val currencies = response.body()!!
+                // Cache for offline use
+                preferencesManager.saveAvailableCurrencies(currencies)
+                CerpsResult.Success(currencies)
             } else {
-                CerpsResult.Error(context.getString(R.string.error_loading_currencies, response.code().toString()))
+                // Fall back to cached currencies
+                val cached = preferencesManager.getAvailableCurrencies().firstOrNull()
+                    ?: PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
+                CerpsResult.Success(cached)
             }
         } catch (e: Exception) {
-            CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
+            // Fall back to cached currencies
+            val cached = preferencesManager.getAvailableCurrencies().firstOrNull()
+                ?: PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
+            CerpsResult.Success(cached)
         }
     }
 
@@ -59,6 +69,23 @@ class CerpsRepository @Inject constructor(
                 } else {
                     CerpsResult.Error(context.getString(R.string.conversion_failed))
                 }
+            } else {
+                CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
+            }
+        } catch (e: Exception) {
+            CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
+        }
+    }
+
+    suspend fun getTrends(
+        from: String,
+        to: String,
+        period: String
+    ): CerpsResult<TrendsResponse> {
+        return try {
+            val response = apiService.getTrends(from, to, period)
+            if (response.isSuccessful && response.body() != null) {
+                CerpsResult.Success(response.body()!!)
             } else {
                 CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }

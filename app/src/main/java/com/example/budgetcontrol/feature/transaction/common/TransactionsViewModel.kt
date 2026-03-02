@@ -73,9 +73,14 @@ data class TransactionFormUiState(
     val paymentMethod: String = "CARD",
     val cashRate: String = "",
     val cashRatePlaceholder: String = "",
+    val cashRateHint: String = "",
     val lastCashExchange: CurrencyExchange? = null,
     // Network status
-    val networkStatus: NetworkStatus = NetworkStatus.ONLINE
+    val networkStatus: NetworkStatus = NetworkStatus.ONLINE,
+    // Save cash rate dialog
+    val showSaveRateDialog: Boolean = false,
+    val pendingSaveCurrency: String = "",
+    val pendingSaveRate: Double = 0.0
 )
 
 enum class NetworkStatus {
@@ -261,6 +266,7 @@ class TransactionFormViewModel @Inject constructor(
                 paymentMethod = if (currency == "EUR") "CARD" else lastMethod,
                 cashRate = "",
                 cashRatePlaceholder = "",
+                cashRateHint = "",
                 lastCashExchange = null,
                 showError = null
             )
@@ -300,8 +306,14 @@ class TransactionFormViewModel @Inject constructor(
         viewModelScope.launch {
             // Try to load last saved cash exchange rate
             val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(currency, "EUR")
-            val placeholder = if (lastExchange != null) {
-                String.format("%.4f", lastExchange.exchangeRate)
+            if (lastExchange != null) {
+                val formatted = String.format(java.util.Locale.US, "%.4f", lastExchange.exchangeRate)
+                _uiState.value = _uiState.value.copy(
+                    lastCashExchange = lastExchange,
+                    cashRatePlaceholder = formatted,
+                    cashRate = formatted,
+                    cashRateHint = context.getString(R.string.last_exchange)
+                )
             } else {
                 // Fall back to interbank rate
                 val rate = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
@@ -317,14 +329,14 @@ class TransactionFormViewModel @Inject constructor(
                         is CerpsResult.Error -> null
                     }
                 }
-                if (rate != null) String.format("%.4f", rate) else ""
+                val formatted = if (rate != null) String.format(java.util.Locale.US, "%.4f", rate) else ""
+                _uiState.value = _uiState.value.copy(
+                    lastCashExchange = null,
+                    cashRatePlaceholder = formatted,
+                    cashRate = formatted,
+                    cashRateHint = if (formatted.isNotEmpty()) context.getString(R.string.using_interbank_rate_hint) else ""
+                )
             }
-
-            _uiState.value = _uiState.value.copy(
-                lastCashExchange = lastExchange,
-                cashRatePlaceholder = placeholder,
-                cashRate = if (lastExchange != null) String.format("%.4f", lastExchange.exchangeRate) else _uiState.value.cashRate
-            )
         }
     }
 
@@ -385,8 +397,8 @@ class TransactionFormViewModel @Inject constructor(
         val realRate = interBankRate * (1.0 - bank.commissionPercent / 100.0)
         if (realRate <= 0) return ""
         val converted = amount / realRate
-        val realRateFormatted = String.format("%.4f", realRate)
-        val convertedFormatted = String.format("%.2f", converted)
+        val realRateFormatted = String.format(java.util.Locale.US, "%.4f", realRate)
+        val convertedFormatted = String.format(java.util.Locale.US, "%.2f", converted)
         val commissionFormatted = bank.commissionPercent.let {
             if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
         }
@@ -686,7 +698,7 @@ class TransactionFormViewModel @Inject constructor(
                                     addExpenseUseCase.addWithExactEurAmount(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = String.format("%.2f", eurAmount).toDouble(),
+                                        exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
                                         categoryId = currentState.selectedCategory!!.id,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
@@ -731,6 +743,19 @@ class TransactionFormViewModel @Inject constructor(
 
                                 when (result) {
                                     is AddExpenseResult.Success -> {
+                                        if (isCashMode && !currentState.isExactAmountEnabled) {
+                                            val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
+                                                ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+                                            if (cashRateValue != null && cashRateValue > 0) {
+                                                _uiState.value = _uiState.value.copy(
+                                                    isLoading = false,
+                                                    showSaveRateDialog = true,
+                                                    pendingSaveCurrency = currentState.selectedCurrency,
+                                                    pendingSaveRate = cashRateValue
+                                                )
+                                                return@launch
+                                            }
+                                        }
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
                                             isSuccess = true
@@ -785,7 +810,7 @@ class TransactionFormViewModel @Inject constructor(
                                     addIncomeUseCase.addWithExactEurAmount(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = String.format("%.2f", eurAmount).toDouble(),
+                                        exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
                                         categoryId = currentState.selectedCategory!!.id,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
@@ -830,6 +855,19 @@ class TransactionFormViewModel @Inject constructor(
 
                                 when (result) {
                                     is AddIncomeResult.Success -> {
+                                        if (isCashMode && !currentState.isExactAmountEnabled) {
+                                            val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
+                                                ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+                                            if (cashRateValue != null && cashRateValue > 0) {
+                                                _uiState.value = _uiState.value.copy(
+                                                    isLoading = false,
+                                                    showSaveRateDialog = true,
+                                                    pendingSaveCurrency = currentState.selectedCurrency,
+                                                    pendingSaveRate = cashRateValue
+                                                )
+                                                return@launch
+                                            }
+                                        }
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
                                             isSuccess = true
@@ -1042,6 +1080,36 @@ class TransactionFormViewModel @Inject constructor(
                 currentState.selectedCategory?.id != original.categoryId ||
                 currentState.transactionType != original.type ||
                 !isSameDay(currentState.selectedDate, original.date)
+    }
+
+    fun confirmSaveRate() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            currencyExchangeRepository.insertExchange(
+                CurrencyExchange(
+                    id = UUID.randomUUID().toString(),
+                    fromAmount = 1.0,
+                    fromCurrency = "EUR",
+                    toAmount = state.pendingSaveRate,
+                    toCurrency = state.pendingSaveCurrency,
+                    exchangeRate = state.pendingSaveRate,
+                    location = null,
+                    date = System.currentTimeMillis(),
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            _uiState.value = state.copy(
+                showSaveRateDialog = false,
+                isSuccess = true
+            )
+        }
+    }
+
+    fun dismissSaveRateDialog() {
+        _uiState.value = _uiState.value.copy(
+            showSaveRateDialog = false,
+            isSuccess = true
+        )
     }
 
     fun clearError() {
