@@ -111,36 +111,19 @@ fun TransactionFormScreen(
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
             title = {
-                Text(
-                    text = if (mode == TransactionFormMode.EDIT) {
-                        stringResource(R.string.form_modified_title)
-                    } else {
-                        stringResource(R.string.discard_changes_title)
-                    }
-                )
+                Text(stringResource(R.string.exit_without_saving))
             },
-            text = { Text(stringResource(R.string.exit_without_saving)) },
             confirmButton = {
                 TextButton(onClick = onBackClick) {
                     Text(
-                        text = if (mode == TransactionFormMode.EDIT) {
-                            stringResource(R.string.yes_upper)
-                        } else {
-                            stringResource(R.string.discard_button)
-                        },
+                        text = stringResource(R.string.discard_button),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExitDialog = false }) {
-                    Text(
-                        text = if (mode == TransactionFormMode.EDIT) {
-                            stringResource(R.string.no_upper)
-                        } else {
-                            stringResource(R.string.keep_editing_button)
-                        }
-                    )
+                    Text(stringResource(R.string.keep_editing_button))
                 }
             }
         )

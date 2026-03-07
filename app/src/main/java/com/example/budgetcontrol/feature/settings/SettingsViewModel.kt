@@ -11,11 +11,14 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.data.repository.BankRepository
+import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
+import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,7 +36,7 @@ sealed class LookupState {
     object Loading : LookupState()
     data class Success(val value: Double) : LookupState()
     object NotFound : LookupState()
-    object Error : LookupState()
+    data class Error(val message: String? = null) : LookupState()
 }
 
 @HiltViewModel
@@ -41,7 +44,9 @@ class SettingsViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,
-    private val geminiRepository: GeminiRepository
+    private val geminiRepository: GeminiRepository,
+    getExpensesUseCase: GetExpensesUseCase,
+    getIncomesUseCase: GetIncomesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -53,28 +58,38 @@ class SettingsViewModel @Inject constructor(
     val favoriteCurrencies: StateFlow<Set<String>> = preferencesManager.favoriteCurrenciesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PreferencesManager.DEFAULT_FAVORITE_CURRENCIES)
 
-    private val _initialBalance = MutableStateFlow("")
-    val initialBalance: StateFlow<String> = _initialBalance.asStateFlow()
+    private val totalExpenses: StateFlow<Double> = getExpensesUseCase().stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
+    ).let { expensesFlow ->
+        combine(expensesFlow) { _ -> expensesFlow.value.sumOf { it.amount } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    }
+
+    private val totalIncomes: StateFlow<Double> = getIncomesUseCase().stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
+    ).let { incomesFlow ->
+        combine(incomesFlow) { _ -> incomesFlow.value.sumOf { it.amount } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    }
+
+    val totalBalance: StateFlow<Double> = combine(
+        preferencesManager.initialBalanceFlow,
+        totalIncomes,
+        totalExpenses
+    ) { initial, incomes, expenses ->
+        initial + incomes - expenses
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     init {
         observeLanguage()
         observeTheme()
         loadCurrencies()
-        observeInitialBalance()
     }
 
-    private fun observeInitialBalance() {
+    fun setTotalBalance(newTotal: Double) {
         viewModelScope.launch {
-            preferencesManager.initialBalanceFlow.collect { balance ->
-                _initialBalance.value = if (balance == 0.0) "" else String.format("%.2f", balance)
-            }
-        }
-    }
-
-    fun setInitialBalance(amount: String) {
-        viewModelScope.launch {
-            val value = amount.replace(',', '.').toDoubleOrNull() ?: 0.0
-            preferencesManager.setInitialBalance(value)
+            val newInitialBalance = newTotal - totalIncomes.value + totalExpenses.value
+            preferencesManager.setInitialBalance(newInitialBalance)
         }
     }
 
@@ -182,7 +197,7 @@ class SettingsViewModel @Inject constructor(
             _commissionLookupState.value = when (val result = geminiRepository.getBankCommission(bankName)) {
                 is GeminiResult.Success -> LookupState.Success(result.commission)
                 is GeminiResult.NotFound -> LookupState.NotFound
-                is GeminiResult.Error -> LookupState.Error
+                is GeminiResult.Error -> LookupState.Error(result.message)
             }
         }
     }

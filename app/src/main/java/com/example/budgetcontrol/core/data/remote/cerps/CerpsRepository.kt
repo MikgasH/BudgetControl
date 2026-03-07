@@ -20,6 +20,7 @@ sealed class CerpsResult<out T> {
 class CerpsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val apiService: CerpsApiService,
+    private val analyticsApiService: CerpsAnalyticsApiService,
     private val preferencesManager: PreferencesManager
 ) {
 
@@ -83,7 +84,7 @@ class CerpsRepository @Inject constructor(
         period: String
     ): CerpsResult<TrendsResponse> {
         return try {
-            val response = apiService.getTrends(from, to, period)
+            val response = analyticsApiService.getTrends(from, to, period)
             if (response.isSuccessful && response.body() != null) {
                 CerpsResult.Success(response.body()!!)
             } else {

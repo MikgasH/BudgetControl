@@ -136,6 +136,15 @@ fun TransactionDetailContent(
                 value = "$originalFormatted $originalCurrency ($displayName)"
             )
 
+            val isCashExchange = txRateSource == "CASH_EXCHANGE"
+
+            if (isCashExchange) {
+                DetailItem(
+                    label = stringResource(R.string.payment_method),
+                    value = stringResource(R.string.cash)
+                )
+            }
+
             txBankName?.let { name ->
                 val commissionStr = if (txBankCommission != null) {
                     val trimmed = if (txBankCommission == txBankCommission.toLong().toDouble())

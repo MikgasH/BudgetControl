@@ -8,7 +8,7 @@ import javax.inject.Singleton
 sealed class GeminiResult {
     data class Success(val commission: Double) : GeminiResult()
     object NotFound : GeminiResult()
-    object Error : GeminiResult()
+    data class Error(val message: String? = null) : GeminiResult()
 }
 
 @Singleton
@@ -41,13 +41,16 @@ class GeminiRepository @Inject constructor(
             if (!response.isSuccessful) {
                 val errorBody = try { response.errorBody()?.string() } catch (_: Exception) { "unable to read" }
                 Log.e("GeminiRepository", "API error: HTTP ${response.code()}, body: $errorBody")
-                return GeminiResult.Error
+                if (response.code() == 429) {
+                    return GeminiResult.Error("Rate limit exceeded · try again later")
+                }
+                return GeminiResult.Error()
             }
 
             val body = response.body()
             if (body == null) {
                 Log.e("GeminiRepository", "Response body is null")
-                return GeminiResult.Error
+                return GeminiResult.Error()
             }
 
             Log.d("GeminiRepository", "Response candidates count: ${body.candidates?.size}")
@@ -62,7 +65,7 @@ class GeminiRepository @Inject constructor(
 
             if (text == null) {
                 Log.e("GeminiRepository", "No text in response. Candidates: ${body.candidates}")
-                return GeminiResult.Error
+                return GeminiResult.Error()
             }
 
             Log.d("GeminiRepository", "Gemini response text: $text")
@@ -86,7 +89,7 @@ class GeminiRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("GeminiRepository", "getBankCommission failed: ${e.javaClass.simpleName}: ${e.message}", e)
-            GeminiResult.Error
+            GeminiResult.Error()
         }
     }
 }

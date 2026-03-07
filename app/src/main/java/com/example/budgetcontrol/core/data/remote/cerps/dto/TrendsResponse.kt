@@ -4,10 +4,16 @@ data class TrendsResponse(
     val from: String,
     val to: String,
     val period: String,
-    val startRate: Double,
-    val endRate: Double,
-    val changePercent: Double,
-    val startTimestamp: String,
-    val endTimestamp: String,
-    val dataPoints: Int
+    val oldRate: Double,
+    val newRate: Double,
+    val changePercentage: Double,
+    val startDate: String,
+    val endDate: String,
+    val dataPoints: Int,
+    val points: List<RatePoint>
+)
+
+data class RatePoint(
+    val timestamp: String,
+    val rate: Double
 )

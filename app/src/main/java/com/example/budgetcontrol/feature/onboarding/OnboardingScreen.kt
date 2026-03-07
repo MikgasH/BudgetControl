@@ -82,6 +82,7 @@ fun OnboardingScreen(
                     3 -> FavoriteCurrenciesPage(
                         currencies = uiState.currencies,
                         favoriteCurrencies = uiState.favoriteCurrencies,
+                        baseCurrency = uiState.selectedCurrency,
                         isLoading = uiState.currenciesLoading,
                         onToggleCurrency = viewModel::toggleFavoriteCurrency
                     )
@@ -638,7 +639,7 @@ private fun AddBankDialog(
                         is LookupState.Error -> {
                             {
                                 Text(
-                                    stringResource(R.string.lookup_error_hint),
+                                    lookupState.message ?: stringResource(R.string.lookup_error_hint),
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -697,15 +698,17 @@ private fun AddBankDialog(
 private fun FavoriteCurrenciesPage(
     currencies: List<String>,
     favoriteCurrencies: Set<String>,
+    baseCurrency: String,
     isLoading: Boolean,
     onToggleCurrency: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredCurrencies = remember(currencies, searchQuery) {
+    val filteredCurrencies = remember(currencies, searchQuery, baseCurrency) {
         val list = currencies.ifEmpty { PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES }
-        if (searchQuery.isBlank()) list
-        else list.filter { code ->
+        val withoutBase = list.filter { it != baseCurrency }
+        if (searchQuery.isBlank()) withoutBase
+        else withoutBase.filter { code ->
             code.contains(searchQuery, ignoreCase = true) ||
                     getCurrencyName(code).contains(searchQuery, ignoreCase = true)
         }

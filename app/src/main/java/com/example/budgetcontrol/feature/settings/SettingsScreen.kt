@@ -31,18 +31,18 @@ import java.util.Currency
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onCurrencyExchangesClick: () -> Unit = {},
-    onRateHistoryClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val banks by viewModel.banks.collectAsState()
     val favoriteCurrencies by viewModel.favoriteCurrencies.collectAsState()
-    val initialBalance by viewModel.initialBalance.collectAsState()
+    val totalBalance by viewModel.totalBalance.collectAsState()
 
     var showBanksSheet by remember { mutableStateOf(false) }
     var showCurrenciesSheet by remember { mutableStateOf(false) }
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingBank by remember { mutableStateOf<BankEntity?>(null) }
+    var initialBankName by remember { mutableStateOf<String?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
     var showBalanceDialog by remember { mutableStateOf(false) }
 
@@ -229,8 +229,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (initialBalance.isBlank()) stringResource(R.string.current_balance_not_set)
-                                   else "$initialBalance EUR",
+                            text = "${String.format("%.2f", totalBalance)} EUR",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -272,45 +271,6 @@ fun SettingsScreen(
                     }
                     FilledTonalButton(onClick = onCurrencyExchangesClick) {
                         Text(stringResource(R.string.manage))
-                    }
-                }
-            }
-
-            // Rate history
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.rate_history),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.rate_history_data_source),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    FilledTonalButton(onClick = onRateHistoryClick) {
-                        Icon(
-                            imageVector = Icons.Default.ShowChart,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.rate_history_view))
                     }
                 }
             }
@@ -434,14 +394,9 @@ fun SettingsScreen(
             },
             onDelete = viewModel::deleteBank,
             onAddBank = { name ->
-                if (name != null) {
-                    editingBank = null
-                    // Pre-fill add dialog with the searched name
-                    viewModel.addBank(name, 0.0)
-                } else {
-                    editingBank = null
-                    showAddEditDialog = true
-                }
+                editingBank = null
+                initialBankName = name
+                showAddEditDialog = true
             },
             onResetDefaults = { showResetConfirm = true }
         )
@@ -463,11 +418,13 @@ fun SettingsScreen(
 
         AddEditBankDialog(
             bank = editingBank,
+            initialName = initialBankName,
             lookupState = lookupState,
             onLookup = { bankName -> viewModel.lookupBankCommission(bankName) },
             onDismiss = {
                 showAddEditDialog = false
                 editingBank = null
+                initialBankName = null
                 viewModel.resetCommissionLookup()
             },
             onConfirm = { name, commission ->
@@ -481,51 +438,43 @@ fun SettingsScreen(
                 }
                 showAddEditDialog = false
                 editingBank = null
+                initialBankName = null
                 viewModel.resetCommissionLookup()
             }
         )
     }
 
-    // Initial balance dialog
+    // Total balance dialog
     if (showBalanceDialog) {
-        var balanceText by remember(initialBalance) { mutableStateOf(initialBalance) }
+        var balanceText by remember(totalBalance) {
+            mutableStateOf(String.format("%.2f", totalBalance))
+        }
 
         AlertDialog(
             onDismissRequest = { showBalanceDialog = false },
             title = { Text(stringResource(R.string.current_balance)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.current_balance_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                OutlinedTextField(
+                    value = balanceText,
+                    onValueChange = { balanceText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    suffix = { Text("EUR") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = stringResource(R.string.current_balance_warning),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    OutlinedTextField(
-                        value = balanceText,
-                        onValueChange = { balanceText = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        suffix = { Text("EUR") },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.setInitialBalance(balanceText)
+                    val value = balanceText.replace(',', '.').toDoubleOrNull() ?: 0.0
+                    viewModel.setTotalBalance(value)
                     showBalanceDialog = false
                 }) {
                     Text(stringResource(R.string.save))
@@ -680,25 +629,6 @@ private fun BanksBottomSheet(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(
-                                    text = stringResource(R.string.add_bank_with_name, searchQuery.trim()),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                FilledTonalButton(
-                                    onClick = {
-                                        onAddBank(searchQuery.trim())
-                                        searchQuery = ""
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.add_bank))
-                                }
                             }
                         }
                     } else {
@@ -740,7 +670,10 @@ private fun BanksBottomSheet(
 
                 // Add bank button
                 OutlinedButton(
-                    onClick = { onAddBank(null) },
+                    onClick = {
+                        val prefill = searchQuery.trim().takeIf { it.isNotBlank() }
+                        onAddBank(prefill)
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
@@ -1019,12 +952,13 @@ private fun formatCommission(value: Double): String {
 @Composable
 private fun AddEditBankDialog(
     bank: BankEntity?,
+    initialName: String? = null,
     lookupState: LookupState,
     onLookup: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, Double) -> Unit
 ) {
-    var name by remember { mutableStateOf(bank?.name ?: "") }
+    var name by remember { mutableStateOf(bank?.name ?: initialName ?: "") }
     var commission by remember {
         mutableStateOf(
             bank?.let { formatCommission(it.commissionPercent).dropLast(1) } ?: ""
@@ -1097,7 +1031,7 @@ private fun AddEditBankDialog(
                         is LookupState.Error -> {
                             {
                                 Text(
-                                    stringResource(R.string.lookup_error_hint),
+                                    lookupState.message ?: stringResource(R.string.lookup_error_hint),
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }

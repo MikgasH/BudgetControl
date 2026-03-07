@@ -154,9 +154,11 @@ class TransactionFormViewModel @Inject constructor(
                     }
                 )
             } else {
-                // Don't probe CERPS health here — just check internet connectivity.
-                // The actual conversion call will handle CERPS errors gracefully.
-                _uiState.value = _uiState.value.copy(networkStatus = NetworkStatus.ONLINE)
+                val cerpsUp = networkStatusRepository.isCerpsAvailable()
+                _uiState.value = _uiState.value.copy(
+                    networkStatus = if (cerpsUp) NetworkStatus.ONLINE
+                    else NetworkStatus.SERVICE_UNAVAILABLE
+                )
             }
         }
     }

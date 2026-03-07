@@ -204,9 +204,9 @@
     <string name="error_saving_expense">Ошибка сохранения: %1$s</string>
 
     <!-- Offline mode -->
-    <string name="offline_no_internet">⚠ Нет интернета · курс может быть неактуальным</string>
-    <string name="offline_service_unavailable">⚠ Сервис курсов недоступен · курс может быть неактуальным</string>
-    <string name="offline_no_rates">✕ Не удалось получить курс · введите сумму в EUR вручную</string>
+    <string name="offline_no_internet">Нет сети · используется сохранённый курс</string>
+    <string name="offline_service_unavailable">Сервис курсов недоступен · используется сохранённый курс</string>
+    <string name="offline_no_rates">Не удалось получить курс · введите сумму в EUR вручную</string>
 
     <!-- Current balance -->
     <string name="current_balance">Текущий баланс</string>
@@ -378,7 +378,7 @@
 
     <!-- Current balance dialog -->
     <string name="current_balance_not_set">Не задан</string>
-    <string name="current_balance_warning">Изменение баланса пересчитает общий баланс.</string>
+    <string name="current_balance_warning">Это изменит ваш начальный баланс</string>
 
     <!-- Currency exchange screen -->
     <string name="currency_exchange_desc">Записывайте обмены наличных, чтобы приложение могло предлагать курс при оплате наличными.</string>
@@ -392,6 +392,9 @@
     <string name="rate_history_change">Изменение</string>
     <string name="rate_history_start_rate">Начальный курс</string>
     <string name="rate_history_end_rate">Конечный курс</string>
+    <string name="rate_history_current_rate">Текущий курс</string>
+    <string name="rate_history_points">%1$d точек</string>
+    <string name="rate_history_no_data">Нет данных</string>
     <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждый час</string>
     <string name="rate_history_error">Не удалось загрузить данные о курсах</string>
     <string name="rate_history_retry">Повторить</string>

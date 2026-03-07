@@ -5,6 +5,8 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -55,6 +57,7 @@ fun MainScreen(
     onExpensesListClick: () -> Unit,
     onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean) -> Unit = { _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
+    onRateHistoryClick: () -> Unit = {},
     onTransactionClick: (Transaction) -> Unit = {},
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
@@ -93,8 +96,20 @@ fun MainScreen(
                             bottom = 10.dp // УВЕЛИЧИЛИ отступ снизу
                         )
                 ) {
+                    IconButton(
+                        onClick = onRateHistoryClick,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShowChart,
+                            contentDescription = stringResource(R.string.rate_history),
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+
                     Text(
-                        text = "${String.format("%.2f", calculateBalance(uiState))} €",
+                        text = formatBalance(calculateBalance(uiState)),
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
@@ -209,10 +224,48 @@ fun MainScreen(
         } else 0f
         val chartHeight = lerp(fullHeight, collapsedBarHeight, collapseFraction)
 
-        Column(
+        val isEmpty = uiState.categoryStatistics.isEmpty()
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .pointerInput(isEmpty, maxCollapseOffsetPx) {
+                    if (!isEmpty) return@pointerInput
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        var lastX = down.position.x
+                        var lastY = down.position.y
+                        var directionDecided = false
+                        var isVertical = false
+                        do {
+                            val event = awaitPointerEvent()
+                            val drag = event.changes.firstOrNull() ?: break
+                            val dx = drag.position.x - lastX
+                            val dy = drag.position.y - lastY
+                            if (!directionDecided) {
+                                val totalMove = kotlin.math.abs(dx) + kotlin.math.abs(dy)
+                                if (totalMove > 10f) {
+                                    directionDecided = true
+                                    isVertical = kotlin.math.abs(dy) > kotlin.math.abs(dx)
+                                    if (!isVertical) break // horizontal — let it pass through
+                                }
+                            }
+                            if (isVertical) {
+                                lastX = drag.position.x
+                                lastY = drag.position.y
+                                collapseOffsetPx = (collapseOffsetPx - dy)
+                                    .coerceIn(0f, maxCollapseOffsetPx)
+                                drag.consume()
+                            }
+                        } while (event.changes.any { it.pressed })
+                        if (isVertical) snapCollapseToNearest()
+                    }
+                }
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
         ) {
             // Fixed header: toggle, period selector, chart
@@ -256,52 +309,39 @@ fun MainScreen(
                 )
             }
 
-            val isEmpty = uiState.categoryStatistics.isEmpty()
-
-            // Scrollable category list
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .then(
-                        if (isEmpty) {
-                            Modifier.pointerInput(maxCollapseOffsetPx) {
-                                detectVerticalDragGestures(
-                                    onDragStart = { snapAnimJob?.cancel() },
-                                    onDragEnd = { snapCollapseToNearest() },
-                                    onDragCancel = { snapCollapseToNearest() }
-                                ) { _, dragAmount ->
-                                    collapseOffsetPx = (collapseOffsetPx - dragAmount)
-                                        .coerceIn(0f, maxCollapseOffsetPx)
+            if (uiState.categoryStatistics.isEmpty()) {
+                // Empty state: gesture handled by outer Box
+                Spacer(modifier = Modifier.weight(1f))
+            } else {
+                // Scrollable category list
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
+                            if (uiState.isAllTimePeriod) return@pointerInput
+                            val swipeThresholdPx = 50.dp.toPx()
+                            var totalDrag = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { totalDrag = 0f },
+                                onDragEnd = {
+                                    if (totalDrag > swipeThresholdPx) {
+                                        viewModel.navigatePeriod(-1)
+                                    } else if (totalDrag < -swipeThresholdPx) {
+                                        viewModel.navigatePeriod(1)
+                                    }
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    totalDrag += dragAmount
                                 }
-                            }
-                        } else Modifier
-                    )
-                    .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
-                        if (uiState.isAllTimePeriod) return@pointerInput
-                        val swipeThresholdPx = 50.dp.toPx()
-                        var totalDrag = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { totalDrag = 0f },
-                            onDragEnd = {
-                                if (totalDrag > swipeThresholdPx) {
-                                    viewModel.navigatePeriod(-1)
-                                } else if (totalDrag < -swipeThresholdPx) {
-                                    viewModel.navigatePeriod(1)
-                                }
-                            },
-                            onHorizontalDrag = { _, dragAmount ->
-                                totalDrag += dragAmount
-                            }
-                        )
-                    },
-                contentPadding = PaddingValues(
-                    start = 16.dp, end = 16.dp,
-                    top = 16.dp, bottom = 16.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (uiState.categoryStatistics.isNotEmpty()) {
+                            )
+                        },
+                    contentPadding = PaddingValues(
+                        start = 16.dp, end = 16.dp,
+                        top = 16.dp, bottom = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     items(uiState.categoryStatistics) { stat ->
                         CategoryStatisticItem(
                             statistic = stat,
@@ -317,12 +357,13 @@ fun MainScreen(
                             }
                         )
                     }
-                }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
             }
+        }
         }
     }
 }
@@ -813,4 +854,13 @@ private fun calculateBalance(uiState: MainScreenUiState): Double {
     val totalIncomes = uiState.incomes.sumOf { it.amount }
     val totalExpenses = uiState.expenses.sumOf { it.amount }
     return uiState.initialBalance + totalIncomes - totalExpenses
+}
+
+// Format balance: 750.00 → "750 €", 750.50 → "750,50 €"
+private fun formatBalance(amount: Double): String {
+    return if (amount == amount.toLong().toDouble()) {
+        "${amount.toLong()} €"
+    } else {
+        "${String.format("%.2f", amount)} €"
+    }
 }

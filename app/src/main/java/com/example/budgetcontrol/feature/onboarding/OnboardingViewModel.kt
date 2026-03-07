@@ -138,7 +138,7 @@ class OnboardingViewModel @Inject constructor(
             _commissionLookupState.value = when (val result = geminiRepository.getBankCommission(bankName)) {
                 is GeminiResult.Success -> LookupState.Success(result.commission)
                 is GeminiResult.NotFound -> LookupState.NotFound
-                is GeminiResult.Error -> LookupState.Error
+                is GeminiResult.Error -> LookupState.Error(result.message)
             }
         }
     }

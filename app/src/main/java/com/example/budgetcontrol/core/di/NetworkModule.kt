@@ -2,6 +2,7 @@ package com.example.budgetcontrol.core.di
 
 import com.example.budgetcontrol.BuildConfig
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.data.remote.cerps.CerpsAnalyticsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiApiService
@@ -41,7 +42,23 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    @Named("cerps")
+    fun provideCerpsOkHttpClient(): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BASIC
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(3, TimeUnit.SECONDS)
+            .readTimeout(3, TimeUnit.SECONDS)
+            .writeTimeout(3, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(@Named("cerps") okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BuildConfig.CERPS_BASE_URL)
             .client(okHttpClient)
@@ -57,12 +74,30 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("cerps_analytics")
+    fun provideCerpsAnalyticsRetrofit(@Named("cerps") okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BuildConfig.CERPS_ANALYTICS_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCerpsAnalyticsApiService(@Named("cerps_analytics") retrofit: Retrofit): CerpsAnalyticsApiService {
+        return retrofit.create(CerpsAnalyticsApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideCerpsRepository(
         @ApplicationContext context: Context,
         apiService: CerpsApiService,
+        analyticsApiService: CerpsAnalyticsApiService,
         preferencesManager: PreferencesManager
     ): CerpsRepository {
-        return CerpsRepository(context, apiService, preferencesManager)
+        return CerpsRepository(context, apiService, analyticsApiService, preferencesManager)
     }
 
     @Provides

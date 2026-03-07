@@ -201,13 +201,16 @@ private fun CategoryStatisticItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Иконка категории
+            val categoryColor = try {
+                Color(android.graphics.Color.parseColor(statistic.category.color))
+            } catch (_: Exception) {
+                Color.Gray
+            }
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(
-                        Color(android.graphics.Color.parseColor(statistic.category.color))
-                    ),
+                    .background(categoryColor),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

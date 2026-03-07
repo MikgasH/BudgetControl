@@ -204,9 +204,9 @@
     <string name="error_saving_expense">Error saving: %1$s</string>
 
     <!-- Offline mode -->
-    <string name="offline_no_internet">⚠ No internet · exchange rate may be outdated</string>
-    <string name="offline_service_unavailable">⚠ Exchange service unavailable · rate may be outdated</string>
-    <string name="offline_no_rates">✕ Cannot get exchange rate · please enter amount in EUR manually</string>
+    <string name="offline_no_internet">Offline · using cached rate</string>
+    <string name="offline_service_unavailable">Rate service unavailable · using cached rate</string>
+    <string name="offline_no_rates">Cannot get exchange rate · enter amount in EUR manually</string>
 
     <!-- Current balance -->
     <string name="current_balance">Current balance</string>
@@ -378,7 +378,7 @@
 
     <!-- Current balance dialog -->
     <string name="current_balance_not_set">Not set</string>
-    <string name="current_balance_warning">Changing the balance will recalculate your total balance.</string>
+    <string name="current_balance_warning">This will adjust your starting balance</string>
 
     <!-- Currency exchange screen -->
     <string name="currency_exchange_desc">Record cash exchanges so the app can suggest rates when you pay with cash.</string>
@@ -392,6 +392,9 @@
     <string name="rate_history_change">Change</string>
     <string name="rate_history_start_rate">Start rate</string>
     <string name="rate_history_end_rate">End rate</string>
+    <string name="rate_history_current_rate">Current rate</string>
+    <string name="rate_history_points">%1$d points</string>
+    <string name="rate_history_no_data">No data</string>
     <string name="rate_history_data_source">Data from interbank rates \u00B7 updated hourly</string>
     <string name="rate_history_error">Failed to load rate data</string>
     <string name="rate_history_retry">Retry</string>

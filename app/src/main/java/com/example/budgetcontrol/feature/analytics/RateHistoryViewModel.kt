@@ -2,10 +2,13 @@ package com.example.budgetcontrol.feature.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RateHistoryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val cerpsRepository: CerpsRepository
 ) : ViewModel() {
 
@@ -26,7 +30,7 @@ class RateHistoryViewModel @Inject constructor(
     private val _selectedTo = MutableStateFlow("EUR")
     val selectedTo: StateFlow<String> = _selectedTo.asStateFlow()
 
-    private val _selectedPeriod = MutableStateFlow("30D")
+    private val _selectedPeriod = MutableStateFlow("7D")
     val selectedPeriod: StateFlow<String> = _selectedPeriod.asStateFlow()
 
     private val _trendsData = MutableStateFlow<TrendsResponse?>(null)
@@ -51,7 +55,9 @@ class RateHistoryViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = cerpsRepository.getCurrencies()) {
                 is CerpsResult.Success -> _availableCurrencies.value = result.data
-                is CerpsResult.Error -> { /* currencies list will remain empty */ }
+                is CerpsResult.Error -> {
+                    _error.value = context.getString(R.string.rate_history_error)
+                }
             }
         }
     }
@@ -76,18 +82,23 @@ class RateHistoryViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
 
-            when (val result = cerpsRepository.getTrends(
-                from = _selectedFrom.value,
-                to = _selectedTo.value,
-                period = _selectedPeriod.value
-            )) {
-                is CerpsResult.Success -> {
-                    _trendsData.value = result.data
+            try {
+                when (val result = cerpsRepository.getTrends(
+                    from = _selectedFrom.value,
+                    to = _selectedTo.value,
+                    period = _selectedPeriod.value
+                )) {
+                    is CerpsResult.Success -> {
+                        _trendsData.value = result.data
+                    }
+                    is CerpsResult.Error -> {
+                        _error.value = context.getString(R.string.rate_history_error)
+                        _trendsData.value = null
+                    }
                 }
-                is CerpsResult.Error -> {
-                    _error.value = result.message
-                    _trendsData.value = null
-                }
+            } catch (_: Exception) {
+                _error.value = context.getString(R.string.rate_history_error)
+                _trendsData.value = null
             }
 
             _isLoading.value = false
@@ -95,6 +106,7 @@ class RateHistoryViewModel @Inject constructor(
     }
 
     fun retry() {
+        loadCurrencies()
         loadTrends()
     }
 }

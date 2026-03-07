@@ -451,18 +451,18 @@ private fun NetworkStatusBanner(
 ) {
     val (backgroundColor, textColor, text) = when (networkStatus) {
         NetworkStatus.NO_INTERNET -> Triple(
-            Color(0xFFFFF3CD),
-            Color(0xFF856404),
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
             stringResource(R.string.offline_no_internet)
         )
         NetworkStatus.SERVICE_UNAVAILABLE -> Triple(
-            Color(0xFFFFF3CD),
-            Color(0xFF856404),
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
             stringResource(R.string.offline_service_unavailable)
         )
         NetworkStatus.OFFLINE_NO_CACHE -> Triple(
-            Color(0xFFF8D7DA),
-            Color(0xFF721C24),
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
             stringResource(R.string.offline_no_rates)
         )
         NetworkStatus.ONLINE -> return
@@ -475,9 +475,9 @@ private fun NetworkStatusBanner(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = textColor,
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(10.dp)
         )
     }
 }

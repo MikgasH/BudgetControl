@@ -1,7 +1,9 @@
 package com.example.budgetcontrol.feature.analytics
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -10,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +31,13 @@ import co.yml.charts.ui.linechart.model.LineStyle
 import co.yml.charts.ui.linechart.model.ShadowUnderLine
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import java.text.SimpleDateFormat
+import java.util.Currency
+import java.util.Locale
+
+private fun getCurrencyDisplayName(code: String, locale: Locale): String =
+    try { Currency.getInstance(code).getDisplayName(locale) }
+    catch (_: IllegalArgumentException) { code }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,10 +56,18 @@ fun RateHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.rate_history)) },
+                title = {
+                    Text(
+                        text = "$selectedFrom \u2192 $selectedTo",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -68,7 +86,6 @@ fun RateHistoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Currency pair selector
             CurrencyPairSelector(
                 availableCurrencies = availableCurrencies,
                 selectedFrom = selectedFrom,
@@ -77,13 +94,11 @@ fun RateHistoryScreen(
                 onToSelected = viewModel::selectTo
             )
 
-            // Period selector
             PeriodSelector(
                 selectedPeriod = selectedPeriod,
                 onPeriodSelected = viewModel::selectPeriod
             )
 
-            // Content area
             when {
                 isLoading -> {
                     Box(
@@ -102,12 +117,11 @@ fun RateHistoryScreen(
                     )
                 }
                 trendsData != null -> {
-                    StatsCard(trendsData = trendsData!!)
+                    StatsRow(trendsData = trendsData!!)
                     RateChart(trendsData = trendsData!!)
                 }
             }
 
-            // Data source info
             Text(
                 text = stringResource(R.string.rate_history_data_source),
                 style = MaterialTheme.typography.bodySmall,
@@ -176,6 +190,7 @@ private fun CurrencyDropdown(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val appLocale = LocalConfiguration.current.locales[0]
 
     Column(modifier = modifier) {
         Text(
@@ -204,15 +219,36 @@ private fun CurrencyDropdown(
             )
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .heightIn(max = 320.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 currencies.forEach { currency ->
                     DropdownMenuItem(
-                        text = { Text(currency) },
+                        text = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = currency,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = getCurrencyDisplayName(currency, appLocale),
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
                         onClick = {
                             onSelected(currency)
                             expanded = false
-                        }
+                        },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
             }
@@ -226,33 +262,41 @@ private fun PeriodSelector(
     onPeriodSelected: (String) -> Unit
 ) {
     val periods = RateHistoryViewModel.PERIODS
-    val selectedIndex = periods.indexOf(selectedPeriod).coerceAtLeast(0)
 
-    ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.primary,
-        edgePadding = 0.dp
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         periods.forEach { period ->
-            Tab(
-                selected = period == selectedPeriod,
-                onClick = { onPeriodSelected(period) },
-                text = {
-                    Text(
-                        text = period,
-                        fontWeight = if (period == selectedPeriod) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            )
+            val isSelected = period == selectedPeriod
+
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onPeriodSelected(period) },
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = period,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 12.sp
+                    ),
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun StatsCard(trendsData: TrendsResponse) {
-    val changeColor = if (trendsData.changePercent >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val changePrefix = if (trendsData.changePercent >= 0) "+" else ""
+private fun StatsRow(trendsData: TrendsResponse) {
+    val changeColor = if (trendsData.changePercentage >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val changePrefix = if (trendsData.changePercentage >= 0) "+" else ""
 
     Card(
         colors = CardDefaults.cardColors(
@@ -265,23 +309,8 @@ private fun StatsCard(trendsData: TrendsResponse) {
                 .padding(20.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Start rate
+            // Change percentage
             Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = stringResource(R.string.rate_history_start_rate),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = String.format("%.4f", trendsData.startRate),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Change percent
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = stringResource(R.string.rate_history_change),
                     style = MaterialTheme.typography.labelSmall,
@@ -289,23 +318,38 @@ private fun StatsCard(trendsData: TrendsResponse) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${changePrefix}${String.format("%.2f", trendsData.changePercent)}%",
+                    text = "${changePrefix}${String.format("%.2f", trendsData.changePercentage)}%",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = changeColor
                 )
             }
 
-            // End rate
-            Column(horizontalAlignment = Alignment.End) {
+            // Current rate
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = stringResource(R.string.rate_history_end_rate),
+                    text = stringResource(R.string.rate_history_current_rate),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = String.format("%.4f", trendsData.endRate),
+                    text = String.format("%.4f", trendsData.newRate),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Data points
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = stringResource(R.string.rate_history_period),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.rate_history_points, trendsData.dataPoints),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -316,38 +360,80 @@ private fun StatsCard(trendsData: TrendsResponse) {
 
 @Composable
 private fun RateChart(trendsData: TrendsResponse) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val points = trendsData.points
+    if (points.isEmpty()) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.rate_history_no_data),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        return
+    }
+
+    val lineColor = if (trendsData.changePercentage >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
 
-    val startRate = trendsData.startRate.toFloat()
-    val endRate = trendsData.endRate.toFloat()
-    val minRate = minOf(startRate, endRate)
-    val maxRate = maxOf(startRate, endRate)
-    val padding = if (maxRate == minRate) 0.001f else (maxRate - minRate) * 0.2f
+    val rates = points.map { it.rate.toFloat() }
+    val minRate = rates.min()
+    val maxRate = rates.max()
+    val padding = if (maxRate == minRate) 0.001f else (maxRate - minRate) * 0.1f
 
-    val pointsData = listOf(
-        Point(0f, startRate),
-        Point(1f, endRate)
-    )
+    val pointsData = points.mapIndexed { index, ratePoint ->
+        Point(index.toFloat(), ratePoint.rate.toFloat())
+    }
 
+    // Format first and last date labels based on locale
+    val appLocale = LocalConfiguration.current.locales[0]
+    val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+    val inputFormatAlt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val outputFormat = SimpleDateFormat("MMM d", appLocale)
+
+    fun parseAndFormat(timestamp: String): String {
+        return try {
+            val date = try { inputFormat.parse(timestamp) } catch (_: Exception) { inputFormatAlt.parse(timestamp) }
+            date?.let { outputFormat.format(it) } ?: timestamp.take(10)
+        } catch (_: Exception) {
+            timestamp.take(10)
+        }
+    }
+
+    val firstLabel = parseAndFormat(points.first().timestamp)
+    val lastLabel = parseAndFormat(points.last().timestamp)
+
+    val steps = points.size - 1
     val xAxisData = AxisData.Builder()
-        .axisStepSize(260.dp)
-        .steps(1)
+        .axisStepSize(if (steps > 0) (260.dp / steps) else 260.dp)
+        .steps(steps)
         .labelData { i ->
             when (i) {
-                0 -> trendsData.startTimestamp.take(10)
-                else -> trendsData.endTimestamp.take(10)
+                0 -> firstLabel
+                steps -> lastLabel
+                else -> ""
             }
         }
         .labelAndAxisLinePadding(16.dp)
         .build()
 
+    val ySteps = 4
     val yAxisData = AxisData.Builder()
-        .steps(4)
+        .steps(ySteps)
         .labelData { i ->
             val yMin = minRate - padding
             val yMax = maxRate + padding
-            val step = (yMax - yMin) / 4
+            val step = (yMax - yMin) / ySteps
             String.format("%.4f", yMin + step * i)
         }
         .labelAndAxisLinePadding(24.dp)
@@ -358,12 +444,12 @@ private fun RateChart(trendsData: TrendsResponse) {
             lines = listOf(
                 Line(
                     dataPoints = pointsData,
-                    lineStyle = LineStyle(color = primaryColor, width = 3f),
-                    intersectionPoint = IntersectionPoint(color = primaryColor, radius = 5.dp),
+                    lineStyle = LineStyle(color = lineColor, width = 3f),
+                    intersectionPoint = IntersectionPoint(color = lineColor, radius = 3.dp),
                     shadowUnderLine = ShadowUnderLine(
                         alpha = 0.3f,
                         brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(primaryColor.copy(alpha = 0.3f), Color.Transparent)
+                            colors = listOf(lineColor.copy(alpha = 0.3f), Color.Transparent)
                         )
                     )
                 )

@@ -120,6 +120,9 @@ fun AppNavigation(
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
                 },
+                onRateHistoryClick = {
+                    navController.navigate(Screen.RateHistory.route)
+                },
                 onTransactionClick = { transaction ->
                     when (transaction.type) {
                         com.example.budgetcontrol.core.domain.model.TransactionType.EXPENSE -> {
@@ -363,9 +366,6 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onCurrencyExchangesClick = {
                     navController.navigate(Screen.CurrencyExchange.route)
-                },
-                onRateHistoryClick = {
-                    navController.navigate(Screen.RateHistory.route)
                 }
             )
         }
