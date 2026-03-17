@@ -395,9 +395,12 @@
     <string name="rate_history_current_rate">Current rate</string>
     <string name="rate_history_points">%1$d points</string>
     <string name="rate_history_no_data">No data</string>
-    <string name="rate_history_data_source">Data from interbank rates \u00B7 updated hourly</string>
+    <string name="rate_history_data_source">Data from interbank rates \u00B7 updated every 8 hours</string>
     <string name="rate_history_error">Failed to load rate data</string>
     <string name="rate_history_retry">Retry</string>
+    <string name="rate_history_amount">Amount</string>
+    <string name="rate_history_screen_title">Exchange Rate History</string>
+    <string name="rate_history_swap">Swap currencies</string>
 
     <!-- Cash mode hints -->
     <string name="cash_rate_desc">Enter the exchange rate you received at the exchange point.</string>

@@ -30,7 +30,7 @@ class RateHistoryViewModel @Inject constructor(
     private val _selectedTo = MutableStateFlow("EUR")
     val selectedTo: StateFlow<String> = _selectedTo.asStateFlow()
 
-    private val _selectedPeriod = MutableStateFlow("7D")
+    private val _selectedPeriod = MutableStateFlow("1D")
     val selectedPeriod: StateFlow<String> = _selectedPeriod.asStateFlow()
 
     private val _trendsData = MutableStateFlow<TrendsResponse?>(null)
@@ -43,7 +43,7 @@ class RateHistoryViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     companion object {
-        val PERIODS = listOf("12H", "1D", "7D", "30D", "90D", "180D", "1Y")
+        val PERIODS = listOf("1D", "7D", "30D", "90D", "180D")
     }
 
     init {
@@ -69,6 +69,13 @@ class RateHistoryViewModel @Inject constructor(
 
     fun selectTo(currency: String) {
         _selectedTo.value = currency
+        loadTrends()
+    }
+
+    fun swapCurrencies() {
+        val from = _selectedFrom.value
+        _selectedFrom.value = _selectedTo.value
+        _selectedTo.value = from
         loadTrends()
     }
 

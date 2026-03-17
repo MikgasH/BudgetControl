@@ -26,6 +26,7 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import androidx.core.graphics.toColorInt
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -82,7 +83,7 @@ fun TransactionDetailContent(
             value = category?.displayName() ?: stringResource(R.string.unknown_category),
             icon = getCategoryIcon(category?.iconName),
             iconColor = category?.let {
-                Color(android.graphics.Color.parseColor(it.color))
+                Color(it.color.toColorInt())
             } ?: MaterialTheme.colorScheme.primary
         )
 
@@ -123,7 +124,7 @@ fun TransactionDetailContent(
         }
 
         if (originalCurrency != "EUR") {
-            val originalFormatted = String.format("%.2f", originalAmount)
+            val originalFormatted = String.format(Locale.US, "%.2f", originalAmount)
                 .trimEnd('0').trimEnd('.', ',')
             val displayName = try {
                 Currency.getInstance(originalCurrency)
@@ -222,8 +223,8 @@ private fun TransactionAmountCard(
     modifier: Modifier = Modifier
 ) {
     val amountText = when (transaction.type) {
-        TransactionType.EXPENSE -> "${String.format("%.2f", transaction.amount)} €"
-        TransactionType.INCOME -> "+${String.format("%.2f", transaction.amount)} €"
+        TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} €"
+        TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} €"
     }
 
     Card(

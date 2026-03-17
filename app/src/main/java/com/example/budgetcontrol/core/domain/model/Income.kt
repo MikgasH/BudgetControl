@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.core.domain.model
 
+import java.util.Locale
+
 data class Income(
     val id: String,
     val amount: Double,
@@ -19,9 +21,9 @@ data class Income(
 
     fun getDisplayAmount(): String {
         return if (wasConverted) {
-            "${String.format("%.2f", amount)} € (${String.format("%.2f", originalAmount)} $originalCurrency)"
+            "${String.format(Locale.US, "%.2f", amount)} € (${String.format(Locale.US, "%.2f", originalAmount)} $originalCurrency)"
         } else {
-            "${String.format("%.2f", amount)} €"
+            "${String.format(Locale.US, "%.2f", amount)} €"
         }
     }
 }

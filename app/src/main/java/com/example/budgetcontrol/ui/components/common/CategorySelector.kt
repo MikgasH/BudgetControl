@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
@@ -207,7 +208,7 @@ private fun CompactCategoryItem(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
-        try { Color(android.graphics.Color.parseColor(category.color)) }
+        try { Color(category.color.toColorInt()) }
         catch (_: Exception) { MaterialTheme.colorScheme.primary }
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -535,7 +536,7 @@ private fun SystemCategorySettings(
                 .size(80.dp)
                 .clip(CircleShape)
                 .background(
-                    try { Color(android.graphics.Color.parseColor(selectedColor)) }
+                    try { Color(selectedColor.toColorInt()) }
                     catch (_: Exception) { MaterialTheme.colorScheme.primary }
                 ),
             contentAlignment = Alignment.Center
@@ -676,7 +677,7 @@ private fun CustomCategorySettings(
                 .size(80.dp)
                 .clip(CircleShape)
                 .background(
-                    try { Color(android.graphics.Color.parseColor(selectedColor)) }
+                    try { Color(selectedColor.toColorInt()) }
                     catch (_: Exception) { MaterialTheme.colorScheme.primary }
                 ),
             contentAlignment = Alignment.Center
@@ -994,7 +995,7 @@ private fun SettingsColorCircle(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val color = try { Color(android.graphics.Color.parseColor(hex)) }
+    val color = try { Color(hex.toColorInt()) }
     catch (_: Exception) { Color.Gray }
 
     Box(
@@ -1019,7 +1020,7 @@ private fun SettingsIconCircle(
     size: Int = 44
 ) {
     val bgColor = if (isSelected) {
-        try { Color(android.graphics.Color.parseColor(selectedColor)) }
+        try { Color(selectedColor.toColorInt()) }
         catch (_: Exception) { MaterialTheme.colorScheme.primary }
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -1081,7 +1082,7 @@ private fun SettingsColorSliderRow(
 
 private fun parseHexColor(hex: String): Triple<Int, Int, Int> {
     return try {
-        val c = android.graphics.Color.parseColor(hex)
+        val c = hex.toColorInt()
         Triple(
             android.graphics.Color.red(c),
             android.graphics.Color.green(c),

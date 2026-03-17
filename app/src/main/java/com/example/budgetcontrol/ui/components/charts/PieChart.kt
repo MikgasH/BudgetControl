@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
+import java.util.Locale
 
 @Composable
 fun PieChart(
@@ -34,7 +36,7 @@ fun PieChart(
 
             // Центральный текст с общей суммой
             Text(
-                text = "${String.format("%.2f", totalAmount).trimEnd('0').trimEnd('.', ',')} €",
+                text = "${String.format(Locale.US, "%.2f", totalAmount).trimEnd('0').trimEnd('.', ',')} €",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -55,7 +57,7 @@ private fun DrawScope.drawPieChart(data: List<CategoryStatistic>) {
     data.forEach { stat ->
         val sweepAngle = (stat.percentage / 100f) * 360f
         val color = try {
-            Color(android.graphics.Color.parseColor(stat.category.color))
+            Color(stat.category.color.toColorInt())
         } catch (_: Exception) {
             Color.Gray
         }

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
+import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.core.domain.model.CategoryType
 
 // ── Icon data ────────────────────────────────────────────────────────
@@ -521,7 +522,7 @@ private fun IconCircle(
     size: Int = 44
 ) {
     val bgColor = if (isSelected) {
-        try { Color(android.graphics.Color.parseColor(selectedColor)) }
+        try { Color(selectedColor.toColorInt()) }
         catch (_: Exception) { MaterialTheme.colorScheme.primary }
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -551,7 +552,7 @@ private fun ColorCircle(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val color = try { Color(android.graphics.Color.parseColor(hex)) }
+    val color = try { Color(hex.toColorInt()) }
     catch (_: Exception) { Color.Gray }
 
     Box(
@@ -607,7 +608,7 @@ private fun ColorSliderRow(
 
 private fun parseHexColor(hex: String): Triple<Int, Int, Int> {
     return try {
-        val c = android.graphics.Color.parseColor(hex)
+        val c = hex.toColorInt()
         Triple(
             android.graphics.Color.red(c),
             android.graphics.Color.green(c),

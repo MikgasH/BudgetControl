@@ -23,6 +23,8 @@ import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import androidx.core.graphics.toColorInt
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,7 +168,7 @@ private fun PeriodSelector(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            TimePeriod.values().forEach { period ->
+            TimePeriod.entries.forEach { period ->
                 FilterChip(
                     onClick = { onPeriodSelected(period) },
                     label = { Text(stringResource(period.displayNameRes)) },
@@ -202,7 +204,7 @@ private fun CategoryStatisticItem(
         ) {
             // Иконка категории
             val categoryColor = try {
-                Color(android.graphics.Color.parseColor(statistic.category.color))
+                Color(statistic.category.color.toColorInt())
             } catch (_: Exception) {
                 Color.Gray
             }
@@ -240,13 +242,13 @@ private fun CategoryStatisticItem(
             // Статистика
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${String.format("%.0f", statistic.percentage)}%",
+                    text = "${String.format(Locale.US, "%.0f", statistic.percentage)}%",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${String.format("%.2f", statistic.totalAmount)} €",
+                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} €",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import java.util.Currency
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -229,7 +230,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "${String.format("%.2f", totalBalance)} EUR",
+                            text = "${String.format(Locale.US, "%.2f", totalBalance)} EUR",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -447,7 +448,7 @@ fun SettingsScreen(
     // Total balance dialog
     if (showBalanceDialog) {
         var balanceText by remember(totalBalance) {
-            mutableStateOf(String.format("%.2f", totalBalance))
+            mutableStateOf(String.format(Locale.US, "%.2f", totalBalance))
         }
 
         AlertDialog(

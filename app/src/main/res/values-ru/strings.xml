@@ -395,9 +395,12 @@
     <string name="rate_history_current_rate">Текущий курс</string>
     <string name="rate_history_points">%1$d точек</string>
     <string name="rate_history_no_data">Нет данных</string>
-    <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждый час</string>
+    <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждые 8 часов</string>
     <string name="rate_history_error">Не удалось загрузить данные о курсах</string>
     <string name="rate_history_retry">Повторить</string>
+    <string name="rate_history_amount">Сумма</string>
+    <string name="rate_history_screen_title">История курсов валют</string>
+    <string name="rate_history_swap">Поменять валюты</string>
 
     <!-- Cash mode hints -->
     <string name="cash_rate_desc">Введите курс обмена, полученный в обменном пункте.</string>

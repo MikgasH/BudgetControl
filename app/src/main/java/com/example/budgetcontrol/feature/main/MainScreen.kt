@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +31,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
@@ -47,14 +49,18 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.util.displayName
+import androidx.core.graphics.toColorInt
+import java.util.Locale
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.DateRangeHelper
 import java.util.Calendar
 
 @Composable
+@Suppress("unused")
 fun MainScreen(
     onAddExpenseClick: (Long) -> Unit,
     onAddIncomeClick: (Long) -> Unit,
-    onExpensesListClick: () -> Unit,
+    onExpensesListClick: () -> Unit = {},
     onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean) -> Unit = { _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
     onRateHistoryClick: () -> Unit = {},
@@ -62,6 +68,15 @@ fun MainScreen(
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentContext = LocalContext.current
+    val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
+        context = currentContext,
+        periodType = uiState.selectedPeriodType,
+        periodOffset = uiState.currentPeriodIndex,
+        customStartDate = uiState.customStartDate,
+        customEndDate = uiState.customEndDate,
+        isAllTimePeriod = uiState.isAllTimePeriod
+    )
     var showPeriodPicker by remember { mutableStateOf(false) }
 
     // Показываем период пикер
@@ -101,7 +116,7 @@ fun MainScreen(
                         modifier = Modifier.align(Alignment.CenterStart)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ShowChart,
+                            imageVector = Icons.AutoMirrored.Filled.ShowChart,
                             contentDescription = stringResource(R.string.rate_history),
                             tint = Color.White,
                             modifier = Modifier.size(26.dp)
@@ -160,7 +175,7 @@ fun MainScreen(
         val ringFraction = 0.22f
         val collapsedBarHeight = fullHeight * ringFraction // 44dp — matches PieChart ring
         val maxCollapseOffsetPx = with(density) { (fullHeight - collapsedBarHeight).toPx() }
-        var collapseOffsetPx by remember { mutableStateOf(0f) }
+        var collapseOffsetPx by remember { mutableFloatStateOf(0f) }
         var snapAnimJob by remember { mutableStateOf<Job?>(null) }
 
         fun snapCollapseToNearest() {
@@ -302,6 +317,7 @@ fun MainScreen(
 
                 PeriodNavigationCard(
                     uiState = uiState,
+                    periodDisplayText = periodDisplayText,
                     onNavigate = viewModel::navigatePeriod,
                     collapseFraction = collapseFraction,
                     chartHeight = chartHeight,
@@ -432,7 +448,7 @@ private fun FixedPeriodTypeSelector(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        PeriodType.values().forEach { period ->
+        PeriodType.entries.forEach { period ->
             val isSelected = selectedPeriod == period
 
             Surface(
@@ -461,10 +477,10 @@ private fun FixedPeriodTypeSelector(
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun PeriodNavigationCard(
     uiState: MainScreenUiState,
+    periodDisplayText: String,
     onNavigate: (Int) -> Unit,
     collapseFraction: Float = 0f,
     chartHeight: androidx.compose.ui.unit.Dp = 200.dp,
@@ -541,7 +557,7 @@ private fun PeriodNavigationCard(
                 }
 
                 AnimatedContent(
-                    targetState = uiState.periodDisplayText to uiState.totalAmount,
+                    targetState = periodDisplayText to uiState.totalAmount,
                     transitionSpec = {
                         if (isForward) {
                             (slideInHorizontally { it } + fadeIn(tween(300))) togetherWith
@@ -569,7 +585,7 @@ private fun PeriodNavigationCard(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "${String.format("%.2f", totalAmount)} €",
+                                text = "${String.format(Locale.US, "%.2f", totalAmount)} €",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -703,7 +719,7 @@ private fun CategorySegmentedBar(
         val totalPercentage = statistics.sumOf { it.percentage.toDouble() }.toFloat()
         statistics.map { stat ->
             val color = try {
-                Color(android.graphics.Color.parseColor(stat.category.color))
+                Color(stat.category.color.toColorInt())
             } catch (_: Exception) {
                 Color.Gray
             }
@@ -803,7 +819,7 @@ private fun CategoryStatisticItem(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(
-                        Color(android.graphics.Color.parseColor(statistic.category.color))
+                        Color(statistic.category.color.toColorInt())
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -830,14 +846,14 @@ private fun CategoryStatisticItem(
             // Статистика
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${String.format("%.1f", statistic.percentage)}%",
+                    text = "${String.format(Locale.US, "%.1f", statistic.percentage)}%",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${String.format("%.2f", statistic.totalAmount)} €",
+                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} €",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
@@ -861,6 +877,6 @@ private fun formatBalance(amount: Double): String {
     return if (amount == amount.toLong().toDouble()) {
         "${amount.toLong()} €"
     } else {
-        "${String.format("%.2f", amount)} €"
+        "${String.format(Locale.US, "%.2f", amount)} €"
     }
 }

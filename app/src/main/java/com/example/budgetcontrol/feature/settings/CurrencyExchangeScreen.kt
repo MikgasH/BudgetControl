@@ -229,7 +229,7 @@ private fun AddExchangeForm(
             if (fromAmount != null && fromAmount > 0 && toAmount != null && toAmount > 0) {
                 val rate = toAmount / fromAmount
                 Text(
-                    text = "${stringResource(R.string.exchange_rate)}: ${String.format("%.4f", rate)}",
+                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, "%.4f", rate)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -353,13 +353,13 @@ private fun ExchangeHistoryItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${String.format("%.2f", exchange.fromAmount)} ${exchange.fromCurrency} → ${String.format("%.2f", exchange.toAmount)} ${exchange.toCurrency}",
+                    text = "${String.format(Locale.US, "%.2f", exchange.fromAmount)} ${exchange.fromCurrency} → ${String.format(Locale.US, "%.2f", exchange.toAmount)} ${exchange.toCurrency}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${stringResource(R.string.exchange_rate)}: ${String.format("%.4f", exchange.exchangeRate)}",
+                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, "%.4f", exchange.exchangeRate)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

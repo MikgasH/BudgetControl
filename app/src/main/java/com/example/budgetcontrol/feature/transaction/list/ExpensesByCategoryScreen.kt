@@ -88,7 +88,7 @@ fun ExpensesByCategoryScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "${String.format("%.2f", uiState.totalAmount)} €",
+                            text = "${String.format(Locale.US, "%.2f", uiState.totalAmount)} €",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold
