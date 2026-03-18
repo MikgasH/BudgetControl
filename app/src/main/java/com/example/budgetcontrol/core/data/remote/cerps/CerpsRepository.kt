@@ -24,27 +24,96 @@ class CerpsRepository @Inject constructor(
     private val preferencesManager: PreferencesManager
 ) {
 
+    // --- Currencies in-memory cache (one request per session) ---
+    private var cachedCurrencies: List<String>? = null
+
+    // --- Exchange rates in-memory cache ---
+    private var cachedRates: Map<String, Double>? = null
+    private var cachedRatesTimestamp: Long = 0L
+    private var ratesLoadedThisSession: Boolean = false
+
+    companion object {
+        private const val STALE_THRESHOLD_MS = 8 * 60 * 60 * 1000L // 8 hours (for stale warning only)
+    }
+
     suspend fun getCurrencies(): CerpsResult<List<String>> {
+        cachedCurrencies?.let { return CerpsResult.Success(it) }
+
         return try {
             val response = apiService.getCurrencies()
             if (response.isSuccessful && response.body() != null) {
                 val currencies = response.body()!!
-                // Cache for offline use
+                cachedCurrencies = currencies
                 preferencesManager.saveAvailableCurrencies(currencies)
                 CerpsResult.Success(currencies)
             } else {
-                // Fall back to cached currencies
                 val cached = preferencesManager.getAvailableCurrencies().firstOrNull()
                     ?: PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
+                cachedCurrencies = cached
                 CerpsResult.Success(cached)
             }
         } catch (e: Exception) {
-            // Fall back to cached currencies
             val cached = preferencesManager.getAvailableCurrencies().firstOrNull()
                 ?: PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
+            cachedCurrencies = cached
             CerpsResult.Success(cached)
         }
     }
+
+    // --- Exchange rates loading & caching ---
+
+    suspend fun ensureRatesLoaded(): CerpsResult<Map<String, Double>> {
+        // After first successful API fetch this session, serve from memory
+        if (ratesLoadedThisSession && cachedRates != null) {
+            return CerpsResult.Success(cachedRates!!)
+        }
+
+        // Always try API on first call after app launch
+        return try {
+            val response = apiService.getCurrentRates()
+            if (response.isSuccessful && response.body() != null) {
+                val ratesResponse = response.body()!!
+                cachedRates = ratesResponse.rates
+                cachedRatesTimestamp = System.currentTimeMillis()
+                ratesLoadedThisSession = true
+                preferencesManager.saveLastRates(ratesResponse.rates, cachedRatesTimestamp)
+                CerpsResult.Success(ratesResponse.rates)
+            } else {
+                fallbackToCache()
+            }
+        } catch (e: Exception) {
+            fallbackToCache()
+        }
+    }
+
+    private suspend fun fallbackToCache(): CerpsResult<Map<String, Double>> {
+        // Try memory cache first
+        cachedRates?.let { return CerpsResult.Success(it) }
+
+        // Then DataStore
+        val dsRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
+        val dsTimestamp = preferencesManager.getLastRatesTimestamp().firstOrNull() ?: 0L
+        return if (dsRates.isNotEmpty()) {
+            cachedRates = dsRates
+            cachedRatesTimestamp = dsTimestamp
+            CerpsResult.Success(dsRates)
+        } else {
+            CerpsResult.Error(
+                context.getString(R.string.conversion_service_unavailable, "")
+            )
+        }
+    }
+
+    fun areRatesFresh(): Boolean = ratesLoadedThisSession && cachedRates != null
+
+    fun areRatesStale(): Boolean {
+        if (cachedRatesTimestamp == 0L) return true
+        return (System.currentTimeMillis() - cachedRatesTimestamp) >= STALE_THRESHOLD_MS
+    }
+
+    fun getRatesTimestamp(): Long = cachedRatesTimestamp
+
+    // --- Convert (kept for backward compatibility, no longer primary path) ---
 
     suspend fun convert(
         from: String,
@@ -58,7 +127,6 @@ class CerpsRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
                 if (body.success) {
-                    // Cache the rate for offline fallback (merge with existing)
                     val rateKey = "${from}_${to}"
                     val reverseKey = "${to}_${from}"
                     val rate = body.exchangeRate.toDouble()
@@ -97,7 +165,7 @@ class CerpsRepository @Inject constructor(
 
     suspend fun isServiceAvailable(): Boolean {
         return try {
-            val response = apiService.getCurrencies()
+            val response = apiService.healthCheck()
             response.isSuccessful
         } catch (e: Exception) {
             false

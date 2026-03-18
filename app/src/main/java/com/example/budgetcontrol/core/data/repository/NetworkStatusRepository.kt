@@ -15,6 +15,13 @@ class NetworkStatusRepository @Inject constructor(
     private val cerpsApiService: CerpsApiService
 ) {
 
+    private var lastHealthCheckResult: Boolean = false
+    private var lastHealthCheckTimestamp: Long = 0L
+
+    companion object {
+        private const val HEALTH_CHECK_CACHE_MS = 30_000L // 30 seconds
+    }
+
     fun isInternetAvailable(): Boolean {
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -25,13 +32,22 @@ class NetworkStatusRepository @Inject constructor(
     }
 
     suspend fun isCerpsAvailable(): Boolean {
-        return try {
-            val result = withTimeoutOrNull(3000L) {
+        val now = System.currentTimeMillis()
+        if (now - lastHealthCheckTimestamp < HEALTH_CHECK_CACHE_MS) {
+            return lastHealthCheckResult
+        }
+
+        val result = try {
+            val response = withTimeoutOrNull(3000L) {
                 cerpsApiService.healthCheck()
             }
-            result?.isSuccessful == true
+            response?.isSuccessful == true
         } catch (_: Exception) {
             false
         }
+
+        lastHealthCheckResult = result
+        lastHealthCheckTimestamp = now
+        return result
     }
 }

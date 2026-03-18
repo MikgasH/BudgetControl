@@ -80,6 +80,8 @@ data class TransactionFormUiState(
     val lastCashExchange: CurrencyExchange? = null,
     // Network status
     val networkStatus: NetworkStatus = NetworkStatus.ONLINE,
+    // Stale rate warning (shown when cached rates are older than 8 hours)
+    val staleRateWarning: String? = null,
     // Save cash rate dialog
     val showSaveRateDialog: Boolean = false,
     val pendingSaveCurrency: String = "",
@@ -261,7 +263,8 @@ class TransactionFormViewModel @Inject constructor(
                 cashRatePlaceholder = "",
                 cashRateHint = "",
                 lastCashExchange = null,
-                showError = null
+                showError = null,
+                staleRateWarning = null
             )
 
             if (currency != "EUR") {
@@ -359,21 +362,30 @@ class TransactionFormViewModel @Inject constructor(
             val interBankRate: Double? = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
                 cachedInterBankRate
             } else {
-                // Convert EUR → currency to get "1 EUR = X foreign units" (e.g. 3.48 BYN)
-                when (val result = cerpsRepository.convert("EUR", currency, 1.0)) {
+                when (val result = cerpsRepository.ensureRatesLoaded()) {
                     is CerpsResult.Success -> {
-                        val rate = result.data.exchangeRate.toDouble()
-                        cachedInterBankRate = rate
-                        cachedRateCurrency = currency
+                        val rate = result.data[currency]
+                        if (rate != null) {
+                            cachedInterBankRate = rate
+                            cachedRateCurrency = currency
+                        }
                         rate
                     }
                     is CerpsResult.Error -> null
                 }
             }
 
+            // Show stale rate warning if API failed and cached rates are older than 8 hours
+            val staleWarning = if (interBankRate != null && cerpsRepository.areRatesStale()) {
+                val ageMs = System.currentTimeMillis() - cerpsRepository.getRatesTimestamp()
+                val ageHours = (ageMs / (1000 * 60 * 60)).toInt()
+                context.getString(R.string.stale_rate_warning, ageHours.toString())
+            } else null
+
             if (interBankRate != null) {
                 _uiState.value = _uiState.value.copy(
-                    convertedAmountPreview = buildPreview(amount, interBankRate, bank)
+                    convertedAmountPreview = buildPreview(amount, interBankRate, bank),
+                    staleRateWarning = staleWarning
                 )
             }
         }

@@ -13,6 +13,7 @@ import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
 import com.example.budgetcontrol.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,12 +51,15 @@ class StatisticsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(StatisticsUiState())
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
 
+    private var loadDataJob: Job? = null
+
     init {
         loadData()
     }
 
     private fun loadData() {
-        viewModelScope.launch {
+        loadDataJob?.cancel()
+        loadDataJob = viewModelScope.launch {
             combine(
                 getExpensesUseCase(),
                 getIncomesUseCase(),

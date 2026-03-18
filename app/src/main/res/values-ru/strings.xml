@@ -207,6 +207,7 @@
     <string name="offline_no_internet">Нет сети · используется сохранённый курс</string>
     <string name="offline_service_unavailable">Сервис курсов недоступен · используется сохранённый курс</string>
     <string name="offline_no_rates">Не удалось получить курс · введите сумму в EUR вручную</string>
+    <string name="stale_rate_warning">Курс может быть неактуальным · обновлено %1$s ч. назад</string>
 
     <!-- Current balance -->
     <string name="current_balance">Текущий баланс</string>

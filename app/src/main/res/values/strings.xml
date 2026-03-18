@@ -207,6 +207,7 @@
     <string name="offline_no_internet">Offline · using cached rate</string>
     <string name="offline_service_unavailable">Rate service unavailable · using cached rate</string>
     <string name="offline_no_rates">Cannot get exchange rate · enter amount in EUR manually</string>
+    <string name="stale_rate_warning">Rate may be outdated · updated %1$s hours ago</string>
 
     <!-- Current balance -->
     <string name="current_balance">Current balance</string>

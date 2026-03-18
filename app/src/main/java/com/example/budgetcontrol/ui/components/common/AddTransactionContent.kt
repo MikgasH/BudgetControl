@@ -80,7 +80,8 @@ fun AddTransactionContent(
     cashRatePlaceholder: String = "",
     cashRateHint: String = "",
     lastCashExchange: CurrencyExchange? = null,
-    networkStatus: NetworkStatus = NetworkStatus.ONLINE
+    networkStatus: NetworkStatus = NetworkStatus.ONLINE,
+    staleRateWarning: String? = null
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -121,6 +122,16 @@ fun AddTransactionContent(
         // Network status banner (only when currency != EUR)
         if (formState.selectedCurrency != "EUR" && networkStatus != NetworkStatus.ONLINE) {
             NetworkStatusBanner(networkStatus = networkStatus)
+        }
+
+        // Stale rate warning
+        if (formState.selectedCurrency != "EUR" && staleRateWarning != null) {
+            Text(
+                text = staleRateWarning,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
 
         if (formState.selectedCurrency != "EUR") {
