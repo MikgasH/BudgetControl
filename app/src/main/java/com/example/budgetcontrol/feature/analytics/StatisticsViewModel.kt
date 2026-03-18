@@ -8,6 +8,7 @@ import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
 import com.example.budgetcontrol.R
@@ -64,15 +65,19 @@ class StatisticsViewModel @Inject constructor(
 
                 val (stats, total) = when (currentState.selectedTab) {
                     StatisticsTab.EXPENSES -> {
-                        val filtered = filterExpensesByPeriod(expenses, currentState.selectedPeriod)
+                        val filtered = filterByPeriod(expenses, currentState.selectedPeriod) { it.date }
                         val totalAmount = filtered.sumOf { it.amount }
-                        val categoryStats = calculateExpenseCategoryStatistics(filtered, categories, totalAmount)
+                        val categoryStats = calculateCategoryStatistics(
+                            filtered, { it.amount }, { it.categoryId }, categories
+                        )
                         categoryStats to totalAmount
                     }
                     StatisticsTab.INCOMES -> {
-                        val filtered = filterIncomesByPeriod(incomes, currentState.selectedPeriod)
+                        val filtered = filterByPeriod(incomes, currentState.selectedPeriod) { it.date }
                         val totalAmount = filtered.sumOf { it.amount }
-                        val categoryStats = calculateIncomeCategoryStatistics(filtered, categories, totalAmount)
+                        val categoryStats = calculateCategoryStatistics(
+                            filtered, { it.amount }, { it.categoryId }, categories
+                        )
                         categoryStats to totalAmount
                     }
                 }
@@ -93,14 +98,9 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    private fun filterExpensesByPeriod(expenses: List<Expense>, period: TimePeriod): List<Expense> {
-        val startTime = getStartTimeForPeriod(period) ?: return expenses
-        return expenses.filter { it.date >= startTime }
-    }
-
-    private fun filterIncomesByPeriod(incomes: List<Income>, period: TimePeriod): List<Income> {
-        val startTime = getStartTimeForPeriod(period) ?: return incomes
-        return incomes.filter { it.date >= startTime }
+    private fun <T> filterByPeriod(items: List<T>, period: TimePeriod, getDate: (T) -> Long): List<T> {
+        val startTime = getStartTimeForPeriod(period) ?: return items
+        return items.filter { getDate(it) >= startTime }
     }
 
     private fun getStartTimeForPeriod(period: TimePeriod): Long? {
@@ -138,58 +138,6 @@ class StatisticsViewModel @Inject constructor(
             }
             TimePeriod.ALL_TIME -> null
         }
-    }
-
-    private fun calculateExpenseCategoryStatistics(
-        expenses: List<Expense>,
-        categories: List<Category>,
-        totalAmount: Double
-    ): List<CategoryStatistic> {
-        if (totalAmount == 0.0) return emptyList()
-
-        val expensesByCategory = expenses.groupBy { it.categoryId }
-
-        return categories.mapNotNull { category ->
-            val categoryExpenses = expensesByCategory[category.id] ?: emptyList()
-            if (categoryExpenses.isEmpty()) return@mapNotNull null
-
-            val categoryTotal = categoryExpenses.sumOf { it.amount }
-            val percentage = ((categoryTotal / totalAmount) * 100).toFloat()
-
-            CategoryStatistic(
-                category = category,
-                totalAmount = categoryTotal,
-                percentage = percentage,
-                expenseCount = categoryExpenses.size,
-                transactionCount = categoryExpenses.size
-            )
-        }.sortedByDescending { it.totalAmount }
-    }
-
-    private fun calculateIncomeCategoryStatistics(
-        incomes: List<Income>,
-        categories: List<Category>,
-        totalAmount: Double
-    ): List<CategoryStatistic> {
-        if (totalAmount == 0.0) return emptyList()
-
-        val incomesByCategory = incomes.groupBy { it.categoryId }
-
-        return categories.mapNotNull { category ->
-            val categoryIncomes = incomesByCategory[category.id] ?: emptyList()
-            if (categoryIncomes.isEmpty()) return@mapNotNull null
-
-            val categoryTotal = categoryIncomes.sumOf { it.amount }
-            val percentage = ((categoryTotal / totalAmount) * 100).toFloat()
-
-            CategoryStatistic(
-                category = category,
-                totalAmount = categoryTotal,
-                percentage = percentage,
-                expenseCount = categoryIncomes.size,
-                transactionCount = categoryIncomes.size
-            )
-        }.sortedByDescending { it.totalAmount }
     }
 
     fun selectPeriod(period: TimePeriod) {

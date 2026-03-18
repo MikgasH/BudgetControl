@@ -16,3 +16,6 @@ enum class CategoryType {
     EXPENSE,  // Расходы
     INCOME    // Доходы
 }
+
+fun List<Category>.findById(categoryId: String): Category? =
+    find { it.id == categoryId }

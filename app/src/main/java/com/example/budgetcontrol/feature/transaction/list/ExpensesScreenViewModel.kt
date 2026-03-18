@@ -3,6 +3,7 @@ package com.example.budgetcontrol.feature.transaction.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.findById
 import com.example.budgetcontrol.core.domain.model.Expense
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.toExpense
@@ -76,6 +77,6 @@ class ExpensesScreenViewModel @Inject constructor(
     }
 
     fun getCategoryById(categoryId: String): Category? {
-        return _uiState.value.categories.find { it.id == categoryId }
+        return _uiState.value.categories.findById(categoryId)
     }
 }

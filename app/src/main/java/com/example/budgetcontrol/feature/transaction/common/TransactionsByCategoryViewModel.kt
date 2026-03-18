@@ -13,9 +13,11 @@ import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -54,47 +56,22 @@ class TransactionsByCategoryViewModel @Inject constructor(
             try {
                 val category = categoryRepository.getCategoryById(categoryId)
 
-                when (transactionType) {
-                    TransactionType.EXPENSE -> {
-                        getExpensesUseCase.getByCategory(categoryId).collect { expenses ->
-                            val filtered = if (startDate != null && endDate != null) {
-                                expenses.filter { it.date in startDate..endDate }
-                            } else {
-                                expenses
-                            }
-                            val transactions = filtered.map { it.toTransaction() }
-                                .sortedByDescending { it.date }
+                val flow = when (transactionType) {
+                    TransactionType.EXPENSE -> getExpensesUseCase.getByCategory(categoryId)
+                        .mapTransactions(startDate, endDate) { it.toTransaction() }
+                    TransactionType.INCOME -> getIncomesUseCase.getByCategory(categoryId)
+                        .mapTransactions(startDate, endDate) { it.toTransaction() }
+                }
 
-                            _uiState.value = TransactionsByCategoryUiState(
-                                transactions = transactions,
-                                category = category,
-                                transactionType = transactionType,
-                                totalAmount = transactions.sumOf { it.amount },
-                                isLoading = false,
-                                showError = if (category == null) context.getString(R.string.category_not_found) else null
-                            )
-                        }
-                    }
-                    TransactionType.INCOME -> {
-                        getIncomesUseCase.getByCategory(categoryId).collect { incomes ->
-                            val filtered = if (startDate != null && endDate != null) {
-                                incomes.filter { it.date in startDate..endDate }
-                            } else {
-                                incomes
-                            }
-                            val transactions = filtered.map { it.toTransaction() }
-                                .sortedByDescending { it.date }
-
-                            _uiState.value = TransactionsByCategoryUiState(
-                                transactions = transactions,
-                                category = category,
-                                transactionType = transactionType,
-                                totalAmount = transactions.sumOf { it.amount },
-                                isLoading = false,
-                                showError = if (category == null) context.getString(R.string.category_not_found) else null
-                            )
-                        }
-                    }
+                flow.collect { transactions ->
+                    _uiState.value = TransactionsByCategoryUiState(
+                        transactions = transactions,
+                        category = category,
+                        transactionType = transactionType,
+                        totalAmount = transactions.sumOf { it.amount },
+                        isLoading = false,
+                        showError = if (category == null) context.getString(R.string.category_not_found) else null
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -103,6 +80,19 @@ class TransactionsByCategoryViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun <T> Flow<List<T>>.mapTransactions(
+        startDate: Long?,
+        endDate: Long?,
+        toTransaction: (T) -> Transaction
+    ): Flow<List<Transaction>> = map { items ->
+        val filtered = if (startDate != null && endDate != null) {
+            items.map(toTransaction).filter { it.date in startDate..endDate }
+        } else {
+            items.map(toTransaction)
+        }
+        filtered.sortedByDescending { it.date }
     }
 
     fun clearError() {

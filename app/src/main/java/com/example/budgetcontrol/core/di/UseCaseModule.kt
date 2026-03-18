@@ -7,6 +7,7 @@ import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
+import com.example.budgetcontrol.core.domain.usecase.ConvertCurrencyUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
@@ -26,14 +27,22 @@ object UseCaseModule {
 
     @Provides
     @Singleton
+    fun provideConvertCurrencyUseCase(
+        cerpsRepository: CerpsRepository,
+        preferencesManager: PreferencesManager
+    ): ConvertCurrencyUseCase {
+        return ConvertCurrencyUseCase(cerpsRepository, preferencesManager)
+    }
+
+    @Provides
+    @Singleton
     fun provideAddExpenseUseCase(
         @ApplicationContext context: Context,
         repository: ExpenseRepository,
-        cerpsRepository: CerpsRepository,
-        categoryRepository: CategoryRepository,
-        preferencesManager: PreferencesManager
+        convertCurrencyUseCase: ConvertCurrencyUseCase,
+        categoryRepository: CategoryRepository
     ): AddExpenseUseCase {
-        return AddExpenseUseCase(context, repository, cerpsRepository, categoryRepository, preferencesManager)
+        return AddExpenseUseCase(context, repository, convertCurrencyUseCase, categoryRepository)
     }
 
     @Provides
@@ -65,11 +74,10 @@ object UseCaseModule {
     fun provideAddIncomeUseCase(
         @ApplicationContext context: Context,
         repository: IncomeRepository,
-        cerpsRepository: CerpsRepository,
-        categoryRepository: CategoryRepository,
-        preferencesManager: PreferencesManager
+        convertCurrencyUseCase: ConvertCurrencyUseCase,
+        categoryRepository: CategoryRepository
     ): AddIncomeUseCase {
-        return AddIncomeUseCase(context, repository, cerpsRepository, categoryRepository, preferencesManager)
+        return AddIncomeUseCase(context, repository, convertCurrencyUseCase, categoryRepository)
     }
 
     @Provides

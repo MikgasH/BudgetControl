@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.core.domain.model.findById
 import com.example.budgetcontrol.core.domain.model.Expense
 import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.model.Transaction
@@ -15,6 +16,7 @@ import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
@@ -85,8 +87,8 @@ class MainScreenViewModel @Inject constructor(
             ) { expenses, incomes, categories, initialBalance ->
                 val currentState = _uiState.value
 
-                val filteredExpenses = filterExpensesByCurrentPeriod(expenses)
-                val filteredIncomes = filterIncomesByCurrentPeriod(incomes)
+                val filteredExpenses = filterByCurrentPeriod(expenses) { it.date }
+                val filteredIncomes = filterByCurrentPeriod(incomes) { it.date }
 
                 val currentTransactions = when (currentState.selectedOperationType) {
                     OperationType.EXPENSES -> filteredExpenses.map { it.toTransaction() }
@@ -96,12 +98,18 @@ class MainScreenViewModel @Inject constructor(
                 val (totalAmount, categoryStats) = when (currentState.selectedOperationType) {
                     OperationType.EXPENSES -> {
                         val total = filteredExpenses.sumOf { it.amount }
-                        val stats = calculateCategoryStatistics(filteredExpenses, categories, total)
+                        val stats = calculateCategoryStatistics(
+                            filteredExpenses, { it.amount }, { it.categoryId },
+                            categories.filter { it.type == CategoryType.EXPENSE }
+                        )
                         Pair(total, stats)
                     }
                     OperationType.INCOMES -> {
                         val total = filteredIncomes.sumOf { it.amount }
-                        val stats = calculateIncomeCategoryStatistics(filteredIncomes, categories, total)
+                        val stats = calculateCategoryStatistics(
+                            filteredIncomes, { it.amount }, { it.categoryId },
+                            categories.filter { it.type == CategoryType.INCOME }
+                        )
                         Pair(total, stats)
                     }
                 }
@@ -176,8 +184,10 @@ class MainScreenViewModel @Inject constructor(
         loadData()
     }
 
-    private fun filterExpensesByCurrentPeriod(expenses: List<Expense>): List<Expense> {
+    private fun <T> filterByCurrentPeriod(items: List<T>, getDate: (T) -> Long): List<T> {
         val currentState = _uiState.value
+        if (currentState.isAllTimePeriod) return items
+
         val (startDate, endDate) = DateRangeHelper.getDateRange(
             periodType = currentState.selectedPeriodType,
             periodOffset = currentState.currentPeriodIndex,
@@ -185,27 +195,7 @@ class MainScreenViewModel @Inject constructor(
             customEndDate = currentState.customEndDate
         )
 
-        return if (currentState.isAllTimePeriod) {
-            expenses
-        } else {
-            expenses.filter { it.date in startDate..endDate }
-        }
-    }
-
-    private fun filterIncomesByCurrentPeriod(incomes: List<Income>): List<Income> {
-        val currentState = _uiState.value
-        val (startDate, endDate) = DateRangeHelper.getDateRange(
-            periodType = currentState.selectedPeriodType,
-            periodOffset = currentState.currentPeriodIndex,
-            customStartDate = currentState.customStartDate,
-            customEndDate = currentState.customEndDate
-        )
-
-        return if (currentState.isAllTimePeriod) {
-            incomes
-        } else {
-            incomes.filter { it.date in startDate..endDate }
-        }
+        return items.filter { getDate(it) in startDate..endDate }
     }
 
     private fun getPeriodDisplayText(): String {
@@ -220,60 +210,8 @@ class MainScreenViewModel @Inject constructor(
         )
     }
 
-    private fun calculateCategoryStatistics(
-        expenses: List<Expense>,
-        categories: List<Category>,
-        totalAmount: Double
-    ): List<CategoryStatistic> {
-        if (totalAmount == 0.0) return emptyList()
-
-        val expensesByCategory = expenses.groupBy { it.categoryId }
-        val expenseCategories = categories.filter { it.type == CategoryType.EXPENSE }
-
-        return expenseCategories.mapNotNull { category ->
-            val categoryExpenses = expensesByCategory[category.id] ?: emptyList()
-            if (categoryExpenses.isEmpty()) return@mapNotNull null
-
-            val categoryTotal = categoryExpenses.sumOf { it.amount }
-            val percentage = ((categoryTotal / totalAmount) * 100).toFloat()
-
-            CategoryStatistic(
-                category = category,
-                totalAmount = categoryTotal,
-                percentage = percentage,
-                expenseCount = categoryExpenses.size
-            )
-        }.sortedByDescending { it.totalAmount }
-    }
-
-    private fun calculateIncomeCategoryStatistics(
-        incomes: List<Income>,
-        categories: List<Category>,
-        totalAmount: Double
-    ): List<CategoryStatistic> {
-        if (totalAmount == 0.0) return emptyList()
-
-        val incomesByCategory = incomes.groupBy { it.categoryId }
-        val incomeCategories = categories.filter { it.type == CategoryType.INCOME }
-
-        return incomeCategories.mapNotNull { category ->
-            val categoryIncomes = incomesByCategory[category.id] ?: emptyList()
-            if (categoryIncomes.isEmpty()) return@mapNotNull null
-
-            val categoryTotal = categoryIncomes.sumOf { it.amount }
-            val percentage = ((categoryTotal / totalAmount) * 100).toFloat()
-
-            CategoryStatistic(
-                category = category,
-                totalAmount = categoryTotal,
-                percentage = percentage,
-                expenseCount = categoryIncomes.size
-            )
-        }.sortedByDescending { it.totalAmount }
-    }
-
     fun getCategoryById(categoryId: String): Category? {
-        return _uiState.value.categories.find { it.id == categoryId }
+        return _uiState.value.categories.findById(categoryId)
     }
 
     fun getCurrentSelectedDate(): Long {

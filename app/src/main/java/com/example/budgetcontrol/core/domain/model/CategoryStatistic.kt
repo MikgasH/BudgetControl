@@ -4,6 +4,5 @@ data class CategoryStatistic(
     val category: Category,
     val totalAmount: Double,
     val percentage: Float,
-    val expenseCount: Int,
-    val transactionCount: Int = expenseCount
+    val transactionCount: Int
 )
