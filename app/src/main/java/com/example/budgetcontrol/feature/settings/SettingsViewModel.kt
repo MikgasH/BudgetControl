@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -81,8 +83,14 @@ class SettingsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     init {
-        observeLanguage()
-        observeTheme()
+        preferencesManager.languageFlow
+            .onEach { tag -> _uiState.value = _uiState.value.copy(currentLanguage = tag) }
+            .launchIn(viewModelScope)
+
+        preferencesManager.themeFlow
+            .onEach { theme -> _uiState.value = _uiState.value.copy(currentTheme = theme) }
+            .launchIn(viewModelScope)
+
         loadCurrencies()
     }
 
@@ -90,22 +98,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val newInitialBalance = newTotal - totalIncomes.value + totalExpenses.value
             preferencesManager.setInitialBalance(newInitialBalance)
-        }
-    }
-
-    private fun observeLanguage() {
-        viewModelScope.launch {
-            preferencesManager.languageFlow.collect { tag ->
-                _uiState.value = _uiState.value.copy(currentLanguage = tag)
-            }
-        }
-    }
-
-    private fun observeTheme() {
-        viewModelScope.launch {
-            preferencesManager.themeFlow.collect { theme ->
-                _uiState.value = _uiState.value.copy(currentTheme = theme)
-            }
         }
     }
 

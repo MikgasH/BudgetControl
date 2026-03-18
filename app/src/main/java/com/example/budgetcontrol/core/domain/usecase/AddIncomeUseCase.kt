@@ -1,21 +1,17 @@
 package com.example.budgetcontrol.core.domain.usecase
 
-import android.content.Context
-import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 
 sealed class AddIncomeResult {
     object Success : AddIncomeResult()
-    data class Error(val message: String) : AddIncomeResult()
+    data class Error(val error: AddTransactionError) : AddIncomeResult()
 }
 
 class AddIncomeUseCase @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val repository: IncomeRepository,
     private val convertCurrencyUseCase: ConvertCurrencyUseCase,
     private val categoryRepository: CategoryRepository
@@ -32,7 +28,7 @@ class AddIncomeUseCase @Inject constructor(
         return try {
             val conversionResult = convertCurrencyUseCase(amount, currency)
             if (conversionResult is ConvertCurrencyResult.Error) {
-                return AddIncomeResult.Error(conversionResult.message)
+                return AddIncomeResult.Error(AddTransactionError.ConversionFailed(conversionResult.message))
             }
             val conversion = (conversionResult as ConvertCurrencyResult.Success).conversion
 
@@ -56,7 +52,7 @@ class AddIncomeUseCase @Inject constructor(
             AddIncomeResult.Success
 
         } catch (e: Exception) {
-            AddIncomeResult.Error(context.getString(R.string.error_saving, e.message ?: ""))
+            AddIncomeResult.Error(AddTransactionError.SavingFailed(e.message))
         }
     }
 
@@ -99,7 +95,7 @@ class AddIncomeUseCase @Inject constructor(
             categoryRepository.incrementUsageCount(categoryId)
             AddIncomeResult.Success
         } catch (e: Exception) {
-            AddIncomeResult.Error(context.getString(R.string.error_saving, e.message ?: ""))
+            AddIncomeResult.Error(AddTransactionError.SavingFailed(e.message))
         }
     }
 }

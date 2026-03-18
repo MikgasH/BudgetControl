@@ -1,22 +1,18 @@
 package com.example.budgetcontrol.core.domain.usecase
 
-import android.content.Context
-import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Expense
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 
 sealed class AddExpenseResult {
     object Success : AddExpenseResult()
 
-    data class Error(val message: String) : AddExpenseResult()
+    data class Error(val error: AddTransactionError) : AddExpenseResult()
 }
 
 class AddExpenseUseCase @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val repository: ExpenseRepository,
     private val convertCurrencyUseCase: ConvertCurrencyUseCase,
     private val categoryRepository: CategoryRepository
@@ -34,7 +30,7 @@ class AddExpenseUseCase @Inject constructor(
         return try {
             val conversionResult = convertCurrencyUseCase(amount, currency)
             if (conversionResult is ConvertCurrencyResult.Error) {
-                return AddExpenseResult.Error(conversionResult.message)
+                return AddExpenseResult.Error(AddTransactionError.ConversionFailed(conversionResult.message))
             }
             val conversion = (conversionResult as ConvertCurrencyResult.Success).conversion
 
@@ -58,7 +54,7 @@ class AddExpenseUseCase @Inject constructor(
             AddExpenseResult.Success
 
         } catch (e: Exception) {
-            AddExpenseResult.Error(context.getString(R.string.error_saving_expense, e.message ?: ""))
+            AddExpenseResult.Error(AddTransactionError.SavingFailed(e.message))
         }
     }
 
@@ -105,7 +101,7 @@ class AddExpenseUseCase @Inject constructor(
             categoryRepository.incrementUsageCount(categoryId)
             AddExpenseResult.Success
         } catch (e: Exception) {
-            AddExpenseResult.Error(context.getString(R.string.error_saving_expense, e.message ?: ""))
+            AddExpenseResult.Error(AddTransactionError.SavingFailed(e.message))
         }
     }
 }

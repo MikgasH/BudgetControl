@@ -1,5 +1,3 @@
-@file:Suppress("UNREACHABLE_CODE")
-
 package com.example.budgetcontrol.core.domain.model
 
 /**
@@ -107,7 +105,8 @@ fun Transaction.ExpenseTransaction.toExpense(): Expense {
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
         bankName = bankName,
-        bankCommission = bankCommission
+        bankCommission = bankCommission,
+        rateSource = rateSource
     )
 }
 
@@ -125,41 +124,4 @@ fun Transaction.IncomeTransaction.toIncome(): Income {
         bankCommission = bankCommission,
         rateSource = rateSource
     )
-
-    /**
-     * Создание новой транзакции противоположного типа с новым ID
-     */
-    fun Transaction.convertToOppositeType(): Transaction {
-        val newId = java.util.UUID.randomUUID().toString()
-
-        return when (this) {
-            is Transaction.ExpenseTransaction -> {
-                Transaction.IncomeTransaction(
-                    id = newId,
-                    amount = amount,
-                    categoryId = categoryId, // Будет заменена на соответствующую категорию дохода
-                    description = description,
-                    date = date,
-                    createdAt = System.currentTimeMillis()
-                )
-            }
-            is Transaction.IncomeTransaction -> {
-                Transaction.ExpenseTransaction(
-                    id = newId,
-                    amount = amount,
-                    categoryId = categoryId, // Будет заменена на соответствующую категорию расхода
-                    description = description,
-                    date = date,
-                    createdAt = System.currentTimeMillis()
-                )
-            }
-        }
-    }
-
-    /**
-     * Проверка что транзакция изменила тип
-     */
-    fun Transaction.hasTypeChanged(newType: TransactionType): Boolean {
-        return this.type != newType
-    }
 }

@@ -24,6 +24,7 @@ import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseResult
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeResult
+import com.example.budgetcontrol.core.domain.usecase.AddTransactionError
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.ValidationHelper
 import java.util.UUID
@@ -34,6 +35,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -120,25 +123,13 @@ class TransactionFormViewModel @Inject constructor(
     private var cachedRateCurrency: String? = null
 
     init {
-        loadBanks()
-        observeFavoriteCurrencies()
-    }
+        bankRepository.getFavoriteBanks()
+            .onEach { banks -> _uiState.value = _uiState.value.copy(availableBanks = banks) }
+            .launchIn(viewModelScope)
 
-    private fun loadBanks() {
-        viewModelScope.launch {
-            bankRepository.getFavoriteBanks().collect { banks ->
-                val current = _uiState.value
-                _uiState.value = current.copy(availableBanks = banks)
-            }
-        }
-    }
-
-    private fun observeFavoriteCurrencies() {
-        viewModelScope.launch {
-            preferencesManager.favoriteCurrenciesFlow.collect { favorites ->
-                _uiState.value = _uiState.value.copy(favoriteCurrencies = favorites)
-            }
-        }
+        preferencesManager.favoriteCurrenciesFlow
+            .onEach { favorites -> _uiState.value = _uiState.value.copy(favoriteCurrencies = favorites) }
+            .launchIn(viewModelScope)
     }
 
     private fun checkNetworkStatus() {
@@ -766,7 +757,7 @@ class TransactionFormViewModel @Inject constructor(
                                     is AddExpenseResult.Error -> {
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
-                                            showError = result.message
+                                            showError = mapExpenseError(result.error)
                                         )
                                     }
                                 }
@@ -878,7 +869,7 @@ class TransactionFormViewModel @Inject constructor(
                                     is AddIncomeResult.Error -> {
                                         _uiState.value = _uiState.value.copy(
                                             isLoading = false,
-                                            showError = result.message
+                                            showError = mapIncomeError(result.error)
                                         )
                                     }
                                 }
@@ -1112,6 +1103,26 @@ class TransactionFormViewModel @Inject constructor(
             showSaveRateDialog = false,
             isSuccess = true
         )
+    }
+
+    private fun mapExpenseError(error: AddTransactionError): String {
+        return when (error) {
+            is AddTransactionError.SavingFailed ->
+                context.getString(R.string.error_saving_expense, error.cause ?: "")
+            is AddTransactionError.ConversionFailed -> error.message
+            is AddTransactionError.NetworkUnavailable ->
+                context.getString(R.string.error_currency_service_unavailable)
+        }
+    }
+
+    private fun mapIncomeError(error: AddTransactionError): String {
+        return when (error) {
+            is AddTransactionError.SavingFailed ->
+                context.getString(R.string.error_saving, error.cause ?: "")
+            is AddTransactionError.ConversionFailed -> error.message
+            is AddTransactionError.NetworkUnavailable ->
+                context.getString(R.string.error_currency_service_unavailable)
+        }
     }
 
     fun clearError() {

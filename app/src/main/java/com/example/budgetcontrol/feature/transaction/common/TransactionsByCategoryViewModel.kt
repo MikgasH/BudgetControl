@@ -13,6 +13,7 @@ import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,13 +42,16 @@ class TransactionsByCategoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TransactionsByCategoryUiState())
     val uiState: StateFlow<TransactionsByCategoryUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     fun loadTransactions(
         categoryId: String,
         transactionType: TransactionType,
         startDate: Long? = null,
         endDate: Long? = null
     ) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 transactionType = transactionType,
                 isLoading = true

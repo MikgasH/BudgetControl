@@ -13,11 +13,9 @@ import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
-import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -37,12 +35,11 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideAddExpenseUseCase(
-        @ApplicationContext context: Context,
         repository: ExpenseRepository,
         convertCurrencyUseCase: ConvertCurrencyUseCase,
         categoryRepository: CategoryRepository
     ): AddExpenseUseCase {
-        return AddExpenseUseCase(context, repository, convertCurrencyUseCase, categoryRepository)
+        return AddExpenseUseCase(repository, convertCurrencyUseCase, categoryRepository)
     }
 
     @Provides
@@ -72,12 +69,11 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideAddIncomeUseCase(
-        @ApplicationContext context: Context,
         repository: IncomeRepository,
         convertCurrencyUseCase: ConvertCurrencyUseCase,
         categoryRepository: CategoryRepository
     ): AddIncomeUseCase {
-        return AddIncomeUseCase(context, repository, convertCurrencyUseCase, categoryRepository)
+        return AddIncomeUseCase(repository, convertCurrencyUseCase, categoryRepository)
     }
 
     @Provides

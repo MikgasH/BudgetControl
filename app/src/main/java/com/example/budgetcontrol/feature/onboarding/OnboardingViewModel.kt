@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -49,16 +51,10 @@ class OnboardingViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        observeLanguage()
+        preferencesManager.languageFlow
+            .onEach { tag -> _uiState.value = _uiState.value.copy(selectedLanguage = tag) }
+            .launchIn(viewModelScope)
         loadCurrencies()
-    }
-
-    private fun observeLanguage() {
-        viewModelScope.launch {
-            preferencesManager.languageFlow.collect { tag ->
-                _uiState.value = _uiState.value.copy(selectedLanguage = tag)
-            }
-        }
     }
 
     fun setLanguage(tag: String) {
