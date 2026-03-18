@@ -52,7 +52,6 @@ import com.example.budgetcontrol.ui.util.getCategoryIcon
 import com.example.budgetcontrol.core.util.DateRangeHelper
 
 @Composable
-@Suppress("unused")
 fun MainScreen(
     onAddExpenseClick: (Long) -> Unit,
     onAddIncomeClick: (Long) -> Unit,
@@ -64,6 +63,7 @@ fun MainScreen(
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val balance by viewModel.balance.collectAsState()
     val currentContext = LocalContext.current
     val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
         context = currentContext,
@@ -120,7 +120,7 @@ fun MainScreen(
                     }
 
                     Text(
-                        text = viewModel.formatBalance(viewModel.calculateBalance()),
+                        text = viewModel.formatBalance(balance),
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold

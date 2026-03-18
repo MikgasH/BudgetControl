@@ -10,6 +10,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY usageCount DESC, name ASC")
     fun getAllCategories(): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM categories WHERE type = :type ORDER BY usageCount DESC, name ASC")
+    fun getCategoriesByType(type: String): Flow<List<CategoryEntity>>
+
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getCategoryById(id: String): CategoryEntity?
 

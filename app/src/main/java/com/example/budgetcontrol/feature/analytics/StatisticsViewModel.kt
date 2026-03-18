@@ -60,27 +60,37 @@ class StatisticsViewModel @Inject constructor(
     private fun loadData() {
         loadDataJob?.cancel()
         loadDataJob = viewModelScope.launch {
+            val currentState = _uiState.value
+            val startTime = getStartTimeForPeriod(currentState.selectedPeriod)
+
+            val expensesFlow = if (startTime != null) {
+                getExpensesUseCase.getByDateRange(startTime, Long.MAX_VALUE)
+            } else {
+                getExpensesUseCase()
+            }
+            val incomesFlow = if (startTime != null) {
+                getIncomesUseCase.getByDateRange(startTime, Long.MAX_VALUE)
+            } else {
+                getIncomesUseCase()
+            }
+
             combine(
-                getExpensesUseCase(),
-                getIncomesUseCase(),
+                expensesFlow,
+                incomesFlow,
                 getCategoriesUseCase()
             ) { expenses, incomes, categories ->
-                val currentState = _uiState.value
-
                 val (stats, total) = when (currentState.selectedTab) {
                     StatisticsTab.EXPENSES -> {
-                        val filtered = filterByPeriod(expenses, currentState.selectedPeriod) { it.date }
-                        val totalAmount = filtered.sumOf { it.amount }
+                        val totalAmount = expenses.sumOf { it.amount }
                         val categoryStats = calculateCategoryStatistics(
-                            filtered, { it.amount }, { it.categoryId }, categories
+                            expenses, { it.amount }, { it.categoryId }, categories
                         )
                         categoryStats to totalAmount
                     }
                     StatisticsTab.INCOMES -> {
-                        val filtered = filterByPeriod(incomes, currentState.selectedPeriod) { it.date }
-                        val totalAmount = filtered.sumOf { it.amount }
+                        val totalAmount = incomes.sumOf { it.amount }
                         val categoryStats = calculateCategoryStatistics(
-                            filtered, { it.amount }, { it.categoryId }, categories
+                            incomes, { it.amount }, { it.categoryId }, categories
                         )
                         categoryStats to totalAmount
                     }
@@ -100,11 +110,6 @@ class StatisticsViewModel @Inject constructor(
                 _uiState.value = state
             }
         }
-    }
-
-    private fun <T> filterByPeriod(items: List<T>, period: TimePeriod, getDate: (T) -> Long): List<T> {
-        val startTime = getStartTimeForPeriod(period) ?: return items
-        return items.filter { getDate(it) >= startTime }
     }
 
     private fun getStartTimeForPeriod(period: TimePeriod): Long? {

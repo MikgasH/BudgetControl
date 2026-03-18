@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -60,19 +61,13 @@ class SettingsViewModel @Inject constructor(
     val favoriteCurrencies: StateFlow<Set<String>> = preferencesManager.favoriteCurrenciesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PreferencesManager.DEFAULT_FAVORITE_CURRENCIES)
 
-    private val totalExpenses: StateFlow<Double> = getExpensesUseCase().stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
-    ).let { expensesFlow ->
-        combine(expensesFlow) { _ -> expensesFlow.value.sumOf { it.amount } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-    }
+    private val totalExpenses: StateFlow<Double> = getExpensesUseCase()
+        .map { expenses -> expenses.sumOf { it.amount } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    private val totalIncomes: StateFlow<Double> = getIncomesUseCase().stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
-    ).let { incomesFlow ->
-        combine(incomesFlow) { _ -> incomesFlow.value.sumOf { it.amount } }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-    }
+    private val totalIncomes: StateFlow<Double> = getIncomesUseCase()
+        .map { incomes -> incomes.sumOf { it.amount } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val totalBalance: StateFlow<Double> = combine(
         preferencesManager.initialBalanceFlow,

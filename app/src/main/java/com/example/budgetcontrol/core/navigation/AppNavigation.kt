@@ -81,7 +81,6 @@ val slideOutToBottom = slideOutVertically(
 val fadeIn = fadeIn(animationSpec = tween(ANIMATION_DURATION))
 val fadeOut = fadeOut(animationSpec = tween(ANIMATION_DURATION))
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavigation(
     onboardingCompleted: Boolean = true,

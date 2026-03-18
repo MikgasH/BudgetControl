@@ -22,9 +22,7 @@ class CategoryRepositoryImpl @Inject constructor(
     }
 
     override fun getCategoriesByType(type: CategoryType): Flow<List<Category>> {
-        return getAllCategories().map { categories ->
-            categories.filter { it.type == type }
-        }
+        return categoryDao.getCategoriesByType(type.name).map { it.toDomain() }
     }
 
     override suspend fun getCategoryById(id: String): Category? {

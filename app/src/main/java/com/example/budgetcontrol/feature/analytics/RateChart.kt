@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.core.os.ConfigurationCompat
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -124,7 +125,7 @@ internal fun RateChart(
         Point(index.toFloat(), ratePoint.rate.toFloat())
     }
 
-    val appLocale = LocalConfiguration.current.locales[0]
+    val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
     val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
     val inputFormatAlt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     val outputFormat = SimpleDateFormat("d MMM", appLocale)

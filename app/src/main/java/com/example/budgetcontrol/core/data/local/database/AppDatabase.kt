@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -184,6 +184,12 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_currency_exchanges_date` ON `currency_exchanges` (`date`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_currency_exchanges_fromCurrency_toCurrency` ON `currency_exchanges` (`fromCurrency`, `toCurrency`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_banks_isFavorite` ON `banks` (`isFavorite`)")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_categories_type` ON `categories` (`type`)")
             }
         }
 

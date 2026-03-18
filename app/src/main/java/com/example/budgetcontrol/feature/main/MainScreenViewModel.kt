@@ -22,21 +22,20 @@ import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
 import com.example.budgetcontrol.R
-import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
 data class MainScreenUiState(
-    val expenses: List<Expense> = emptyList(),
-    val incomes: List<Income> = emptyList(),
     val transactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
@@ -45,11 +44,9 @@ data class MainScreenUiState(
     val selectedPeriodType: PeriodType = PeriodType.DAY,
     val selectedOperationType: OperationType = OperationType.EXPENSES,
     val currentPeriodIndex: Int = 0,
-    val periodDisplayText: String = "",
     val customStartDate: Long? = null,
     val customEndDate: Long? = null,
-    val isAllTimePeriod: Boolean = false,
-    val initialBalance: Double = 0.0
+    val isAllTimePeriod: Boolean = false
 )
 
 enum class PeriodType(@StringRes val displayNameRes: Int) {
@@ -62,7 +59,6 @@ enum class PeriodType(@StringRes val displayNameRes: Int) {
 
 @HiltViewModel
 class MainScreenViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getIncomesUseCase: GetIncomesUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
@@ -74,6 +70,14 @@ class MainScreenViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MainScreenUiState())
     val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
 
+    val balance: StateFlow<Double> = combine(
+        getExpensesUseCase(),
+        getIncomesUseCase(),
+        preferencesManager.initialBalanceFlow
+    ) { expenses, incomes, initialBalance ->
+        initialBalance + incomes.sumOf { it.amount } - expenses.sumOf { it.amount }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     private var loadDataJob: Job? = null
 
     init {
@@ -83,53 +87,63 @@ class MainScreenViewModel @Inject constructor(
     private fun loadData() {
         loadDataJob?.cancel()
         loadDataJob = viewModelScope.launch {
+            val currentState = _uiState.value
+
+            val dateRange = if (!currentState.isAllTimePeriod) {
+                DateRangeHelper.getDateRange(
+                    periodType = currentState.selectedPeriodType,
+                    periodOffset = currentState.currentPeriodIndex,
+                    customStartDate = currentState.customStartDate,
+                    customEndDate = currentState.customEndDate
+                )
+            } else null
+
+            val expensesFlow = if (dateRange != null) {
+                getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
+            } else {
+                getExpensesUseCase()
+            }
+            val incomesFlow = if (dateRange != null) {
+                getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
+            } else {
+                getIncomesUseCase()
+            }
+
             combine(
-                getExpensesUseCase(),
-                getIncomesUseCase(),
-                getCategoriesUseCase(),
-                preferencesManager.initialBalanceFlow
-            ) { expenses, incomes, categories, initialBalance ->
-                val currentState = _uiState.value
-
-                val filteredExpenses = filterByCurrentPeriod(expenses) { it.date }
-                val filteredIncomes = filterByCurrentPeriod(incomes) { it.date }
-
+                expensesFlow,
+                incomesFlow,
+                getCategoriesUseCase()
+            ) { expenses, incomes, categories ->
                 val currentTransactions = when (currentState.selectedOperationType) {
-                    OperationType.EXPENSES -> filteredExpenses.map { it.toTransaction() }
-                    OperationType.INCOMES -> filteredIncomes.map { it.toTransaction() }
+                    OperationType.EXPENSES -> expenses.map { it.toTransaction() }
+                    OperationType.INCOMES -> incomes.map { it.toTransaction() }
                 }.sortedByDescending { it.date }
 
                 val (totalAmount, categoryStats) = when (currentState.selectedOperationType) {
                     OperationType.EXPENSES -> {
-                        val total = filteredExpenses.sumOf { it.amount }
+                        val total = expenses.sumOf { it.amount }
                         val stats = calculateCategoryStatistics(
-                            filteredExpenses, { it.amount }, { it.categoryId },
+                            expenses, { it.amount }, { it.categoryId },
                             categories.filter { it.type == CategoryType.EXPENSE }
                         )
                         Pair(total, stats)
                     }
                     OperationType.INCOMES -> {
-                        val total = filteredIncomes.sumOf { it.amount }
+                        val total = incomes.sumOf { it.amount }
                         val stats = calculateCategoryStatistics(
-                            filteredIncomes, { it.amount }, { it.categoryId },
+                            incomes, { it.amount }, { it.categoryId },
                             categories.filter { it.type == CategoryType.INCOME }
                         )
                         Pair(total, stats)
                     }
                 }
 
-                val periodText = getPeriodDisplayText()
-
                 currentState.copy(
-                    expenses = expenses,
-                    incomes = incomes,
                     transactions = currentTransactions,
                     categories = categories,
                     categoryStatistics = categoryStats,
                     totalAmount = totalAmount,
-                    isLoading = false,
-                    periodDisplayText = periodText,
-                    initialBalance = initialBalance
+                    isLoading = false
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -188,32 +202,6 @@ class MainScreenViewModel @Inject constructor(
         loadData()
     }
 
-    private fun <T> filterByCurrentPeriod(items: List<T>, getDate: (T) -> Long): List<T> {
-        val currentState = _uiState.value
-        if (currentState.isAllTimePeriod) return items
-
-        val (startDate, endDate) = DateRangeHelper.getDateRange(
-            periodType = currentState.selectedPeriodType,
-            periodOffset = currentState.currentPeriodIndex,
-            customStartDate = currentState.customStartDate,
-            customEndDate = currentState.customEndDate
-        )
-
-        return items.filter { getDate(it) in startDate..endDate }
-    }
-
-    private fun getPeriodDisplayText(): String {
-        val currentState = _uiState.value
-        return DateRangeHelper.getPeriodDisplayText(
-            context = context,
-            periodType = currentState.selectedPeriodType,
-            periodOffset = currentState.currentPeriodIndex,
-            customStartDate = currentState.customStartDate,
-            customEndDate = currentState.customEndDate,
-            isAllTimePeriod = currentState.isAllTimePeriod
-        )
-    }
-
     fun getCategoryById(categoryId: String): Category? {
         return _uiState.value.categories.findById(categoryId)
     }
@@ -260,13 +248,6 @@ class MainScreenViewModel @Inject constructor(
             customStartDate = currentState.customStartDate,
             customEndDate = currentState.customEndDate
         )
-    }
-
-    fun calculateBalance(): Double {
-        val state = _uiState.value
-        val totalIncomes = state.incomes.sumOf { it.amount }
-        val totalExpenses = state.expenses.sumOf { it.amount }
-        return state.initialBalance + totalIncomes - totalExpenses
     }
 
     fun formatBalance(amount: Double): String {

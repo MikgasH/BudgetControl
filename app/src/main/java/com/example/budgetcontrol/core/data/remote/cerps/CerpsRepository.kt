@@ -41,8 +41,8 @@ class CerpsRepository @Inject constructor(
 
         return try {
             val response = apiService.getCurrencies()
-            if (response.isSuccessful && response.body() != null) {
-                val currencies = response.body()!!
+            val currencies = response.body()
+            if (response.isSuccessful && currencies != null) {
                 cachedCurrencies = currencies
                 preferencesManager.saveAvailableCurrencies(currencies)
                 CerpsResult.Success(currencies)
@@ -64,15 +64,16 @@ class CerpsRepository @Inject constructor(
 
     suspend fun ensureRatesLoaded(): CerpsResult<Map<String, Double>> {
         // After first successful API fetch this session, serve from memory
-        if (ratesLoadedThisSession && cachedRates != null) {
-            return CerpsResult.Success(cachedRates!!)
+        val rates = cachedRates
+        if (ratesLoadedThisSession && rates != null) {
+            return CerpsResult.Success(rates)
         }
 
         // Always try API on first call after app launch
         return try {
             val response = apiService.getCurrentRates()
-            if (response.isSuccessful && response.body() != null) {
-                val ratesResponse = response.body()!!
+            val ratesResponse = response.body()
+            if (response.isSuccessful && ratesResponse != null) {
                 cachedRates = ratesResponse.rates
                 cachedRatesTimestamp = System.currentTimeMillis()
                 ratesLoadedThisSession = true
@@ -123,9 +124,8 @@ class CerpsRepository @Inject constructor(
         return try {
             val request = ConversionRequest(amount = amount, from = from, to = to)
             val response = apiService.convert(request)
-
-            if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
                 if (body.success) {
                     val rateKey = "${from}_${to}"
                     val reverseKey = "${to}_${from}"
@@ -153,8 +153,9 @@ class CerpsRepository @Inject constructor(
     ): CerpsResult<TrendsResponse> {
         return try {
             val response = analyticsApiService.getTrends(from, to, period)
-            if (response.isSuccessful && response.body() != null) {
-                CerpsResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                CerpsResult.Success(body)
             } else {
                 CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }
