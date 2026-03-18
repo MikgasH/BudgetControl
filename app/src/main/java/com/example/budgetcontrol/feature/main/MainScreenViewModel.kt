@@ -257,4 +257,19 @@ class MainScreenViewModel @Inject constructor(
             customEndDate = currentState.customEndDate
         )
     }
+
+    fun calculateBalance(): Double {
+        val state = _uiState.value
+        val totalIncomes = state.incomes.sumOf { it.amount }
+        val totalExpenses = state.expenses.sumOf { it.amount }
+        return state.initialBalance + totalIncomes - totalExpenses
+    }
+
+    fun formatBalance(amount: Double): String {
+        return if (amount == amount.toLong().toDouble()) {
+            "${amount.toLong()} €"
+        } else {
+            "${String.format(Locale.US, "%.2f", amount)} €"
+        }
+    }
 }

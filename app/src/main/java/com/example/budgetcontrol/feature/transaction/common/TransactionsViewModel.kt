@@ -649,258 +649,14 @@ class TransactionFormViewModel @Inject constructor(
                     TransactionFormMode.ADD -> {
                         val isCashMode = currentState.paymentMethod == "CASH" &&
                                 currentState.selectedCurrency != "EUR"
-
                         when (currentState.transactionType) {
-                            TransactionType.EXPENSE -> {
-                                val result = if (isCashMode &&
-                                    currentState.isExactAmountEnabled &&
-                                    currentState.exactEurAmount.isNotBlank()
-                                ) {
-                                    // Cash mode with manual EUR amount
-                                    val exactEurCash = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
-                                    if (exactEurCash == null || exactEurCash <= 0) {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = context.getString(R.string.error_enter_valid_eur)
-                                        )
-                                        return@launch
-                                    }
-                                    addExpenseUseCase.addWithExactEurAmount(
-                                        originalAmount = amountDouble,
-                                        originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = exactEurCash,
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = null,
-                                        bankCommission = null,
-                                        rateSource = "CASH_EXCHANGE"
-                                    )
-                                } else if (isCashMode) {
-                                    // Cash mode: use the cash rate directly
-                                    val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
-                                        ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
-                                    if (cashRateValue == null || cashRateValue <= 0) {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = context.getString(R.string.error_enter_valid_eur)
-                                        )
-                                        return@launch
-                                    }
-                                    val eurAmount = amountDouble / cashRateValue
-                                    addExpenseUseCase.addWithExactEurAmount(
-                                        originalAmount = amountDouble,
-                                        originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = null,
-                                        bankCommission = null,
-                                        rateSource = "CASH_EXCHANGE"
-                                    )
-                                } else if (
-                                    currentState.isExactAmountEnabled &&
-                                    currentState.exactEurAmount.isNotBlank() &&
-                                    currentState.selectedCurrency != "EUR"
-                                ) {
-                                    val exactEur = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
-                                    if (exactEur == null || exactEur <= 0) {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = context.getString(R.string.error_enter_valid_eur)
-                                        )
-                                        return@launch
-                                    }
-                                    addExpenseUseCase.addWithExactEurAmount(
-                                        originalAmount = amountDouble,
-                                        originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = exactEur,
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = currentState.selectedBank?.name,
-                                        bankCommission = currentState.selectedBank?.commissionPercent
-                                    )
-                                } else {
-                                    addExpenseUseCase(
-                                        amount = amountDouble,
-                                        currency = currentState.selectedCurrency,
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = currentState.selectedBank?.name,
-                                        bankCommission = currentState.selectedBank?.commissionPercent
-                                    )
-                                }
-
-                                when (result) {
-                                    is AddExpenseResult.Success -> {
-                                        if (isCashMode && !currentState.isExactAmountEnabled) {
-                                            val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
-                                                ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
-                                            if (cashRateValue != null && cashRateValue > 0) {
-                                                _uiState.value = _uiState.value.copy(
-                                                    isLoading = false,
-                                                    showSaveRateDialog = true,
-                                                    pendingSaveCurrency = currentState.selectedCurrency,
-                                                    pendingSaveRate = cashRateValue
-                                                )
-                                                return@launch
-                                            }
-                                        }
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            isSuccess = true
-                                        )
-                                    }
-                                    is AddExpenseResult.Error -> {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = mapExpenseError(result.error)
-                                        )
-                                    }
-                                }
-                                return@launch
-                            }
-                            TransactionType.INCOME -> {
-                                val result = if (isCashMode &&
-                                    currentState.isExactAmountEnabled &&
-                                    currentState.exactEurAmount.isNotBlank()
-                                ) {
-                                    // Cash mode with manual EUR amount
-                                    val exactEurCash = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
-                                    if (exactEurCash == null || exactEurCash <= 0) {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = context.getString(R.string.error_enter_valid_eur)
-                                        )
-                                        return@launch
-                                    }
-                                    addIncomeUseCase.addWithExactEurAmount(
-                                        originalAmount = amountDouble,
-                                        originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = exactEurCash,
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = null,
-                                        bankCommission = null,
-                                        rateSource = "CASH_EXCHANGE"
-                                    )
-                                } else if (isCashMode) {
-                                    // Cash mode: use the cash rate directly
-                                    val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
-                                        ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
-                                    if (cashRateValue == null || cashRateValue <= 0) {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = context.getString(R.string.error_enter_valid_eur)
-                                        )
-                                        return@launch
-                                    }
-                                    val eurAmount = amountDouble / cashRateValue
-                                    addIncomeUseCase.addWithExactEurAmount(
-                                        originalAmount = amountDouble,
-                                        originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = null,
-                                        bankCommission = null,
-                                        rateSource = "CASH_EXCHANGE"
-                                    )
-                                } else if (
-                                    currentState.isExactAmountEnabled &&
-                                    currentState.exactEurAmount.isNotBlank() &&
-                                    currentState.selectedCurrency != "EUR"
-                                ) {
-                                    val exactEur = currentState.exactEurAmount.replace(',', '.').toDoubleOrNull()
-                                    if (exactEur == null || exactEur <= 0) {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = context.getString(R.string.error_enter_valid_eur)
-                                        )
-                                        return@launch
-                                    }
-                                    addIncomeUseCase.addWithExactEurAmount(
-                                        originalAmount = amountDouble,
-                                        originalCurrency = currentState.selectedCurrency,
-                                        exactEurAmount = exactEur,
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = currentState.selectedBank?.name,
-                                        bankCommission = currentState.selectedBank?.commissionPercent
-                                    )
-                                } else {
-                                    addIncomeUseCase(
-                                        amount = amountDouble,
-                                        currency = currentState.selectedCurrency,
-                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                        description = currentState.description.ifBlank { null },
-                                        date = currentState.selectedDate,
-                                        bankName = currentState.selectedBank?.name,
-                                        bankCommission = currentState.selectedBank?.commissionPercent
-                                    )
-                                }
-
-                                when (result) {
-                                    is AddIncomeResult.Success -> {
-                                        if (isCashMode && !currentState.isExactAmountEnabled) {
-                                            val cashRateValue = currentState.cashRate.replace(',', '.').toDoubleOrNull()
-                                                ?: currentState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
-                                            if (cashRateValue != null && cashRateValue > 0) {
-                                                _uiState.value = _uiState.value.copy(
-                                                    isLoading = false,
-                                                    showSaveRateDialog = true,
-                                                    pendingSaveCurrency = currentState.selectedCurrency,
-                                                    pendingSaveRate = cashRateValue
-                                                )
-                                                return@launch
-                                            }
-                                        }
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            isSuccess = true
-                                        )
-                                    }
-                                    is AddIncomeResult.Error -> {
-                                        _uiState.value = _uiState.value.copy(
-                                            isLoading = false,
-                                            showError = mapIncomeError(result.error)
-                                        )
-                                    }
-                                }
-                                return@launch
-                            }
+                            TransactionType.EXPENSE -> saveNewExpense(currentState, amountDouble, isCashMode)
+                            TransactionType.INCOME -> saveNewIncome(currentState, amountDouble, isCashMode)
                         }
+                        return@launch
                     }
                     TransactionFormMode.EDIT -> {
-                        val originalTransaction = currentState.originalTransaction!!
-
-                        if (currentState.transactionType == originalTransaction.type) {
-                            updateExistingTransaction(
-                                originalTransaction = originalTransaction,
-                                amount = amountDouble,
-                                categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                description = currentState.description.ifBlank { null },
-                                date = currentState.selectedDate,
-                                selectedCurrency = currentState.selectedCurrency,
-                                bankName = currentState.selectedBank?.name,
-                                bankCommission = currentState.selectedBank?.commissionPercent
-                            )
-                        } else {
-                            replaceTransactionWithNewType(
-                                originalTransaction = originalTransaction,
-                                newType = currentState.transactionType,
-                                amount = amountDouble,
-                                categoryId = currentState.selectedCategory?.id ?: return@launch,
-                                description = currentState.description.ifBlank { null },
-                                date = currentState.selectedDate
-                            )
-                        }
+                        handleEditMode(currentState, amountDouble)
                     }
                 }
 
@@ -914,6 +670,278 @@ class TransactionFormViewModel @Inject constructor(
                     showError = context.getString(R.string.error_saving, e.message ?: "")
                 )
             }
+        }
+    }
+
+    /**
+     * Handles saving a new expense in ADD mode.
+     * Covers cash+exact, cash+rate, card+exact, and regular paths.
+     */
+    private suspend fun saveNewExpense(
+        state: TransactionFormUiState,
+        amountDouble: Double,
+        isCashMode: Boolean
+    ) {
+        val result = if (isCashMode &&
+            state.isExactAmountEnabled &&
+            state.exactEurAmount.isNotBlank()
+        ) {
+            // Cash mode with manual EUR amount
+            val exactEurCash = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactEurCash == null || exactEurCash <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = context.getString(R.string.error_enter_valid_eur)
+                )
+                return
+            }
+            addExpenseUseCase.addWithExactEurAmount(
+                originalAmount = amountDouble,
+                originalCurrency = state.selectedCurrency,
+                exactEurAmount = exactEurCash,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = null,
+                bankCommission = null,
+                rateSource = "CASH_EXCHANGE"
+            )
+        } else if (isCashMode) {
+            // Cash mode: use the cash rate directly
+            val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
+                ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+            if (cashRateValue == null || cashRateValue <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = context.getString(R.string.error_enter_valid_eur)
+                )
+                return
+            }
+            val eurAmount = amountDouble / cashRateValue
+            addExpenseUseCase.addWithExactEurAmount(
+                originalAmount = amountDouble,
+                originalCurrency = state.selectedCurrency,
+                exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = null,
+                bankCommission = null,
+                rateSource = "CASH_EXCHANGE"
+            )
+        } else if (
+            state.isExactAmountEnabled &&
+            state.exactEurAmount.isNotBlank() &&
+            state.selectedCurrency != "EUR"
+        ) {
+            val exactEur = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactEur == null || exactEur <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = context.getString(R.string.error_enter_valid_eur)
+                )
+                return
+            }
+            addExpenseUseCase.addWithExactEurAmount(
+                originalAmount = amountDouble,
+                originalCurrency = state.selectedCurrency,
+                exactEurAmount = exactEur,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = state.selectedBank?.name,
+                bankCommission = state.selectedBank?.commissionPercent
+            )
+        } else {
+            addExpenseUseCase(
+                amount = amountDouble,
+                currency = state.selectedCurrency,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = state.selectedBank?.name,
+                bankCommission = state.selectedBank?.commissionPercent
+            )
+        }
+
+        when (result) {
+            is AddExpenseResult.Success -> {
+                if (isCashMode && !state.isExactAmountEnabled) {
+                    val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
+                        ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+                    if (cashRateValue != null && cashRateValue > 0) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showSaveRateDialog = true,
+                            pendingSaveCurrency = state.selectedCurrency,
+                            pendingSaveRate = cashRateValue
+                        )
+                        return
+                    }
+                }
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isSuccess = true
+                )
+            }
+            is AddExpenseResult.Error -> {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = mapExpenseError(result.error)
+                )
+            }
+        }
+    }
+
+    /**
+     * Handles saving a new income in ADD mode.
+     * Covers cash+exact, cash+rate, card+exact, and regular paths.
+     */
+    private suspend fun saveNewIncome(
+        state: TransactionFormUiState,
+        amountDouble: Double,
+        isCashMode: Boolean
+    ) {
+        val result = if (isCashMode &&
+            state.isExactAmountEnabled &&
+            state.exactEurAmount.isNotBlank()
+        ) {
+            // Cash mode with manual EUR amount
+            val exactEurCash = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactEurCash == null || exactEurCash <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = context.getString(R.string.error_enter_valid_eur)
+                )
+                return
+            }
+            addIncomeUseCase.addWithExactEurAmount(
+                originalAmount = amountDouble,
+                originalCurrency = state.selectedCurrency,
+                exactEurAmount = exactEurCash,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = null,
+                bankCommission = null,
+                rateSource = "CASH_EXCHANGE"
+            )
+        } else if (isCashMode) {
+            // Cash mode: use the cash rate directly
+            val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
+                ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+            if (cashRateValue == null || cashRateValue <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = context.getString(R.string.error_enter_valid_eur)
+                )
+                return
+            }
+            val eurAmount = amountDouble / cashRateValue
+            addIncomeUseCase.addWithExactEurAmount(
+                originalAmount = amountDouble,
+                originalCurrency = state.selectedCurrency,
+                exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = null,
+                bankCommission = null,
+                rateSource = "CASH_EXCHANGE"
+            )
+        } else if (
+            state.isExactAmountEnabled &&
+            state.exactEurAmount.isNotBlank() &&
+            state.selectedCurrency != "EUR"
+        ) {
+            val exactEur = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactEur == null || exactEur <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = context.getString(R.string.error_enter_valid_eur)
+                )
+                return
+            }
+            addIncomeUseCase.addWithExactEurAmount(
+                originalAmount = amountDouble,
+                originalCurrency = state.selectedCurrency,
+                exactEurAmount = exactEur,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = state.selectedBank?.name,
+                bankCommission = state.selectedBank?.commissionPercent
+            )
+        } else {
+            addIncomeUseCase(
+                amount = amountDouble,
+                currency = state.selectedCurrency,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                bankName = state.selectedBank?.name,
+                bankCommission = state.selectedBank?.commissionPercent
+            )
+        }
+
+        when (result) {
+            is AddIncomeResult.Success -> {
+                if (isCashMode && !state.isExactAmountEnabled) {
+                    val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
+                        ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+                    if (cashRateValue != null && cashRateValue > 0) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showSaveRateDialog = true,
+                            pendingSaveCurrency = state.selectedCurrency,
+                            pendingSaveRate = cashRateValue
+                        )
+                        return
+                    }
+                }
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isSuccess = true
+                )
+            }
+            is AddIncomeResult.Error -> {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showError = mapIncomeError(result.error)
+                )
+            }
+        }
+    }
+
+    /**
+     * Handles updating or replacing a transaction in EDIT mode.
+     */
+    private suspend fun handleEditMode(
+        state: TransactionFormUiState,
+        amountDouble: Double
+    ) {
+        val originalTransaction = state.originalTransaction!!
+
+        if (state.transactionType == originalTransaction.type) {
+            updateExistingTransaction(
+                originalTransaction = originalTransaction,
+                amount = amountDouble,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate,
+                selectedCurrency = state.selectedCurrency,
+                bankName = state.selectedBank?.name,
+                bankCommission = state.selectedBank?.commissionPercent
+            )
+        } else {
+            replaceTransactionWithNewType(
+                originalTransaction = originalTransaction,
+                newType = state.transactionType,
+                amount = amountDouble,
+                categoryId = state.selectedCategory?.id ?: return,
+                description = state.description.ifBlank { null },
+                date = state.selectedDate
+            )
         }
     }
 

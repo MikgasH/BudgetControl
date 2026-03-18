@@ -26,59 +26,69 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+data class TransactionFormState(
+    val amount: String,
+    val description: String,
+    val selectedCategory: Category?,
+    val selectedBank: BankEntity?,
+    val selectedCurrency: String,
+    val date: Long,
+    val transactionType: TransactionType,
+    val paymentMethod: String,
+    val cashRate: String,
+    val exactEurAmount: String,
+    val isExactMode: Boolean
+)
+
+data class TransactionFormCallbacks(
+    val onAmountChange: (String) -> Unit,
+    val onDescriptionChange: (String) -> Unit,
+    val onCategorySelect: (Category) -> Unit,
+    val onBankSelect: (BankEntity) -> Unit,
+    val onCurrencySelect: (String) -> Unit,
+    val onDateChange: (Long) -> Unit,
+    val onSave: (Long) -> Unit,
+    val onPaymentMethodChange: (String) -> Unit,
+    val onCashRateChange: (String) -> Unit,
+    val onExactEurAmountChange: (String) -> Unit,
+    val onExactModeToggle: (Boolean) -> Unit
+)
+
+data class TransactionCategoryActions(
+    val onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType) -> Unit)? = null,
+    val onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
+    val onUpdateCategory: (Category) -> Unit = {},
+    val onDeleteCategory: (Category) -> Unit = {}
+)
+
 @Composable
 fun AddTransactionContent(
     title: String,
-    transactionType: TransactionType,
-    amount: String,
-    onAmountChange: (String) -> Unit,
+    formState: TransactionFormState,
+    formCallbacks: TransactionFormCallbacks,
     categories: List<Category>,
-    selectedCategory: Category?,
-    onCategorySelect: (Category) -> Unit,
-    description: String,
-    onDescriptionChange: (String) -> Unit,
-    selectedDate: Long,
-    onDateChange: (Long) -> Unit,
     isLoading: Boolean,
     errorMessage: String?,
-    onAddClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     availableCurrencies: List<String> = listOf("EUR"),
-    selectedCurrency: String = "EUR",
-    onCurrencySelect: (String) -> Unit = {},
     isCurrenciesLoading: Boolean = false,
     currenciesError: String? = null,
     favoriteCurrencies: Set<String> = emptySet(),
     availableBanks: List<BankEntity> = emptyList(),
-    selectedBank: BankEntity? = null,
-    onBankSelect: (BankEntity) -> Unit = {},
     convertedAmountPreview: String = "",
-    exactEurAmount: String = "",
-    onExactEurAmountChange: (String) -> Unit = {},
-    isExactAmountEnabled: Boolean = false,
-    onExactAmountToggle: (Boolean) -> Unit = {},
-    onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType) -> Unit)? = null,
-    onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
-    onUpdateCategory: (Category) -> Unit = {},
-    onDeleteCategory: (Category) -> Unit = {},
-    // Cash mode
-    paymentMethod: String = "CARD",
-    onPaymentMethodSelect: (String) -> Unit = {},
-    cashRate: String = "",
-    onCashRateChange: (String) -> Unit = {},
+    categoryActions: TransactionCategoryActions = TransactionCategoryActions(),
     cashRatePlaceholder: String = "",
     cashRateHint: String = "",
     lastCashExchange: CurrencyExchange? = null,
-    // Network status
     networkStatus: NetworkStatus = NetworkStatus.ONLINE
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
     if (showDatePicker) {
         DatePickerDialog(
-            selectedDate = selectedDate,
+            selectedDate = formState.date,
             onDateSelected = { date ->
-                onDateChange(date)
+                formCallbacks.onDateChange(date)
                 showDatePicker = false
             },
             onDismiss = { showDatePicker = false }
@@ -93,45 +103,45 @@ fun AddTransactionContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         AmountInputCard(
-            amount = amount,
-            onAmountChange = onAmountChange,
-            transactionType = transactionType,
-            currency = selectedCurrency
+            amount = formState.amount,
+            onAmountChange = formCallbacks.onAmountChange,
+            transactionType = formState.transactionType,
+            currency = formState.selectedCurrency
         )
 
         CurrencySelector(
             currencies = availableCurrencies,
-            selectedCurrency = selectedCurrency,
-            onCurrencySelect = onCurrencySelect,
+            selectedCurrency = formState.selectedCurrency,
+            onCurrencySelect = formCallbacks.onCurrencySelect,
             favoriteCurrencies = favoriteCurrencies,
             isLoading = isCurrenciesLoading,
             error = currenciesError
         )
 
         // Network status banner (only when currency != EUR)
-        if (selectedCurrency != "EUR" && networkStatus != NetworkStatus.ONLINE) {
+        if (formState.selectedCurrency != "EUR" && networkStatus != NetworkStatus.ONLINE) {
             NetworkStatusBanner(networkStatus = networkStatus)
         }
 
-        if (selectedCurrency != "EUR") {
+        if (formState.selectedCurrency != "EUR") {
             // Payment method toggle: Card / Cash
             PaymentMethodSelector(
-                selectedMethod = paymentMethod,
-                onMethodSelect = onPaymentMethodSelect
+                selectedMethod = formState.paymentMethod,
+                onMethodSelect = formCallbacks.onPaymentMethodChange
             )
 
-            if (paymentMethod == "CARD") {
+            if (formState.paymentMethod == "CARD") {
                 // Card mode: existing bank selector + conversion preview
                 BankSelector(
                     banks = availableBanks,
-                    selectedBank = selectedBank,
-                    onBankSelect = onBankSelect
+                    selectedBank = formState.selectedBank,
+                    onBankSelect = formCallbacks.onBankSelect
                 )
 
                 // Conversion preview — hidden when user has entered exact EUR amount
-                if (isExactAmountEnabled && exactEurAmount.isNotBlank()) {
+                if (formState.isExactMode && formState.exactEurAmount.isNotBlank()) {
                     Text(
-                        text = "✓ " + stringResource(R.string.will_be_saved, exactEurAmount),
+                        text = "✓ " + stringResource(R.string.will_be_saved, formState.exactEurAmount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.padding(horizontal = 4.dp)
@@ -146,8 +156,8 @@ fun AddTransactionContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
-                        checked = isExactAmountEnabled,
-                        onCheckedChange = onExactAmountToggle,
+                        checked = formState.isExactMode,
+                        onCheckedChange = formCallbacks.onExactModeToggle,
                         colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                     )
                     Text(
@@ -157,10 +167,10 @@ fun AddTransactionContent(
                 }
 
                 // Exact EUR amount field — shown only when toggle is checked
-                if (isExactAmountEnabled) {
+                if (formState.isExactMode) {
                     OutlinedTextField(
-                        value = exactEurAmount,
-                        onValueChange = onExactEurAmountChange,
+                        value = formState.exactEurAmount,
+                        onValueChange = formCallbacks.onExactEurAmountChange,
                         label = { Text(stringResource(R.string.exact_eur_amount)) },
                         placeholder = { Text(stringResource(R.string.exact_eur_example)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -177,12 +187,12 @@ fun AddTransactionContent(
             } else {
                 // Cash mode: exchange rate input
                 CashRateSection(
-                    cashRate = cashRate,
-                    onCashRateChange = onCashRateChange,
+                    cashRate = formState.cashRate,
+                    onCashRateChange = formCallbacks.onCashRateChange,
                     cashRatePlaceholder = cashRatePlaceholder,
                     cashRateHint = cashRateHint,
                     lastCashExchange = lastCashExchange,
-                    selectedCurrency = selectedCurrency
+                    selectedCurrency = formState.selectedCurrency
                 )
 
                 // Toggle: Specify amount manually (same as card mode)
@@ -191,8 +201,8 @@ fun AddTransactionContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
-                        checked = isExactAmountEnabled,
-                        onCheckedChange = onExactAmountToggle,
+                        checked = formState.isExactMode,
+                        onCheckedChange = formCallbacks.onExactModeToggle,
                         colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                     )
                     Text(
@@ -201,10 +211,10 @@ fun AddTransactionContent(
                     )
                 }
 
-                if (isExactAmountEnabled) {
+                if (formState.isExactMode) {
                     OutlinedTextField(
-                        value = exactEurAmount,
-                        onValueChange = onExactEurAmountChange,
+                        value = formState.exactEurAmount,
+                        onValueChange = formCallbacks.onExactEurAmountChange,
                         label = { Text(stringResource(R.string.exact_eur_amount)) },
                         placeholder = { Text(stringResource(R.string.exact_eur_example)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -223,24 +233,24 @@ fun AddTransactionContent(
 
         CategorySelector(
             categories = categories,
-            selectedCategory = selectedCategory,
-            onCategorySelect = onCategorySelect,
-            transactionType = transactionType,
-            onCreateCategory = onCreateCategory,
-            onUpdateCategoryColor = onUpdateCategoryColor,
-            onUpdateCategory = onUpdateCategory,
-            onDeleteCategory = onDeleteCategory
+            selectedCategory = formState.selectedCategory,
+            onCategorySelect = formCallbacks.onCategorySelect,
+            transactionType = formState.transactionType,
+            onCreateCategory = categoryActions.onCreateCategory,
+            onUpdateCategoryColor = categoryActions.onUpdateCategoryColor,
+            onUpdateCategory = categoryActions.onUpdateCategory,
+            onDeleteCategory = categoryActions.onDeleteCategory
         )
 
         DescriptionSection(
-            description = description,
-            onDescriptionChange = onDescriptionChange,
-            transactionType = transactionType
+            description = formState.description,
+            onDescriptionChange = formCallbacks.onDescriptionChange,
+            transactionType = formState.transactionType
         )
 
         DateSelector(
-            selectedDate = selectedDate,
-            onDateSelect = onDateChange,
+            selectedDate = formState.date,
+            onDateSelect = formCallbacks.onDateChange,
             onShowDatePicker = { showDatePicker = true }
         )
 
@@ -263,7 +273,7 @@ fun AddTransactionContent(
         }
 
         Button(
-            onClick = { onAddClick(selectedDate) },
+            onClick = { formCallbacks.onSave(formState.date) },
             enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
@@ -279,7 +289,7 @@ fun AddTransactionContent(
                     color = Color.White
                 )
             } else {
-                val buttonText = when (transactionType) {
+                val buttonText = when (formState.transactionType) {
                     TransactionType.EXPENSE -> stringResource(R.string.add_expense)
                     TransactionType.INCOME -> stringResource(R.string.add_income)
                 }

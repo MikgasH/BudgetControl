@@ -25,6 +25,9 @@ import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.ui.components.common.AddTransactionContent
+import com.example.budgetcontrol.ui.components.common.TransactionFormState
+import com.example.budgetcontrol.ui.components.common.TransactionFormCallbacks
+import com.example.budgetcontrol.ui.components.common.TransactionCategoryActions
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
 
@@ -239,42 +242,48 @@ private fun TransactionFormContent(
     if (uiState.mode == TransactionFormMode.ADD) {
         AddTransactionContent(
             title = getContentTitle(uiState.mode, uiState.transactionType),
-            transactionType = uiState.transactionType,
-            amount = uiState.amount,
-            onAmountChange = onAmountChange,
+            formState = TransactionFormState(
+                amount = uiState.amount,
+                description = uiState.description,
+                selectedCategory = uiState.selectedCategory,
+                selectedBank = uiState.selectedBank,
+                selectedCurrency = uiState.selectedCurrency,
+                date = uiState.selectedDate,
+                transactionType = uiState.transactionType,
+                paymentMethod = uiState.paymentMethod,
+                cashRate = uiState.cashRate,
+                exactEurAmount = uiState.exactEurAmount,
+                isExactMode = uiState.isExactAmountEnabled
+            ),
+            formCallbacks = TransactionFormCallbacks(
+                onAmountChange = onAmountChange,
+                onDescriptionChange = onDescriptionChange,
+                onCategorySelect = onCategorySelect,
+                onBankSelect = onBankSelect,
+                onCurrencySelect = onCurrencySelect,
+                onDateChange = onDateChange,
+                onSave = { _ -> onSaveClick() },
+                onPaymentMethodChange = onPaymentMethodSelect,
+                onCashRateChange = onCashRateChange,
+                onExactEurAmountChange = onExactEurAmountChange,
+                onExactModeToggle = onExactAmountToggle
+            ),
             categories = uiState.categories,
-            selectedCategory = uiState.selectedCategory,
-            onCategorySelect = onCategorySelect,
-            description = uiState.description,
-            onDescriptionChange = onDescriptionChange,
-            selectedDate = uiState.selectedDate,
-            onDateChange = onDateChange,
             isLoading = uiState.isLoading,
             errorMessage = uiState.showError,
-            onAddClick = { _ -> onSaveClick() },
             modifier = modifier,
             availableCurrencies = uiState.availableCurrencies,
-            selectedCurrency = uiState.selectedCurrency,
-            onCurrencySelect = onCurrencySelect,
             isCurrenciesLoading = uiState.isCurrenciesLoading,
             currenciesError = uiState.currenciesError,
             favoriteCurrencies = uiState.favoriteCurrencies,
             availableBanks = uiState.availableBanks,
-            selectedBank = uiState.selectedBank,
-            onBankSelect = onBankSelect,
             convertedAmountPreview = uiState.convertedAmountPreview,
-            exactEurAmount = uiState.exactEurAmount,
-            onExactEurAmountChange = onExactEurAmountChange,
-            isExactAmountEnabled = uiState.isExactAmountEnabled,
-            onExactAmountToggle = onExactAmountToggle,
-            onCreateCategory = onCreateCategory,
-            onUpdateCategoryColor = onUpdateCategoryColor,
-            onUpdateCategory = onUpdateCategory,
-            onDeleteCategory = onDeleteCategory,
-            paymentMethod = uiState.paymentMethod,
-            onPaymentMethodSelect = onPaymentMethodSelect,
-            cashRate = uiState.cashRate,
-            onCashRateChange = onCashRateChange,
+            categoryActions = TransactionCategoryActions(
+                onCreateCategory = onCreateCategory,
+                onUpdateCategoryColor = onUpdateCategoryColor,
+                onUpdateCategory = onUpdateCategory,
+                onDeleteCategory = onDeleteCategory
+            ),
             cashRatePlaceholder = uiState.cashRatePlaceholder,
             cashRateHint = uiState.cashRateHint,
             lastCashExchange = uiState.lastCashExchange,
