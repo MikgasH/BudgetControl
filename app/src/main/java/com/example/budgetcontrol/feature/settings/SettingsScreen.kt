@@ -962,7 +962,7 @@ private fun AddEditBankDialog(
     var name by remember { mutableStateOf(bank?.name ?: initialName ?: "") }
     var commission by remember {
         mutableStateOf(
-            bank?.let { formatCommission(it.commissionPercent).dropLast(1) } ?: ""
+            bank?.let { formatCommission(it.commissionPercent).removeSuffix("%") } ?: ""
         )
     }
     var nameError by remember { mutableStateOf(false) }

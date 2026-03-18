@@ -717,14 +717,14 @@ private fun CategorySegmentedBar(
 ) {
     val segments = remember(statistics) {
         val totalPercentage = statistics.sumOf { it.percentage.toDouble() }.toFloat()
+        if (totalPercentage == 0f) return@remember emptyList()
         statistics.map { stat ->
             val color = try {
                 Color(stat.category.color.toColorInt())
             } catch (_: Exception) {
                 Color.Gray
             }
-            // Normalize so segments always fill the full bar width
-            val fraction = if (totalPercentage > 0f) stat.percentage / totalPercentage else 0f
+            val fraction = stat.percentage / totalPercentage
             color to fraction
         }
     }

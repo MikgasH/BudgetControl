@@ -15,7 +15,7 @@ import androidx.room.Index
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["categoryId"])]
+    indices = [Index(value = ["categoryId"]), Index(value = ["date"])]
 )
 data class IncomeEntity(
     @PrimaryKey val id: String,

@@ -195,7 +195,7 @@ object DateRangeHelper {
         val startCal = Calendar.getInstance().apply { timeInMillis = startDate }
         val endCal = Calendar.getInstance().apply { timeInMillis = endDate }
 
-        return startCal.get(Calendar.YEAR) <= 2020 && endCal.get(Calendar.YEAR) >= 2030
+        return startCal.get(Calendar.YEAR) <= 2020 && endCal.get(Calendar.YEAR) >= 2099
     }
 
     /**

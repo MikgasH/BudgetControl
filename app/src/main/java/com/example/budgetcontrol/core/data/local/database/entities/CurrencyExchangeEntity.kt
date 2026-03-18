@@ -1,9 +1,16 @@
 package com.example.budgetcontrol.core.data.local.database.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "currency_exchanges")
+@Entity(
+    tableName = "currency_exchanges",
+    indices = [
+        Index(value = ["date"]),
+        Index(value = ["fromCurrency", "toCurrency"])
+    ]
+)
 data class CurrencyExchangeEntity(
     @PrimaryKey val id: String,
     val fromAmount: Double,

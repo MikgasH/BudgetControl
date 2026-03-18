@@ -578,7 +578,7 @@ class TransactionFormViewModel @Inject constructor(
         val preview = if (current.selectedCurrency != "EUR" && current.selectedBank != null
             && cachedInterBankRate != null && cachedRateCurrency == current.selectedCurrency
         ) {
-            buildPreview(filteredAmount, cachedInterBankRate!!, current.selectedBank)
+            buildPreview(filteredAmount, cachedInterBankRate ?: return, current.selectedBank)
         } else {
             current.convertedAmountPreview
         }
@@ -678,7 +678,7 @@ class TransactionFormViewModel @Inject constructor(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
                                         exactEurAmount = exactEurCash,
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = null,
@@ -701,7 +701,7 @@ class TransactionFormViewModel @Inject constructor(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
                                         exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = null,
@@ -725,7 +725,7 @@ class TransactionFormViewModel @Inject constructor(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
                                         exactEurAmount = exactEur,
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = currentState.selectedBank?.name,
@@ -735,7 +735,7 @@ class TransactionFormViewModel @Inject constructor(
                                     addExpenseUseCase(
                                         amount = amountDouble,
                                         currency = currentState.selectedCurrency,
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = currentState.selectedBank?.name,
@@ -790,7 +790,7 @@ class TransactionFormViewModel @Inject constructor(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
                                         exactEurAmount = exactEurCash,
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = null,
@@ -813,7 +813,7 @@ class TransactionFormViewModel @Inject constructor(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
                                         exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = null,
@@ -837,7 +837,7 @@ class TransactionFormViewModel @Inject constructor(
                                         originalAmount = amountDouble,
                                         originalCurrency = currentState.selectedCurrency,
                                         exactEurAmount = exactEur,
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = currentState.selectedBank?.name,
@@ -847,7 +847,7 @@ class TransactionFormViewModel @Inject constructor(
                                     addIncomeUseCase(
                                         amount = amountDouble,
                                         currency = currentState.selectedCurrency,
-                                        categoryId = currentState.selectedCategory!!.id,
+                                        categoryId = currentState.selectedCategory?.id ?: return@launch,
                                         description = currentState.description.ifBlank { null },
                                         date = currentState.selectedDate,
                                         bankName = currentState.selectedBank?.name,
@@ -893,7 +893,7 @@ class TransactionFormViewModel @Inject constructor(
                             updateExistingTransaction(
                                 originalTransaction = originalTransaction,
                                 amount = amountDouble,
-                                categoryId = currentState.selectedCategory!!.id,
+                                categoryId = currentState.selectedCategory?.id ?: return@launch,
                                 description = currentState.description.ifBlank { null },
                                 date = currentState.selectedDate,
                                 selectedCurrency = currentState.selectedCurrency,
@@ -905,7 +905,7 @@ class TransactionFormViewModel @Inject constructor(
                                 originalTransaction = originalTransaction,
                                 newType = currentState.transactionType,
                                 amount = amountDouble,
-                                categoryId = currentState.selectedCategory!!.id,
+                                categoryId = currentState.selectedCategory?.id ?: return@launch,
                                 description = currentState.description.ifBlank { null },
                                 date = currentState.selectedDate
                             )

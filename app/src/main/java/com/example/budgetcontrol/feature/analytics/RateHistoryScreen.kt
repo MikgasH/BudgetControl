@@ -133,11 +133,12 @@ fun RateHistoryScreen(
                 }
                 error != null -> {
                     ErrorContent(
-                        error = error!!,
+                        error = error ?: "",
                         onRetry = viewModel::retry
                     )
                 }
                 trendsData != null -> {
+                    val data = trendsData ?: return@Column
                     var selectedDate by remember { mutableStateOf<String?>(null) }
                     var selectedRate by remember { mutableStateOf<Double?>(null) }
                     var amountText by remember { mutableStateOf("100") }
@@ -148,7 +149,7 @@ fun RateHistoryScreen(
                     }
 
                     StatsRow(
-                        trendsData = trendsData!!,
+                        trendsData = data,
                         selectedDate = selectedDate,
                         selectedRate = selectedRate,
                         selectedFrom = selectedFrom,
@@ -157,7 +158,7 @@ fun RateHistoryScreen(
                         onAmountChange = { amountText = it }
                     )
                     RateChart(
-                        trendsData = trendsData!!,
+                        trendsData = data,
                         onPointSelected = { date, rate ->
                             selectedDate = date
                             selectedRate = rate
