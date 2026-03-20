@@ -5,14 +5,14 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
-import com.example.budgetcontrol.core.data.repository.BankRepository
+import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.feature.settings.LookupState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -48,7 +48,7 @@ class OnboardingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
-    val banks: StateFlow<List<BankEntity>> = bankRepository.getAllBanks()
+    val banks: StateFlow<List<Bank>> = bankRepository.getAllBanks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -91,7 +91,7 @@ class OnboardingViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedCurrency = code)
     }
 
-    fun toggleBankFavorite(bank: BankEntity) {
+    fun toggleBankFavorite(bank: Bank) {
         viewModelScope.launch {
             if (bank.isFavorite) {
                 if (banks.value.count { it.isFavorite } <= 1) return@launch
@@ -120,7 +120,7 @@ class OnboardingViewModel @Inject constructor(
     fun addBank(name: String, commission: Double) {
         viewModelScope.launch {
             bankRepository.insertBank(
-                BankEntity(name = name, commissionPercent = commission)
+                Bank(name = name, commissionPercent = commission)
             )
         }
     }

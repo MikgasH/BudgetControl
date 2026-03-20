@@ -17,12 +17,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import kotlinx.coroutines.launch
 
 @Composable
 internal fun BanksSection(
-    banks: List<BankEntity>,
+    banks: List<Bank>,
     onManageClick: () -> Unit
 ) {
     Card(
@@ -62,12 +62,12 @@ internal fun BanksSection(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BanksBottomSheet(
-    banks: List<BankEntity>,
+    banks: List<Bank>,
     onDismiss: () -> Unit,
-    onToggleFavorite: (BankEntity) -> Unit,
-    onSetDefault: (BankEntity) -> Unit,
-    onEdit: (BankEntity) -> Unit,
-    onDelete: (BankEntity) -> Unit,
+    onToggleFavorite: (Bank) -> Unit,
+    onSetDefault: (Bank) -> Unit,
+    onEdit: (Bank) -> Unit,
+    onDelete: (Bank) -> Unit,
     onAddBank: (String?) -> Unit,
     onResetDefaults: () -> Unit
 ) {
@@ -252,7 +252,7 @@ internal fun BanksBottomSheet(
 
 @Composable
 private fun BankRow(
-    bank: BankEntity,
+    bank: Bank,
     onToggleFavorite: () -> Unit,
     onSetDefault: () -> Unit,
     onEdit: () -> Unit,
@@ -337,7 +337,7 @@ internal fun formatCommission(value: Double): String {
 
 @Composable
 internal fun AddEditBankDialog(
-    bank: BankEntity?,
+    bank: Bank?,
     initialName: String? = null,
     lookupState: LookupState,
     onLookup: (String) -> Unit,

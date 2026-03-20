@@ -14,7 +14,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import androidx.compose.ui.res.stringResource
@@ -30,7 +30,7 @@ data class TransactionFormState(
     val amount: String,
     val description: String,
     val selectedCategory: Category?,
-    val selectedBank: BankEntity?,
+    val selectedBank: Bank?,
     val selectedCurrency: String,
     val date: Long,
     val transactionType: TransactionType,
@@ -44,7 +44,7 @@ data class TransactionFormCallbacks(
     val onAmountChange: (String) -> Unit,
     val onDescriptionChange: (String) -> Unit,
     val onCategorySelect: (Category) -> Unit,
-    val onBankSelect: (BankEntity) -> Unit,
+    val onBankSelect: (Bank) -> Unit,
     val onCurrencySelect: (String) -> Unit,
     val onDateChange: (Long) -> Unit,
     val onSave: (Long) -> Unit,
@@ -75,7 +75,7 @@ fun AddTransactionContent(
     isCurrenciesLoading: Boolean = false,
     currenciesError: String? = null,
     favoriteCurrencies: Set<String> = emptySet(),
-    availableBanks: List<BankEntity> = emptyList(),
+    availableBanks: List<Bank> = emptyList(),
     convertedAmountPreview: String = "",
     categoryActions: TransactionCategoryActions = TransactionCategoryActions(),
     cashRatePlaceholder: String = "",

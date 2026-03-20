@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 
 private fun formatCommission(percent: Double): String {
     return if (percent == percent.toLong().toDouble()) {
@@ -25,9 +25,9 @@ private fun formatCommission(percent: Double): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BankSelector(
-    banks: List<BankEntity>,
-    selectedBank: BankEntity?,
-    onBankSelect: (BankEntity) -> Unit,
+    banks: List<Bank>,
+    selectedBank: Bank?,
+    onBankSelect: (Bank) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }

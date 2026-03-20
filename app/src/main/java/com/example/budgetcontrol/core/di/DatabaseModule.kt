@@ -8,7 +8,6 @@ import com.example.budgetcontrol.core.data.local.database.dao.CategoryDao
 import com.example.budgetcontrol.core.data.local.database.dao.CurrencyExchangeDao
 import com.example.budgetcontrol.core.data.local.database.dao.ExpenseDao
 import com.example.budgetcontrol.core.data.local.database.dao.IncomeDao
-import com.example.budgetcontrol.core.data.repository.BankRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -59,10 +58,5 @@ object DatabaseModule {
         return database.currencyExchangeDao()
     }
 
-    @Provides
-    @Singleton
-    fun provideBankRepository(bankDao: BankDao): BankRepository {
-        return BankRepository(bankDao)
-    }
 }
 

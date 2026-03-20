@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.Category
@@ -228,7 +228,7 @@ private fun TransactionFormContent(
     onShowDatePicker: () -> Unit,
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
-    onBankSelect: (BankEntity) -> Unit,
+    onBankSelect: (Bank) -> Unit,
     onExactAmountToggle: (Boolean) -> Unit,
     onExactEurAmountChange: (String) -> Unit,
     onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
@@ -323,7 +323,7 @@ private fun EditTransactionFormContent(
     onShowDatePicker: () -> Unit,
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
-    onBankSelect: (BankEntity) -> Unit,
+    onBankSelect: (Bank) -> Unit,
     onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},

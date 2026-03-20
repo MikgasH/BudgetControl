@@ -6,6 +6,8 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionRequest
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
+import com.example.budgetcontrol.core.domain.repository.CurrencyRateResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
@@ -23,7 +25,7 @@ class CerpsRepository @Inject constructor(
     private val apiService: CerpsApiService,
     private val analyticsApiService: CerpsAnalyticsApiService,
     private val preferencesManager: PreferencesManager
-) {
+) : CurrencyRateProvider {
 
     // --- Currencies in-memory cache (one request per session) ---
     private var cachedCurrencies: List<String>? = null
@@ -106,12 +108,21 @@ class CerpsRepository @Inject constructor(
         }
     }
 
-    fun areRatesFresh(): Boolean = ratesLoadedThisSession && cachedRates != null
+    // --- CurrencyRateProvider implementation ---
 
-    fun areRatesStale(): Boolean {
+    override suspend fun getRates(): CurrencyRateResult {
+        return when (val result = ensureRatesLoaded()) {
+            is CerpsResult.Success -> CurrencyRateResult.Success(result.data)
+            is CerpsResult.Error -> CurrencyRateResult.Error(result.message)
+        }
+    }
+
+    override fun areRatesStale(): Boolean {
         if (cachedRatesTimestamp == 0L) return true
         return (System.currentTimeMillis() - cachedRatesTimestamp) >= STALE_THRESHOLD_MS
     }
+
+    fun areRatesFresh(): Boolean = ratesLoadedThisSession && cachedRates != null
 
     fun getRatesTimestamp(): Long = cachedRatesTimestamp
 

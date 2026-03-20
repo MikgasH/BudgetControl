@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +32,7 @@ fun SettingsScreen(
     var showBanksSheet by remember { mutableStateOf(false) }
     var showCurrenciesSheet by remember { mutableStateOf(false) }
     var showAddEditDialog by remember { mutableStateOf(false) }
-    var editingBank by remember { mutableStateOf<BankEntity?>(null) }
+    var editingBank by remember { mutableStateOf<Bank?>(null) }
     var initialBankName by remember { mutableStateOf<String?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
     var showBalanceDialog by remember { mutableStateOf(false) }

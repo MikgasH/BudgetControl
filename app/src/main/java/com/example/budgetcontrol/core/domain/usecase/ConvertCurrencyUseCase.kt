@@ -1,7 +1,7 @@
 package com.example.budgetcontrol.core.domain.usecase
 
-import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
-import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
+import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
+import com.example.budgetcontrol.core.domain.repository.CurrencyRateResult
 import javax.inject.Inject
 
 data class ConversionResult(
@@ -16,7 +16,7 @@ sealed class ConvertCurrencyResult {
 }
 
 class ConvertCurrencyUseCase @Inject constructor(
-    private val cerpsRepository: CerpsRepository
+    private val currencyRateProvider: CurrencyRateProvider
 ) {
     suspend operator fun invoke(
         amount: Double,
@@ -29,9 +29,9 @@ class ConvertCurrencyUseCase @Inject constructor(
             )
         }
 
-        return when (val result = cerpsRepository.ensureRatesLoaded()) {
-            is CerpsResult.Success -> {
-                val rates = result.data
+        return when (val result = currencyRateProvider.getRates()) {
+            is CurrencyRateResult.Success -> {
+                val rates = result.rates
                 // Rates are EUR-based: rate[X] = how many X per 1 EUR
                 val fromRate = rates[fromCurrency]
                 val toRate = rates[toCurrency]
@@ -47,7 +47,7 @@ class ConvertCurrencyUseCase @Inject constructor(
                     // Cross-rate conversion: FROM → EUR → TO
                     val convertedAmount = Math.round(amount * effectiveToRate / effectiveFromRate * 100) / 100.0
                     val crossRate = effectiveFromRate / effectiveToRate
-                    val rateSource = if (!cerpsRepository.areRatesStale()) null else "CACHED_RATE"
+                    val rateSource = if (!currencyRateProvider.areRatesStale()) null else "CACHED_RATE"
                     ConvertCurrencyResult.Success(
                         ConversionResult(convertedAmount, crossRate, rateSource)
                     )
@@ -55,7 +55,7 @@ class ConvertCurrencyUseCase @Inject constructor(
                     ConvertCurrencyResult.Error("No rate available for $fromCurrency → $toCurrency")
                 }
             }
-            is CerpsResult.Error -> {
+            is CurrencyRateResult.Error -> {
                 ConvertCurrencyResult.Error(result.message)
             }
         }

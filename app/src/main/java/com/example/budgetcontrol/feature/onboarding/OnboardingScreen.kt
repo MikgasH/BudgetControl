@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.feature.settings.LookupState
 import kotlinx.coroutines.launch
@@ -437,8 +437,8 @@ private fun CurrencyPage(
 
 @Composable
 private fun BanksPage(
-    banks: List<BankEntity>,
-    onToggleFavorite: (BankEntity) -> Unit,
+    banks: List<Bank>,
+    onToggleFavorite: (Bank) -> Unit,
     onAddBank: (String, Double) -> Unit,
     lookupState: LookupState = LookupState.Idle,
     onLookup: (String) -> Unit = {},

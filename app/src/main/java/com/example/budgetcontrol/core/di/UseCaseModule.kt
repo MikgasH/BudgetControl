@@ -1,7 +1,7 @@
 package com.example.budgetcontrol.core.di
 
-import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
+import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
@@ -25,9 +25,9 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideConvertCurrencyUseCase(
-        cerpsRepository: CerpsRepository
+        currencyRateProvider: CurrencyRateProvider
     ): ConvertCurrencyUseCase {
-        return ConvertCurrencyUseCase(cerpsRepository)
+        return ConvertCurrencyUseCase(currencyRateProvider)
     }
 
     @Provides

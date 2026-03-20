@@ -4,14 +4,14 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
-import com.example.budgetcontrol.core.data.repository.BankRepository
+import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,7 +56,7 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
-    val banks: StateFlow<List<BankEntity>> = bankRepository.getAllBanks()
+    val banks: StateFlow<List<Bank>> = bankRepository.getAllBanks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
@@ -121,24 +121,24 @@ class SettingsViewModel @Inject constructor(
     fun addBank(name: String, commission: Double) {
         viewModelScope.launch {
             bankRepository.insertBank(
-                BankEntity(name = name, commissionPercent = commission)
+                Bank(name = name, commissionPercent = commission)
             )
         }
     }
 
-    fun updateBank(bank: BankEntity) {
+    fun updateBank(bank: Bank) {
         viewModelScope.launch {
             bankRepository.updateBank(bank)
         }
     }
 
-    fun deleteBank(bank: BankEntity) {
+    fun deleteBank(bank: Bank) {
         viewModelScope.launch {
             bankRepository.deleteBank(bank)
         }
     }
 
-    fun toggleFavorite(bank: BankEntity) {
+    fun toggleFavorite(bank: Bank) {
         viewModelScope.launch {
             if (bank.isFavorite) {
                 // Prevent unchecking the last favorite
@@ -156,7 +156,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setDefaultBank(bank: BankEntity) {
+    fun setDefaultBank(bank: Bank) {
         viewModelScope.launch {
             // Default must be a favorite — ensure it is
             banks.value.forEach { existing ->

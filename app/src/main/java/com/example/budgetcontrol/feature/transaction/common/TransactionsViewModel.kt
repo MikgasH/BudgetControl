@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
-import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
+import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
-import com.example.budgetcontrol.core.data.repository.BankRepository
+import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
@@ -65,8 +65,8 @@ data class TransactionFormUiState(
     val isCurrenciesLoading: Boolean = false,
     val currenciesError: String? = null,
     // Банк и комиссия
-    val availableBanks: List<BankEntity> = emptyList(),
-    val selectedBank: BankEntity? = null,
+    val availableBanks: List<Bank> = emptyList(),
+    val selectedBank: Bank? = null,
     val convertedAmountPreview: String = "",
     // Уточнить сумму вручную
     val exactEurAmount: String = "",
@@ -352,7 +352,7 @@ class TransactionFormViewModel @Inject constructor(
     /**
      * Выбор банка
      */
-    fun selectBank(bank: BankEntity) {
+    fun selectBank(bank: Bank) {
         val current = _uiState.value
         _uiState.value = current.copy(selectedBank = bank, convertedAmountPreview = "")
         if (current.selectedCurrency != current.baseCurrency) {
@@ -368,7 +368,7 @@ class TransactionFormViewModel @Inject constructor(
      * Формула: convertedAmount = originalAmount / realRate
      * Пример: 150 BYN / 3.48 ≈ 43 EUR ✓
      */
-    private fun fetchRateAndUpdatePreview(currency: String, amount: String, bank: BankEntity?) {
+    private fun fetchRateAndUpdatePreview(currency: String, amount: String, bank: Bank?) {
         if (bank == null) return
         viewModelScope.launch {
             // Use cached rate if currency unchanged
@@ -409,7 +409,7 @@ class TransactionFormViewModel @Inject constructor(
      * realRate = interBankRate * (1 - commission/100)
      * convertedAmount = originalAmount / realRate
      */
-    private fun buildPreview(amountStr: String, interBankRate: Double, bank: BankEntity): String {
+    private fun buildPreview(amountStr: String, interBankRate: Double, bank: Bank): String {
         val amount = amountStr.replace(',', '.').toDoubleOrNull() ?: return ""
         if (amount <= 0) return ""
         val realRate = interBankRate * (1.0 - bank.commissionPercent / 100.0)
