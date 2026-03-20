@@ -16,7 +16,8 @@ fun ExpenseEntity.toDomain(): Expense {
         exchangeRate = exchangeRate,
         bankName = bankName,
         bankCommission = bankCommission,
-        rateSource = rateSource
+        rateSource = rateSource,
+        accountId = accountId
     )
 }
 
@@ -33,7 +34,8 @@ fun Expense.toEntity(): ExpenseEntity {
         exchangeRate = exchangeRate,
         bankName = bankName,
         bankCommission = bankCommission,
-        rateSource = rateSource
+        rateSource = rateSource,
+        accountId = accountId
     )
 }
 

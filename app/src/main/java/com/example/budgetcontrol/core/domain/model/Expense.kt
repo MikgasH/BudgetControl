@@ -16,7 +16,8 @@ data class Expense(
     val exchangeRate: Double? = null,
     val bankName: String? = null,
     val bankCommission: Double? = null,
-    val rateSource: String? = null
+    val rateSource: String? = null,
+    val accountId: String? = null
 ) {
 
     fun wasConverted(baseCurrency: String): Boolean =
