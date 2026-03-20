@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.core.domain.model
 
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+
 /**
  * Объединенная модель для расходов и доходов
  */
@@ -20,7 +22,7 @@ sealed class Transaction {
         override val date: Long,
         override val createdAt: Long,
         val originalAmount: Double = amount,
-        val originalCurrency: String = "EUR",
+        val originalCurrency: String = DEFAULT_BASE_CURRENCY,
         val bankName: String? = null,
         val bankCommission: Double? = null,
         val rateSource: String? = null
@@ -36,7 +38,7 @@ sealed class Transaction {
         override val date: Long,
         override val createdAt: Long,
         val originalAmount: Double = amount,
-        val originalCurrency: String = "EUR",
+        val originalCurrency: String = DEFAULT_BASE_CURRENCY,
         val bankName: String? = null,
         val bankCommission: Double? = null,
         val rateSource: String? = null

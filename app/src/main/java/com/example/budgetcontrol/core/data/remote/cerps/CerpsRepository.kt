@@ -7,6 +7,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionRequest
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -159,6 +160,8 @@ class CerpsRepository @Inject constructor(
             } else {
                 CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
         }

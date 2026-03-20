@@ -18,6 +18,8 @@ import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
@@ -77,6 +79,9 @@ class MainScreenViewModel @Inject constructor(
     ) { expenses, incomes, initialBalance ->
         initialBalance + incomes.sumOf { it.amount } - expenses.sumOf { it.amount }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
 
     private var loadDataJob: Job? = null
 
@@ -251,10 +256,11 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun formatBalance(amount: Double): String {
+        val symbol = getCurrencySymbol(baseCurrency.value)
         return if (amount == amount.toLong().toDouble()) {
-            "${amount.toLong()} €"
+            "${amount.toLong()} $symbol"
         } else {
-            "${String.format(Locale.US, "%.2f", amount)} €"
+            "${String.format(Locale.US, "%.2f", amount)} $symbol"
         }
     }
 }

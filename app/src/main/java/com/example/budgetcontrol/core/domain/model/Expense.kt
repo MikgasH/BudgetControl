@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.core.domain.model
 
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import java.util.Locale
 
 data class Expense(
@@ -10,22 +12,21 @@ data class Expense(
     val date: Long,
     val createdAt: Long,
     val originalAmount: Double = amount,
-    val originalCurrency: String = "EUR",
+    val originalCurrency: String = DEFAULT_BASE_CURRENCY,
     val exchangeRate: Double? = null,
     val bankName: String? = null,
     val bankCommission: Double? = null,
     val rateSource: String? = null
 ) {
 
-    val wasConverted: Boolean
-        get() = originalCurrency != "EUR" && exchangeRate != null
+    fun wasConverted(baseCurrency: String): Boolean =
+        originalCurrency != baseCurrency && exchangeRate != null
 
-
-    fun getDisplayAmount(): String {
-        return if (wasConverted) {
-            "${String.format(Locale.US, "%.2f", amount)} € (${String.format(Locale.US, "%.2f", originalAmount)} $originalCurrency)"
+    fun getDisplayAmount(baseCurrency: String): String {
+        return if (wasConverted(baseCurrency)) {
+            "${String.format(Locale.US, "%.2f", amount)} ${getCurrencySymbol(baseCurrency)} (${String.format(Locale.US, "%.2f", originalAmount)} ${getCurrencySymbol(originalCurrency)})"
         } else {
-            "${String.format(Locale.US, "%.2f", amount)} €"
+            "${String.format(Locale.US, "%.2f", amount)} ${getCurrencySymbol(baseCurrency)}"
         }
     }
 }

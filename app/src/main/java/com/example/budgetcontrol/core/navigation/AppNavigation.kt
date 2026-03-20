@@ -103,9 +103,6 @@ fun AppNavigation(
                 onAddIncomeClick = { selectedDate ->
                     navController.navigate("${Screen.AddIncome.route}?selectedDate=$selectedDate")
                 },
-                onExpensesListClick = {
-                    navController.navigate(Screen.Expenses.route)
-                },
                 onCategoryClick = { categoryId, operationType, startDate, endDate, isAllTime ->
                     when (operationType) {
                         OperationType.INCOMES -> {
@@ -121,16 +118,6 @@ fun AppNavigation(
                 },
                 onRateHistoryClick = {
                     navController.navigate(Screen.RateHistory.route)
-                },
-                onTransactionClick = { transaction ->
-                    when (transaction.type) {
-                        com.example.budgetcontrol.core.domain.model.TransactionType.EXPENSE -> {
-                            navController.navigate("${Screen.ExpenseDetail.route}/${transaction.id}")
-                        }
-                        com.example.budgetcontrol.core.domain.model.TransactionType.INCOME -> {
-                            navController.navigate("${Screen.IncomeDetail.route}/${transaction.id}")
-                        }
-                    }
                 }
             )
         }

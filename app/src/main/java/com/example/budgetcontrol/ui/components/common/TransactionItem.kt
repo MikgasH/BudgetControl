@@ -22,6 +22,7 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.core.graphics.toColorInt
 import java.text.SimpleDateFormat
 import java.util.*
@@ -34,6 +35,7 @@ import java.util.*
 fun TransactionItem(
     transaction: Transaction,
     category: Category?,
+    baseCurrency: String,
     onTransactionClick: (Transaction) -> Unit = {},
     onDeleteClick: (Transaction) -> Unit = {},
     modifier: Modifier = Modifier
@@ -133,13 +135,13 @@ fun TransactionItem(
                 horizontalAlignment = Alignment.End
             ) {
                 val amountText = when (transaction.type) {
-                    TransactionType.EXPENSE -> "-${String.format(Locale.US, "%.2f", transaction.amount)} €"
-                    TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} €"
+                    TransactionType.EXPENSE -> "-${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+                    TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
                 }
 
                 val amountColor = when (transaction.type) {
                     TransactionType.EXPENSE -> MaterialTheme.colorScheme.error
-                    TransactionType.INCOME -> MaterialTheme.colorScheme.secondary // Можно оставить зеленый для суммы дохода
+                    TransactionType.INCOME -> MaterialTheme.colorScheme.secondary
                 }
 
                 Text(
@@ -173,6 +175,7 @@ fun TransactionItem(
 fun TransactionItemDetailed(
     transaction: Transaction,
     category: Category?,
+    baseCurrency: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -249,8 +252,8 @@ fun TransactionItemDetailed(
 
             // Сумма
             val amountText = when (transaction.type) {
-                TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} €"
-                TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} €"
+                TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+                TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
             }
 
             val amountColor = when (transaction.type) {

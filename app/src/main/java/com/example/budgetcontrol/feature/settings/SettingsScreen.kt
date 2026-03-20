@@ -27,6 +27,7 @@ fun SettingsScreen(
     val banks by viewModel.banks.collectAsState()
     val favoriteCurrencies by viewModel.favoriteCurrencies.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
 
     var showBanksSheet by remember { mutableStateOf(false) }
     var showCurrenciesSheet by remember { mutableStateOf(false) }
@@ -82,6 +83,7 @@ fun SettingsScreen(
 
             BalanceSection(
                 totalBalance = totalBalance,
+                baseCurrency = baseCurrency,
                 onEditClick = { showBalanceDialog = true }
             )
 
@@ -184,6 +186,7 @@ fun SettingsScreen(
         CurrenciesBottomSheet(
             allCurrencies = uiState.allCurrencies,
             favoriteCurrencies = favoriteCurrencies,
+            baseCurrency = baseCurrency,
             onToggleFavorite = viewModel::toggleFavoriteCurrency,
             onDismiss = { showCurrenciesSheet = false }
         )
@@ -225,6 +228,7 @@ fun SettingsScreen(
     if (showBalanceDialog) {
         BalanceEditDialog(
             totalBalance = totalBalance,
+            baseCurrency = baseCurrency,
             onSave = { value ->
                 viewModel.setTotalBalance(value)
                 showBalanceDialog = false

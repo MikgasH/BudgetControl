@@ -8,17 +8,21 @@ import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.toTransaction
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,8 +40,12 @@ class TransactionsByCategoryViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getIncomesUseCase: GetIncomesUseCase,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    preferencesManager: PreferencesManager
 ) : ViewModel() {
+
+    val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
 
     private val _uiState = MutableStateFlow(TransactionsByCategoryUiState())
     val uiState: StateFlow<TransactionsByCategoryUiState> = _uiState.asStateFlow()

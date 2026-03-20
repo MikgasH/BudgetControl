@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
 import androidx.room.Index
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 
 @Entity(
     tableName = "incomes",
@@ -25,7 +26,7 @@ data class IncomeEntity(
     val date: Long,
     val createdAt: Long,
     val originalAmount: Double = amount,
-    val originalCurrency: String = "EUR",
+    val originalCurrency: String = DEFAULT_BASE_CURRENCY,
     val exchangeRate: Double? = null,
     val bankName: String? = null,
     val bankCommission: Double? = null,

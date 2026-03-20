@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.analytics
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,9 +9,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,10 +28,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
@@ -46,12 +52,15 @@ fun RateHistoryScreen(
     viewModel: RateHistoryViewModel = hiltViewModel()
 ) {
     val availableCurrencies by viewModel.availableCurrencies.collectAsState()
+    val favoriteCurrencies by viewModel.favoriteCurrencies.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
     val selectedFrom by viewModel.selectedFrom.collectAsState()
     val selectedTo by viewModel.selectedTo.collectAsState()
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
     val trendsData by viewModel.trendsData.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val sameCurrencyWarning by viewModel.sameCurrencyWarning.collectAsState()
 
     Scaffold(
         topBar = {
@@ -65,7 +74,7 @@ fun RateHistoryScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back)
                         )
                     }
@@ -88,6 +97,8 @@ fun RateHistoryScreen(
         ) {
             CurrencyPairSelector(
                 availableCurrencies = availableCurrencies,
+                favoriteCurrencies = favoriteCurrencies,
+                baseCurrency = baseCurrency,
                 selectedFrom = selectedFrom,
                 selectedTo = selectedTo,
                 onFromSelected = viewModel::selectFrom,
@@ -109,6 +120,27 @@ fun RateHistoryScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                sameCurrencyWarning -> {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.rate_history_same_currency),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
                 error != null -> {
@@ -161,6 +193,8 @@ fun RateHistoryScreen(
 @Composable
 private fun CurrencyPairSelector(
     availableCurrencies: List<String>,
+    favoriteCurrencies: Set<String>,
+    baseCurrency: String,
     selectedFrom: String,
     selectedTo: String,
     onFromSelected: (String) -> Unit,
@@ -183,6 +217,8 @@ private fun CurrencyPairSelector(
                 label = stringResource(R.string.rate_history_from),
                 selected = selectedFrom,
                 currencies = availableCurrencies,
+                favoriteCurrencies = favoriteCurrencies,
+                baseCurrency = baseCurrency,
                 onSelected = onFromSelected,
                 modifier = Modifier.weight(1f)
             )
@@ -205,6 +241,8 @@ private fun CurrencyPairSelector(
                 label = stringResource(R.string.rate_history_to),
                 selected = selectedTo,
                 currencies = availableCurrencies,
+                favoriteCurrencies = favoriteCurrencies,
+                baseCurrency = baseCurrency,
                 onSelected = onToSelected,
                 modifier = Modifier.weight(1f)
             )
@@ -218,11 +256,35 @@ private fun CurrencyDropdown(
     label: String,
     selected: String,
     currencies: List<String>,
+    favoriteCurrencies: Set<String>,
+    baseCurrency: String,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
+
+    val filteredCurrencies = remember(currencies, searchQuery, appLocale) {
+        if (searchQuery.isBlank()) currencies
+        else currencies.filter { code ->
+            code.contains(searchQuery, ignoreCase = true) ||
+                    getCurrencyDisplayName(code, appLocale).contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    // Base currency (if it matches the search filter)
+    val baseItem = remember(filteredCurrencies, baseCurrency) {
+        filteredCurrencies.filter { it == baseCurrency }
+    }
+    // Favorites excluding base
+    val favorites = remember(filteredCurrencies, favoriteCurrencies, baseCurrency) {
+        filteredCurrencies.filter { it != baseCurrency && favoriteCurrencies.contains(it) }
+    }
+    // Everything else
+    val others = remember(filteredCurrencies, favoriteCurrencies, baseCurrency) {
+        filteredCurrencies.filter { it != baseCurrency && !favoriteCurrencies.contains(it) }
+    }
 
     Column(modifier = modifier) {
         Text(
@@ -234,7 +296,10 @@ private fun CurrencyDropdown(
         Spacer(modifier = Modifier.height(4.dp))
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { expanded = it }
+            onExpandedChange = {
+                expanded = it
+                if (!it) searchQuery = ""
+            }
         ) {
             OutlinedTextField(
                 value = selected,
@@ -242,7 +307,7 @@ private fun CurrencyDropdown(
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                     .fillMaxWidth(),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
@@ -253,47 +318,182 @@ private fun CurrencyDropdown(
                     cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
-            ExposedDropdownMenu(
+            DropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false },
+                onDismissRequest = {
+                    expanded = false
+                    searchQuery = ""
+                },
                 modifier = Modifier
                     .widthIn(min = 280.dp)
-                    .heightIn(max = 320.dp)
-                    .verticalScroll(rememberScrollState())
+                    .heightIn(max = 400.dp),
+                properties = PopupProperties(focusable = true)
             ) {
-                currencies.forEach { currency ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = currency,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    modifier = Modifier.width(52.dp)
-                                )
-                                Text(
-                                    text = getCurrencyDisplayName(currency, appLocale),
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                BackHandler(enabled = searchQuery.isNotEmpty()) {
+                    searchQuery = ""
+                }
+
+                // Search field
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text(stringResource(R.string.search_currencies)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
-                        },
-                        onClick = {
-                            onSelected(currency)
-                            expanded = false
-                        },
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-                    )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                if (filteredCurrencies.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.no_currencies_found),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Base currency always first
+                        baseItem.forEach { currency ->
+                            CurrencyDropdownItem(
+                                code = currency,
+                                locale = appLocale,
+                                suffix = stringResource(R.string.default_label)
+                            ) {
+                                onSelected(currency)
+                                expanded = false
+                                searchQuery = ""
+                            }
+                        }
+
+                        // Favorites section
+                        if (favorites.isNotEmpty()) {
+                            if (baseItem.isNotEmpty()) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    thickness = 0.5.dp
+                                )
+                            }
+                            Text(
+                                text = stringResource(R.string.favorite_currencies_header),
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                            favorites.forEach { currency ->
+                                CurrencyDropdownItem(currency, appLocale) {
+                                    onSelected(currency)
+                                    expanded = false
+                                    searchQuery = ""
+                                }
+                            }
+                        }
+
+                        // All other currencies
+                        if (others.isNotEmpty()) {
+                            if (baseItem.isNotEmpty() || favorites.isNotEmpty()) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    thickness = 0.5.dp
+                                )
+                            }
+                            Text(
+                                text = stringResource(R.string.all_currencies_header),
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                            others.forEach { currency ->
+                                CurrencyDropdownItem(currency, appLocale) {
+                                    onSelected(currency)
+                                    expanded = false
+                                    searchQuery = ""
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun CurrencyDropdownItem(
+    code: String,
+    locale: Locale,
+    suffix: String? = null,
+    onClick: () -> Unit
+) {
+    DropdownMenuItem(
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = code,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.width(52.dp)
+                )
+                Text(
+                    text = getCurrencyDisplayName(code, locale),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (suffix != null) {
+                    Text(
+                        text = suffix,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+    )
 }
 
 @Composable

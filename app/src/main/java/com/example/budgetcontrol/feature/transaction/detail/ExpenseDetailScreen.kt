@@ -28,6 +28,7 @@ fun ExpenseDetailScreen(
     viewModel: TransactionDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
 
     // Загружаем транзакцию при создании экрана
     LaunchedEffect(expenseId) {
@@ -143,6 +144,7 @@ fun ExpenseDetailScreen(
                     TransactionDetailContent(
                         transaction = transaction,
                         category = uiState.category,
+                        baseCurrency = baseCurrency,
                         onDeleteClick = viewModel::deleteTransaction,
                         modifier = Modifier.padding(paddingValues)
                     )

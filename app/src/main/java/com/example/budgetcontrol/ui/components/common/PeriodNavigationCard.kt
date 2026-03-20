@@ -32,6 +32,7 @@ import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.feature.main.MainScreenUiState
 import com.example.budgetcontrol.feature.main.OperationType
 import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import androidx.core.graphics.toColorInt
 import java.util.Calendar
@@ -41,6 +42,7 @@ import java.util.Locale
 internal fun PeriodNavigationCard(
     uiState: MainScreenUiState,
     periodDisplayText: String,
+    baseCurrency: String,
     onNavigate: (Int) -> Unit,
     collapseFraction: Float = 0f,
     chartHeight: Dp = 200.dp,
@@ -145,7 +147,7 @@ internal fun PeriodNavigationCard(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "${String.format(Locale.US, "%.2f", totalAmount)} €",
+                                text = "${String.format(Locale.US, "%.2f", totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -217,6 +219,7 @@ internal fun PeriodNavigationCard(
                         PieChart(
                             data = uiState.categoryStatistics,
                             totalAmount = uiState.totalAmount,
+                            baseCurrency = baseCurrency,
                             modifier = Modifier.size(chartHeight)
                         )
                     } else {

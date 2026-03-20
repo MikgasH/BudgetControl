@@ -264,6 +264,8 @@
     <string name="no_currencies_found">Валюты не найдены</string>
     <string name="manage_favourites_hint">Управление избранными в настройках</string>
     <string name="add_favourites_hint">Добавьте часто используемые валюты в настройках</string>
+    <string name="favorite_currencies_header">Избранные валюты</string>
+    <string name="all_currencies_header">Все валюты</string>
 
     <!-- System category names — Expenses -->
     <string name="cat_groceries">Продукты</string>
@@ -398,6 +400,7 @@
     <string name="rate_history_no_data">Нет данных</string>
     <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждые 8 часов</string>
     <string name="rate_history_error">Не удалось загрузить данные о курсах</string>
+    <string name="rate_history_same_currency">Выберите разные валюты</string>
     <string name="rate_history_retry">Повторить</string>
     <string name="rate_history_amount">Сумма</string>
     <string name="rate_history_screen_title">История курсов валют</string>

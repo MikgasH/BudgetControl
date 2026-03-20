@@ -23,6 +23,7 @@ import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.core.graphics.toColorInt
 import java.util.Locale
 
@@ -33,6 +34,7 @@ fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
 
     Scaffold(
         topBar = {
@@ -128,6 +130,7 @@ fun StatisticsScreen(
                             PieChart(
                                 data = uiState.categoryStatistics,
                                 totalAmount = uiState.totalAmount,
+                                baseCurrency = baseCurrency,
                                 modifier = Modifier.padding(vertical = 16.dp)
                             )
                         } else {
@@ -144,7 +147,7 @@ fun StatisticsScreen(
 
             // Список категорий со статистикой
             items(uiState.categoryStatistics) { stat ->
-                CategoryStatisticItem(statistic = stat)
+                CategoryStatisticItem(statistic = stat, baseCurrency = baseCurrency)
             }
         }
     }
@@ -187,6 +190,7 @@ private fun PeriodSelector(
 @Composable
 private fun CategoryStatisticItem(
     statistic: CategoryStatistic,
+    baseCurrency: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -248,7 +252,7 @@ private fun CategoryStatisticItem(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} €",
+                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -20,6 +20,7 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.common.TransactionItem
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +33,7 @@ fun ExpensesScreen(
     viewModel: ExpensesScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
 
     Scaffold(
         topBar = {
@@ -132,7 +134,7 @@ fun ExpensesScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${String.format(Locale.US, "%.2f", uiState.totalAmount)} €",
+                        text = "${String.format(Locale.US, "%.2f", uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -189,6 +191,7 @@ fun ExpensesScreen(
                             TransactionItem(
                                 transaction = transaction,
                                 category = viewModel.getCategoryById(transaction.categoryId),
+                                baseCurrency = baseCurrency,
                                 onTransactionClick = { onExpenseClick(transaction) },
                                 onDeleteClick = { viewModel.deleteTransaction(transaction) }
                             )

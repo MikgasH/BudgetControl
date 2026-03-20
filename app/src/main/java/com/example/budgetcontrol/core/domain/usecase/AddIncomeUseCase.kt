@@ -18,15 +18,16 @@ class AddIncomeUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(
         amount: Double,
-        currency: String = "EUR",
+        currency: String,
         categoryId: String,
         description: String?,
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
-        bankCommission: Double? = null
+        bankCommission: Double? = null,
+        baseCurrency: String
     ): AddIncomeResult {
         return try {
-            val conversionResult = convertCurrencyUseCase(amount, currency)
+            val conversionResult = convertCurrencyUseCase(amount, currency, baseCurrency)
             if (conversionResult is ConvertCurrencyResult.Error) {
                 return AddIncomeResult.Error(AddTransactionError.ConversionFailed(conversionResult.message))
             }
@@ -56,19 +57,20 @@ class AddIncomeUseCase @Inject constructor(
         }
     }
 
-    suspend fun addInEur(
+    suspend fun addInBaseCurrency(
         amount: Double,
+        baseCurrency: String,
         categoryId: String,
         description: String?,
         date: Long = System.currentTimeMillis()
     ): AddIncomeResult {
-        return invoke(amount, "EUR", categoryId, description, date)
+        return invoke(amount, baseCurrency, categoryId, description, date, baseCurrency = baseCurrency)
     }
 
-    suspend fun addWithExactEurAmount(
+    suspend fun addWithExactBaseAmount(
         originalAmount: Double,
         originalCurrency: String,
-        exactEurAmount: Double,
+        exactBaseAmount: Double,
         categoryId: String,
         description: String?,
         date: Long = System.currentTimeMillis(),
@@ -79,14 +81,14 @@ class AddIncomeUseCase @Inject constructor(
         return try {
             val income = Income(
                 id = UUID.randomUUID().toString(),
-                amount = exactEurAmount,
+                amount = exactBaseAmount,
                 categoryId = categoryId,
                 description = description,
                 date = date,
                 createdAt = System.currentTimeMillis(),
                 originalAmount = originalAmount,
                 originalCurrency = originalCurrency,
-                exchangeRate = if (originalAmount > 0) originalAmount / exactEurAmount else null,
+                exchangeRate = if (originalAmount > 0) originalAmount / exactBaseAmount else null,
                 bankName = bankName,
                 bankCommission = bankCommission,
                 rateSource = rateSource

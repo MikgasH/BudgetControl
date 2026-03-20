@@ -15,12 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import java.util.Locale
 
 @Composable
 fun PieChart(
     data: List<CategoryStatistic>,
     totalAmount: Double,
+    baseCurrency: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -36,7 +38,7 @@ fun PieChart(
 
             // Центральный текст с общей суммой
             Text(
-                text = "${String.format(Locale.US, "%.2f", totalAmount).trimEnd('0').trimEnd('.', ',')} €",
+                text = "${String.format(Locale.US, "%.2f", totalAmount).trimEnd('0').trimEnd('.', ',')} ${getCurrencySymbol(baseCurrency)}",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

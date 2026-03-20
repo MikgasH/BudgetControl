@@ -8,14 +8,18 @@ import com.example.budgetcontrol.core.domain.model.Expense
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.toExpense
 import com.example.budgetcontrol.core.domain.model.toTransaction
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.usecase.DeleteExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,11 +35,15 @@ data class ExpensesScreenUiState(
 class ExpensesScreenViewModel @Inject constructor(
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
-    private val deleteExpenseUseCase: DeleteExpenseUseCase
+    private val deleteExpenseUseCase: DeleteExpenseUseCase,
+    preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExpensesScreenUiState())
     val uiState: StateFlow<ExpensesScreenUiState> = _uiState.asStateFlow()
+
+    val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
 
     init {
         loadData()

@@ -264,6 +264,8 @@
     <string name="no_currencies_found">No currencies found</string>
     <string name="manage_favourites_hint">Manage favourites in Settings</string>
     <string name="add_favourites_hint">Add your most-used currencies in Settings</string>
+    <string name="favorite_currencies_header">Favorite currencies</string>
+    <string name="all_currencies_header">All currencies</string>
 
     <!-- System category names — Expenses -->
     <string name="cat_groceries">Groceries</string>
@@ -398,6 +400,7 @@
     <string name="rate_history_no_data">No data</string>
     <string name="rate_history_data_source">Data from interbank rates \u00B7 updated every 8 hours</string>
     <string name="rate_history_error">Failed to load rate data</string>
+    <string name="rate_history_same_currency">Please select different currencies</string>
     <string name="rate_history_retry">Retry</string>
     <string name="rate_history_amount">Amount</string>
     <string name="rate_history_screen_title">Exchange Rate History</string>

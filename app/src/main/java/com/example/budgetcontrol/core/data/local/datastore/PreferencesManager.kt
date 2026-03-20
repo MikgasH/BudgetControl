@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -80,7 +81,7 @@ class PreferencesManager @Inject constructor(
 
     // Base currency
     val baseCurrencyFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[BASE_CURRENCY_KEY] ?: "EUR"
+        preferences[BASE_CURRENCY_KEY] ?: DEFAULT_BASE_CURRENCY
     }
 
     suspend fun setBaseCurrency(currency: String) {

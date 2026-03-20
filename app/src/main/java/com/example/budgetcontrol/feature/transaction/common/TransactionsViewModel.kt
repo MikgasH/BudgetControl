@@ -26,6 +26,7 @@ import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeResult
 import com.example.budgetcontrol.core.domain.usecase.AddTransactionError
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.ValidationHelper
 import java.util.UUID
 import android.content.Context
@@ -58,8 +59,9 @@ data class TransactionFormUiState(
     val selectedExpenseCategory: Category? = null,
     val selectedIncomeCategory: Category? = null,
     // Мультивалютность
-    val availableCurrencies: List<String> = listOf("EUR"),
-    val selectedCurrency: String = "EUR",
+    val baseCurrency: String = DEFAULT_BASE_CURRENCY,
+    val availableCurrencies: List<String> = listOf(DEFAULT_BASE_CURRENCY),
+    val selectedCurrency: String = DEFAULT_BASE_CURRENCY,
     val isCurrenciesLoading: Boolean = false,
     val currenciesError: String? = null,
     // Банк и комиссия
@@ -131,6 +133,15 @@ class TransactionFormViewModel @Inject constructor(
 
         preferencesManager.favoriteCurrenciesFlow
             .onEach { favorites -> _uiState.value = _uiState.value.copy(favoriteCurrencies = favorites) }
+            .launchIn(viewModelScope)
+
+        preferencesManager.baseCurrencyFlow
+            .onEach { currency ->
+                _uiState.value = _uiState.value.copy(
+                    baseCurrency = currency,
+                    selectedCurrency = if (_uiState.value.selectedCurrency == _uiState.value.baseCurrency) currency else _uiState.value.selectedCurrency
+                )
+            }
             .launchIn(viewModelScope)
     }
 
@@ -214,7 +225,7 @@ class TransactionFormViewModel @Inject constructor(
 
             when (val result = cerpsRepository.getCurrencies()) {
                 is CerpsResult.Success -> {
-                    val all = result.data.ifEmpty { listOf("EUR") }
+                    val all = result.data.ifEmpty { listOf(_uiState.value.baseCurrency) }
                     cachedCurrencies = all
                     _uiState.value = _uiState.value.copy(
                         availableCurrencies = all,
@@ -223,9 +234,9 @@ class TransactionFormViewModel @Inject constructor(
                     )
                 }
                 is CerpsResult.Error -> {
-                    // Если CERPS недоступен, оставляем только EUR
+                    // Если CERPS недоступен, оставляем только base currency
                     _uiState.value = _uiState.value.copy(
-                        availableCurrencies = listOf("EUR"),
+                        availableCurrencies = listOf(_uiState.value.baseCurrency),
                         isCurrenciesLoading = false,
                         currenciesError = context.getString(R.string.error_currency_service_unavailable)
                     )
@@ -239,13 +250,14 @@ class TransactionFormViewModel @Inject constructor(
      */
     fun selectCurrency(currency: String) {
         val current = _uiState.value
+        val baseCurrency = current.baseCurrency
 
         viewModelScope.launch {
-            val lastMethod = if (currency != "EUR") {
+            val lastMethod = if (currency != baseCurrency) {
                 preferencesManager.lastPaymentMethodFlow.firstOrNull() ?: "CARD"
             } else "CARD"
 
-            val defaultBank = if (currency != "EUR") {
+            val defaultBank = if (currency != baseCurrency) {
                 current.availableBanks.firstOrNull { it.isDefault }
                     ?: current.availableBanks.firstOrNull()
             } else null
@@ -255,10 +267,10 @@ class TransactionFormViewModel @Inject constructor(
                 selectedBank = defaultBank,
                 convertedAmountPreview = "",
                 // Reset exact amount when currency changes
-                isExactAmountEnabled = if (currency == "EUR") false else current.isExactAmountEnabled,
-                exactEurAmount = if (currency == "EUR") "" else current.exactEurAmount,
+                isExactAmountEnabled = if (currency == baseCurrency) false else current.isExactAmountEnabled,
+                exactEurAmount = if (currency == baseCurrency) "" else current.exactEurAmount,
                 // Restore last payment method
-                paymentMethod = if (currency == "EUR") "CARD" else lastMethod,
+                paymentMethod = if (currency == baseCurrency) "CARD" else lastMethod,
                 cashRate = "",
                 cashRatePlaceholder = "",
                 cashRateHint = "",
@@ -267,7 +279,7 @@ class TransactionFormViewModel @Inject constructor(
                 staleRateWarning = null
             )
 
-            if (currency != "EUR") {
+            if (currency != baseCurrency) {
                 if (lastMethod == "CARD") {
                     fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
                 } else {
@@ -286,7 +298,7 @@ class TransactionFormViewModel @Inject constructor(
             paymentMethod = method,
             showError = null
         )
-        if (method == "CASH" && current.selectedCurrency != "EUR") {
+        if (method == "CASH" && current.selectedCurrency != current.baseCurrency) {
             loadCashExchangeRate(current.selectedCurrency)
         }
         viewModelScope.launch {
@@ -300,8 +312,9 @@ class TransactionFormViewModel @Inject constructor(
 
     private fun loadCashExchangeRate(currency: String) {
         viewModelScope.launch {
+            val baseCurrency = _uiState.value.baseCurrency
             // Try to load last saved cash exchange rate
-            val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(currency, "EUR")
+            val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(currency, baseCurrency)
             if (lastExchange != null) {
                 val formatted = String.format(java.util.Locale.US, "%.4f", lastExchange.exchangeRate)
                 _uiState.value = _uiState.value.copy(
@@ -315,7 +328,7 @@ class TransactionFormViewModel @Inject constructor(
                 val rate = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
                     cachedInterBankRate
                 } else {
-                    when (val result = cerpsRepository.convert("EUR", currency, 1.0)) {
+                    when (val result = cerpsRepository.convert(baseCurrency, currency, 1.0)) {
                         is CerpsResult.Success -> {
                             val r = result.data.exchangeRate.toDouble()
                             cachedInterBankRate = r
@@ -342,7 +355,7 @@ class TransactionFormViewModel @Inject constructor(
     fun selectBank(bank: BankEntity) {
         val current = _uiState.value
         _uiState.value = current.copy(selectedBank = bank, convertedAmountPreview = "")
-        if (current.selectedCurrency != "EUR") {
+        if (current.selectedCurrency != current.baseCurrency) {
             fetchRateAndUpdatePreview(current.selectedCurrency, current.amount, bank)
         }
     }
@@ -539,7 +552,7 @@ class TransactionFormViewModel @Inject constructor(
                     // Restore bank info for expense or income
                     val restoredCurrency = expense?.originalCurrency
                         ?: income?.originalCurrency
-                        ?: "EUR"
+                        ?: _uiState.value.baseCurrency
                     val restoredBankName = expense?.bankName ?: income?.bankName
                     val restoredBank = if (restoredBankName != null) {
                         current.availableBanks.firstOrNull { it.name == restoredBankName }
@@ -560,8 +573,8 @@ class TransactionFormViewModel @Inject constructor(
                         isLoading = false
                     )
 
-                    // If non-EUR, fetch interbank rate for preview
-                    if (restoredCurrency != "EUR" && restoredBank != null) {
+                    // If non-base currency, fetch interbank rate for preview
+                    if (restoredCurrency != _uiState.value.baseCurrency && restoredBank != null) {
                         val origAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
                         fetchRateAndUpdatePreview(restoredCurrency, origAmount.toString(), restoredBank)
                     }
@@ -578,7 +591,7 @@ class TransactionFormViewModel @Inject constructor(
     fun updateAmount(amount: String) {
         val filteredAmount = ValidationHelper.filterAmountInput(amount)
         val current = _uiState.value
-        val preview = if (current.selectedCurrency != "EUR" && current.selectedBank != null
+        val preview = if (current.selectedCurrency != current.baseCurrency && current.selectedBank != null
             && cachedInterBankRate != null && cachedRateCurrency == current.selectedCurrency
         ) {
             buildPreview(filteredAmount, cachedInterBankRate ?: return, current.selectedBank)
@@ -660,7 +673,7 @@ class TransactionFormViewModel @Inject constructor(
                 when (currentState.mode) {
                     TransactionFormMode.ADD -> {
                         val isCashMode = currentState.paymentMethod == "CASH" &&
-                                currentState.selectedCurrency != "EUR"
+                                currentState.selectedCurrency != currentState.baseCurrency
                         when (currentState.transactionType) {
                             TransactionType.EXPENSE -> saveNewExpense(currentState, amountDouble, isCashMode)
                             TransactionType.INCOME -> saveNewIncome(currentState, amountDouble, isCashMode)
@@ -694,23 +707,24 @@ class TransactionFormViewModel @Inject constructor(
         amountDouble: Double,
         isCashMode: Boolean
     ) {
+        val baseCurrency = state.baseCurrency
         val result = if (isCashMode &&
             state.isExactAmountEnabled &&
             state.exactEurAmount.isNotBlank()
         ) {
-            // Cash mode with manual EUR amount
-            val exactEurCash = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
-            if (exactEurCash == null || exactEurCash <= 0) {
+            // Cash mode with manual base-currency amount
+            val exactBaseCash = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactBaseCash == null || exactBaseCash <= 0) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showError = context.getString(R.string.error_enter_valid_eur)
                 )
                 return
             }
-            addExpenseUseCase.addWithExactEurAmount(
+            addExpenseUseCase.addWithExactBaseAmount(
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
-                exactEurAmount = exactEurCash,
+                exactBaseAmount = exactBaseCash,
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
@@ -729,11 +743,11 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 return
             }
-            val eurAmount = amountDouble / cashRateValue
-            addExpenseUseCase.addWithExactEurAmount(
+            val baseAmount = amountDouble / cashRateValue
+            addExpenseUseCase.addWithExactBaseAmount(
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
-                exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
+                exactBaseAmount = String.format(java.util.Locale.US, "%.2f", baseAmount).toDouble(),
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
@@ -744,20 +758,20 @@ class TransactionFormViewModel @Inject constructor(
         } else if (
             state.isExactAmountEnabled &&
             state.exactEurAmount.isNotBlank() &&
-            state.selectedCurrency != "EUR"
+            state.selectedCurrency != baseCurrency
         ) {
-            val exactEur = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
-            if (exactEur == null || exactEur <= 0) {
+            val exactBase = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactBase == null || exactBase <= 0) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showError = context.getString(R.string.error_enter_valid_eur)
                 )
                 return
             }
-            addExpenseUseCase.addWithExactEurAmount(
+            addExpenseUseCase.addWithExactBaseAmount(
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
-                exactEurAmount = exactEur,
+                exactBaseAmount = exactBase,
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
@@ -772,7 +786,8 @@ class TransactionFormViewModel @Inject constructor(
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
                 bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent
+                bankCommission = state.selectedBank?.commissionPercent,
+                baseCurrency = baseCurrency
             )
         }
 
@@ -814,23 +829,24 @@ class TransactionFormViewModel @Inject constructor(
         amountDouble: Double,
         isCashMode: Boolean
     ) {
+        val baseCurrency = state.baseCurrency
         val result = if (isCashMode &&
             state.isExactAmountEnabled &&
             state.exactEurAmount.isNotBlank()
         ) {
-            // Cash mode with manual EUR amount
-            val exactEurCash = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
-            if (exactEurCash == null || exactEurCash <= 0) {
+            // Cash mode with manual base-currency amount
+            val exactBaseCash = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactBaseCash == null || exactBaseCash <= 0) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showError = context.getString(R.string.error_enter_valid_eur)
                 )
                 return
             }
-            addIncomeUseCase.addWithExactEurAmount(
+            addIncomeUseCase.addWithExactBaseAmount(
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
-                exactEurAmount = exactEurCash,
+                exactBaseAmount = exactBaseCash,
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
@@ -849,11 +865,11 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 return
             }
-            val eurAmount = amountDouble / cashRateValue
-            addIncomeUseCase.addWithExactEurAmount(
+            val baseAmount = amountDouble / cashRateValue
+            addIncomeUseCase.addWithExactBaseAmount(
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
-                exactEurAmount = String.format(java.util.Locale.US, "%.2f", eurAmount).toDouble(),
+                exactBaseAmount = String.format(java.util.Locale.US, "%.2f", baseAmount).toDouble(),
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
@@ -864,20 +880,20 @@ class TransactionFormViewModel @Inject constructor(
         } else if (
             state.isExactAmountEnabled &&
             state.exactEurAmount.isNotBlank() &&
-            state.selectedCurrency != "EUR"
+            state.selectedCurrency != baseCurrency
         ) {
-            val exactEur = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
-            if (exactEur == null || exactEur <= 0) {
+            val exactBase = state.exactEurAmount.replace(',', '.').toDoubleOrNull()
+            if (exactBase == null || exactBase <= 0) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showError = context.getString(R.string.error_enter_valid_eur)
                 )
                 return
             }
-            addIncomeUseCase.addWithExactEurAmount(
+            addIncomeUseCase.addWithExactBaseAmount(
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
-                exactEurAmount = exactEur,
+                exactBaseAmount = exactBase,
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
@@ -892,7 +908,8 @@ class TransactionFormViewModel @Inject constructor(
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
                 bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent
+                bankCommission = state.selectedBank?.commissionPercent,
+                baseCurrency = baseCurrency
             )
         }
 
@@ -963,10 +980,11 @@ class TransactionFormViewModel @Inject constructor(
         categoryId: String,
         description: String?,
         date: Long,
-        selectedCurrency: String = "EUR",
+        selectedCurrency: String,
         bankName: String? = null,
         bankCommission: Double? = null
     ) {
+        val baseCurrency = _uiState.value.baseCurrency
         when (originalTransaction) {
             is Transaction.ExpenseTransaction -> {
                 // Use AddExpenseUseCase to handle conversion (re-calculates via CERPS)
@@ -977,7 +995,8 @@ class TransactionFormViewModel @Inject constructor(
                     description = description,
                     date = date,
                     bankName = bankName,
-                    bankCommission = bankCommission
+                    bankCommission = bankCommission,
+                    baseCurrency = baseCurrency
                 )
                 // Delete the old record after inserting the new one
                 expenseRepository.deleteExpenseById(originalTransaction.id)
@@ -991,7 +1010,8 @@ class TransactionFormViewModel @Inject constructor(
                     description = description,
                     date = date,
                     bankName = bankName,
-                    bankCommission = bankCommission
+                    bankCommission = bankCommission,
+                    baseCurrency = baseCurrency
                 )
                 // Delete the old record after inserting the new one
                 incomeRepository.deleteIncomeById(originalTransaction.id)
@@ -1016,18 +1036,21 @@ class TransactionFormViewModel @Inject constructor(
             }
         }
 
+        val baseCurrency = _uiState.value.baseCurrency
         when (newType) {
             TransactionType.EXPENSE -> {
-                addExpenseUseCase.addInEur(
+                addExpenseUseCase.addInBaseCurrency(
                     amount = amount,
+                    baseCurrency = baseCurrency,
                     categoryId = categoryId,
                     description = description,
                     date = date
                 )
             }
             TransactionType.INCOME -> {
-                addIncomeUseCase.addInEur(
+                addIncomeUseCase.addInBaseCurrency(
                     amount = amount,
+                    baseCurrency = baseCurrency,
                     categoryId = categoryId,
                     description = description,
                     date = date
@@ -1122,7 +1145,7 @@ class TransactionFormViewModel @Inject constructor(
                 CurrencyExchange(
                     id = UUID.randomUUID().toString(),
                     fromAmount = 1.0,
-                    fromCurrency = "EUR",
+                    fromCurrency = state.baseCurrency,
                     toAmount = state.pendingSaveRate,
                     toCurrency = state.pendingSaveCurrency,
                     exchangeRate = state.pendingSaveRate,

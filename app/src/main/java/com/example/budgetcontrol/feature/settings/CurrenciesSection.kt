@@ -69,12 +69,12 @@ internal fun CurrenciesSection(
 internal fun CurrenciesBottomSheet(
     allCurrencies: List<String>,
     favoriteCurrencies: Set<String>,
+    baseCurrency: String,
     onToggleFavorite: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
-    val baseCurrency = "EUR"
 
     val filteredCurrencies = remember(allCurrencies, searchQuery) {
         if (searchQuery.isBlank()) allCurrencies

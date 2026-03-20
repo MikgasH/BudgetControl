@@ -2,8 +2,10 @@ package com.example.budgetcontrol.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,7 +20,7 @@ data class ExchangeFormState(
     val fromAmount: String = "",
     val fromCurrency: String = "USD",
     val toAmount: String = "",
-    val toCurrency: String = "EUR",
+    val toCurrency: String = DEFAULT_BASE_CURRENCY,
     val location: String = "",
     val date: Long = System.currentTimeMillis(),
     val error: String? = null
@@ -26,7 +28,8 @@ data class ExchangeFormState(
 
 @HiltViewModel
 class CurrencyExchangeViewModel @Inject constructor(
-    private val currencyExchangeRepository: CurrencyExchangeRepository
+    private val currencyExchangeRepository: CurrencyExchangeRepository,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     val exchanges: StateFlow<List<CurrencyExchange>> = currencyExchangeRepository.getAllExchanges()
@@ -34,6 +37,16 @@ class CurrencyExchangeViewModel @Inject constructor(
 
     private val _formState = MutableStateFlow(ExchangeFormState())
     val formState: StateFlow<ExchangeFormState> = _formState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            preferencesManager.baseCurrencyFlow.collect { currency ->
+                if (_formState.value.toCurrency == DEFAULT_BASE_CURRENCY) {
+                    _formState.value = _formState.value.copy(toCurrency = currency)
+                }
+            }
+        }
+    }
 
     fun updateFromAmount(amount: String) {
         _formState.value = _formState.value.copy(fromAmount = amount, error = null)

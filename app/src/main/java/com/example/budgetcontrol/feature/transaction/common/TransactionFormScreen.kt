@@ -272,6 +272,7 @@ private fun TransactionFormContent(
             isLoading = uiState.isLoading,
             errorMessage = uiState.showError,
             modifier = modifier,
+            baseCurrency = uiState.baseCurrency,
             availableCurrencies = uiState.availableCurrencies,
             isCurrenciesLoading = uiState.isCurrenciesLoading,
             currenciesError = uiState.currenciesError,
@@ -345,7 +346,7 @@ private fun EditTransactionFormContent(
             TransactionTypeDisplay(uiState.transactionType)
         }
 
-        val isAmountLocked = uiState.selectedCurrency != "EUR"
+        val isAmountLocked = uiState.selectedCurrency != uiState.baseCurrency
 
         com.example.budgetcontrol.ui.components.common.AmountInputCard(
             amount = if (isAmountLocked) uiState.originalAmount.toString() else uiState.amount,

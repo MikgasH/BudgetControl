@@ -26,6 +26,7 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.core.graphics.toColorInt
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,6 +38,7 @@ import java.util.*
 fun TransactionDetailContent(
     transaction: Transaction,
     category: Category?,
+    baseCurrency: String,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -74,7 +76,8 @@ fun TransactionDetailContent(
     ) {
         // Карточка с суммой
         TransactionAmountCard(
-            transaction = transaction
+            transaction = transaction,
+            baseCurrency = baseCurrency
         )
 
         // Категория
@@ -123,7 +126,7 @@ fun TransactionDetailContent(
             is Transaction.IncomeTransaction -> transaction.rateSource
         }
 
-        if (originalCurrency != "EUR") {
+        if (originalCurrency != baseCurrency) {
             val originalFormatted = String.format(Locale.US, "%.2f", originalAmount)
                 .trimEnd('0').trimEnd('.', ',')
             val displayName = try {
@@ -134,7 +137,7 @@ fun TransactionDetailContent(
             }
             DetailItem(
                 label = stringResource(R.string.original_amount),
-                value = "$originalFormatted $originalCurrency ($displayName)"
+                value = "$originalFormatted ${getCurrencySymbol(originalCurrency)} ($displayName)"
             )
 
             val isCashExchange = txRateSource == "CASH_EXCHANGE"
@@ -220,11 +223,12 @@ fun TransactionDetailContent(
 @Composable
 private fun TransactionAmountCard(
     transaction: Transaction,
+    baseCurrency: String,
     modifier: Modifier = Modifier
 ) {
     val amountText = when (transaction.type) {
-        TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} €"
-        TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} €"
+        TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+        TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
     }
 
     Card(

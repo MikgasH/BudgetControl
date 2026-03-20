@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
@@ -28,7 +29,7 @@ import javax.inject.Inject
 
 data class OnboardingUiState(
     val selectedLanguage: String = "",
-    val selectedCurrency: String = "EUR",
+    val selectedCurrency: String = DEFAULT_BASE_CURRENCY,
     val initialBalance: String = "",
     val currencies: List<String> = emptyList(),
     val currenciesLoading: Boolean = false,

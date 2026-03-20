@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import java.util.Currency
 import java.util.Locale
 
@@ -35,7 +36,7 @@ fun CurrencySelector(
     selectedCurrency: String,
     onCurrencySelect: (String) -> Unit,
     modifier: Modifier = Modifier,
-    baseCurrency: String = "EUR",
+    baseCurrency: String = DEFAULT_BASE_CURRENCY,
     favoriteCurrencies: Set<String> = emptySet(),
     isLoading: Boolean = false,
     error: String? = null,

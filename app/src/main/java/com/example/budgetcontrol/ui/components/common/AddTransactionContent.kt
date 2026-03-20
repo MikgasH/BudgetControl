@@ -70,7 +70,8 @@ fun AddTransactionContent(
     isLoading: Boolean,
     errorMessage: String?,
     modifier: Modifier = Modifier,
-    availableCurrencies: List<String> = listOf("EUR"),
+    baseCurrency: String,
+    availableCurrencies: List<String> = emptyList(),
     isCurrenciesLoading: Boolean = false,
     currenciesError: String? = null,
     favoriteCurrencies: Set<String> = emptySet(),
@@ -114,18 +115,19 @@ fun AddTransactionContent(
             currencies = availableCurrencies,
             selectedCurrency = formState.selectedCurrency,
             onCurrencySelect = formCallbacks.onCurrencySelect,
+            baseCurrency = baseCurrency,
             favoriteCurrencies = favoriteCurrencies,
             isLoading = isCurrenciesLoading,
             error = currenciesError
         )
 
-        // Network status banner (only when currency != EUR)
-        if (formState.selectedCurrency != "EUR" && networkStatus != NetworkStatus.ONLINE) {
+        // Network status banner (only when currency != base)
+        if (formState.selectedCurrency != baseCurrency && networkStatus != NetworkStatus.ONLINE) {
             NetworkStatusBanner(networkStatus = networkStatus)
         }
 
         // Stale rate warning
-        if (formState.selectedCurrency != "EUR" && staleRateWarning != null) {
+        if (formState.selectedCurrency != baseCurrency && staleRateWarning != null) {
             Text(
                 text = staleRateWarning,
                 style = MaterialTheme.typography.bodySmall,
@@ -134,7 +136,7 @@ fun AddTransactionContent(
             )
         }
 
-        if (formState.selectedCurrency != "EUR") {
+        if (formState.selectedCurrency != baseCurrency) {
             // Payment method toggle: Card / Cash
             PaymentMethodSelector(
                 selectedMethod = formState.paymentMethod,

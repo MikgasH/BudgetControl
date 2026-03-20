@@ -63,7 +63,7 @@ internal fun RateChart(
     onPointSelected: (date: String?, rate: Double) -> Unit
 ) {
     val allPoints = trendsData.points
-    if (allPoints.isEmpty()) {
+    if (allPoints.size < 2) {
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -121,8 +121,14 @@ internal fun RateChart(
     }
     val yAxisWidthDp = with(density) { maxLabelWidthPx.toDp() } + yAxisStartPad + yAxisLabelPadding
 
+    val yRange = yMax - yMin
     val pointsData = points.mapIndexed { index, ratePoint ->
-        Point(index.toFloat(), ratePoint.rate.toFloat())
+        val normalizedY = if (yRange > 0f) {
+            ((ratePoint.rate.toFloat() - yMin) / yRange) * ySteps
+        } else {
+            ySteps / 2f
+        }
+        Point(index.toFloat(), normalizedY)
     }
 
     val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
@@ -179,7 +185,7 @@ internal fun RateChart(
                 Line(
                     dataPoints = pointsData,
                     lineStyle = LineStyle(
-                        lineType = LineType.SmoothCurve(isDotted = false),
+                        lineType = if (points.size >= 4) LineType.SmoothCurve(isDotted = false) else LineType.Straight(isDotted = false),
                         color = lineColor,
                         width = 3f
                     ),
@@ -235,9 +241,11 @@ internal fun RateChart(
                         // X: YCharts places point i at columnWidth + i * axisStepSize
                         val xPx = yAxisWidthPx + currentSelectedIndex * xAxisStepSizePx
 
-                        // Y: YCharts maps [minRate, maxRate] to [plotBottom, plotTop]
+                        // Y: normalized data maps [0, maxNormalizedY] to [plotBottom, plotTop]
                         val rate = points[currentSelectedIndex].rate.toFloat()
-                        val yFraction = if (maxRate > minRate) ((rate - minRate) / (maxRate - minRate)).coerceIn(0f, 1f) else 0.5f
+                        val maxNormalizedY = pointsData.maxOf { it.y }
+                        val normalizedY = if (yRange > 0f) ((rate - yMin) / yRange) * ySteps else ySteps / 2f
+                        val yFraction = if (maxNormalizedY > 0f) (normalizedY / maxNormalizedY).coerceIn(0f, 1f) else 0.5f
                         val yPx = plotBottomPx - yFraction * plotHeightPx
 
                         // Vertical guide line (dashed)

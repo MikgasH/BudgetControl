@@ -14,11 +14,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import java.util.Locale
 
 @Composable
 internal fun BalanceSection(
     totalBalance: Double,
+    baseCurrency: String,
     onEditClick: () -> Unit
 ) {
     Card(
@@ -43,7 +45,7 @@ internal fun BalanceSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", totalBalance)} EUR",
+                    text = "${String.format(Locale.US, "%.2f", totalBalance)} ${getCurrencySymbol(baseCurrency)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -60,6 +62,7 @@ internal fun BalanceSection(
 @Composable
 internal fun BalanceEditDialog(
     totalBalance: Double,
+    baseCurrency: String,
     onSave: (Double) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -76,7 +79,7 @@ internal fun BalanceEditDialog(
                 onValueChange = { balanceText = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                suffix = { Text("EUR") },
+                suffix = { Text(getCurrencySymbol(baseCurrency)) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Done

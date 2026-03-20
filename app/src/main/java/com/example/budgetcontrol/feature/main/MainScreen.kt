@@ -42,7 +42,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
-import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.common.PeriodNavigationCard
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.util.displayName
@@ -50,20 +49,20 @@ import androidx.core.graphics.toColorInt
 import java.util.Locale
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import com.example.budgetcontrol.core.util.DateRangeHelper
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 
 @Composable
 fun MainScreen(
     onAddExpenseClick: (Long) -> Unit,
     onAddIncomeClick: (Long) -> Unit,
-    onExpensesListClick: () -> Unit = {},
     onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean) -> Unit = { _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
     onRateHistoryClick: () -> Unit = {},
-    onTransactionClick: (Transaction) -> Unit = {},
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val balance by viewModel.balance.collectAsState()
+    val baseCurrency by viewModel.baseCurrency.collectAsState()
     val currentContext = LocalContext.current
     val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
         context = currentContext,
@@ -314,6 +313,7 @@ fun MainScreen(
                 PeriodNavigationCard(
                     uiState = uiState,
                     periodDisplayText = periodDisplayText,
+                    baseCurrency = baseCurrency,
                     onNavigate = viewModel::navigatePeriod,
                     collapseFraction = collapseFraction,
                     chartHeight = chartHeight,
@@ -357,6 +357,7 @@ fun MainScreen(
                     items(uiState.categoryStatistics) { stat ->
                         CategoryStatisticItem(
                             statistic = stat,
+                            baseCurrency = baseCurrency,
                             onClick = {
                                 val (startDate, endDate) = viewModel.getCurrentPeriodDateRange()
                                 onCategoryClick(
@@ -477,6 +478,7 @@ private fun FixedPeriodTypeSelector(
 @Composable
 private fun CategoryStatisticItem(
     statistic: CategoryStatistic,
+    baseCurrency: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -535,7 +537,7 @@ private fun CategoryStatisticItem(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} €",
+                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
