@@ -1,7 +1,6 @@
 package com.example.budgetcontrol.feature.onboarding
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,10 +33,10 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.feature.settings.LookupState
 import kotlinx.coroutines.launch
 import java.util.Currency
+import java.util.Locale
 
 private const val PAGE_COUNT = 6
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
     onFinish: () -> Unit,
@@ -319,11 +318,21 @@ private fun CurrencyPage(
         }
     }
 
-    // EUR always first
+    // Sort locale-matching currency first (e.g. PLN for pl_PL), fall back to EUR
     val sortedCurrencies = remember(filteredCurrencies) {
-        val eur = filteredCurrencies.filter { it == "EUR" }
-        val rest = filteredCurrencies.filter { it != "EUR" }
-        eur + rest
+        val localeCurrency = try {
+            Currency.getInstance(Locale.getDefault()).currencyCode
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+        val preferredCurrency = if (localeCurrency != null && filteredCurrencies.contains(localeCurrency)) {
+            localeCurrency
+        } else {
+            "EUR"
+        }
+        val preferred = filteredCurrencies.filter { it == preferredCurrency }
+        val rest = filteredCurrencies.filter { it != preferredCurrency }
+        preferred + rest
     }
 
     Column(

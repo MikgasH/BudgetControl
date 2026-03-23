@@ -220,6 +220,41 @@ class MainScreenViewModel @Inject constructor(
         loadData()
     }
 
+    fun selectAllTime() {
+        viewModelScope.launch {
+            val expenseMin = getExpensesUseCase.getMinDate()
+            val expenseMax = getExpensesUseCase.getMaxDate()
+            val incomeMin = getIncomesUseCase.getMinDate()
+            val incomeMax = getIncomesUseCase.getMaxDate()
+
+            val allDates = listOfNotNull(expenseMin, incomeMin)
+            val allEndDates = listOfNotNull(expenseMax, incomeMax)
+
+            val now = Calendar.getInstance()
+            val start = if (allDates.isNotEmpty()) allDates.min() else {
+                Calendar.getInstance().apply {
+                    set(now.get(Calendar.YEAR), 0, 1, 0, 0, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+            }
+            val end = if (allEndDates.isNotEmpty()) allEndDates.max() else {
+                Calendar.getInstance().apply {
+                    set(now.get(Calendar.YEAR), 11, 31, 23, 59, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }.timeInMillis
+            }
+
+            _uiState.value = _uiState.value.copy(
+                selectedPeriodType = PeriodType.PERIOD,
+                currentPeriodIndex = 0,
+                customStartDate = start,
+                customEndDate = end,
+                isAllTimePeriod = true
+            )
+            loadData()
+        }
+    }
+
     fun getCategoryById(categoryId: String): Category? {
         return _uiState.value.categories.findById(categoryId)
     }

@@ -50,4 +50,8 @@ class IncomeRepositoryImpl @Inject constructor(
     override suspend fun getTotalAmountByDateRange(startDate: Long, endDate: Long): Double {
         return incomeDao.getTotalAmountByDateRange(startDate, endDate) ?: 0.0
     }
+
+    override suspend fun getMinDate(): Long? = incomeDao.getMinDate()
+
+    override suspend fun getMaxDate(): Long? = incomeDao.getMaxDate()
 }

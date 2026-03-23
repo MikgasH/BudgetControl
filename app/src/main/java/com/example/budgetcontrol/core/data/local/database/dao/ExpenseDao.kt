@@ -33,4 +33,10 @@ interface ExpenseDao {
 
     @Query("SELECT SUM(amount) FROM expenses WHERE date BETWEEN :startDate AND :endDate")
     suspend fun getTotalAmountByDateRange(startDate: Long, endDate: Long): Double?
+
+    @Query("SELECT MIN(date) FROM expenses")
+    suspend fun getMinDate(): Long?
+
+    @Query("SELECT MAX(date) FROM expenses")
+    suspend fun getMaxDate(): Long?
 }

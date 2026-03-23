@@ -29,7 +29,8 @@ import java.util.*
 @Composable
 fun PeriodRangePicker(
     onPeriodSelected: (Long, Long) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onAllTimeSelected: (() -> Unit)? = null
 ) {
     var currentMonth by remember {
         mutableStateOf(Calendar.getInstance())
@@ -159,13 +160,20 @@ fun PeriodRangePicker(
                 ) {
                     TextButton(
                         onClick = {
-                            val allTimeStart = Calendar.getInstance().apply {
-                                set(2020, 0, 1)
-                            }.timeInMillis
-                            val allTimeEnd = Calendar.getInstance().apply {
-                                set(2030, 11, 31)
-                            }.timeInMillis
-                            onPeriodSelected(allTimeStart, allTimeEnd)
+                            if (onAllTimeSelected != null) {
+                                onAllTimeSelected()
+                            } else {
+                                val now = Calendar.getInstance()
+                                val allTimeStart = Calendar.getInstance().apply {
+                                    set(now.get(Calendar.YEAR), 0, 1, 0, 0, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }.timeInMillis
+                                val allTimeEnd = Calendar.getInstance().apply {
+                                    set(now.get(Calendar.YEAR), 11, 31, 23, 59, 59)
+                                    set(Calendar.MILLISECOND, 999)
+                                }.timeInMillis
+                                onPeriodSelected(allTimeStart, allTimeEnd)
+                            }
                             onDismiss()
                         },
                         modifier = Modifier.weight(1f)

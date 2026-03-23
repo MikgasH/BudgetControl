@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.core.os.ConfigurationCompat
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import java.util.Currency
@@ -43,7 +44,7 @@ fun CurrencySelector(
     enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val appLocale = LocalConfiguration.current.locales[0]
+    val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
 
     // Split currencies: favourites first (excluding base), then the rest
     val favoritesExcludingBase = remember(currencies, baseCurrency, favoriteCurrencies) {

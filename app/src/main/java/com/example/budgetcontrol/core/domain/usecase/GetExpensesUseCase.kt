@@ -19,4 +19,8 @@ class GetExpensesUseCase @Inject constructor(
     fun getByCategory(categoryId: String): Flow<List<Expense>> {
         return repository.getExpensesByCategory(categoryId)
     }
+
+    suspend fun getMinDate(): Long? = repository.getMinDate()
+
+    suspend fun getMaxDate(): Long? = repository.getMaxDate()
 }

@@ -13,4 +13,6 @@ interface IncomeRepository {
     suspend fun deleteIncome(income: Income)
     suspend fun deleteIncomeById(id: String)
     suspend fun getTotalAmountByDateRange(startDate: Long, endDate: Long): Double
+    suspend fun getMinDate(): Long?
+    suspend fun getMaxDate(): Long?
 }

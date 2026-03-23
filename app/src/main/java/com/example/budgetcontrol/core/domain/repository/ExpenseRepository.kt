@@ -13,4 +13,6 @@ interface ExpenseRepository {
     suspend fun deleteExpense(expense: Expense)
     suspend fun deleteExpenseById(id: String)
     suspend fun getTotalAmountByDateRange(startDate: Long, endDate: Long): Double
+    suspend fun getMinDate(): Long?
+    suspend fun getMaxDate(): Long?
 }

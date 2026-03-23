@@ -28,8 +28,8 @@ class BankRepositoryImpl @Inject constructor(
     override suspend fun deleteAllBanks() = bankDao.deleteAllBanks()
 
     override suspend fun insertDefaultBanks() {
-        AppDatabase.DEFAULT_BANKS.forEach { bank ->
-            bankDao.insertBank(bank)
+        AppDatabase.DEFAULT_BANKS.forEach { entity ->
+            bankDao.insertBank(entity.toDomain().toEntity())
         }
     }
 }

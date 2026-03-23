@@ -80,7 +80,11 @@ fun MainScreen(
                 viewModel.selectCustomPeriod(startDate, endDate)
                 showPeriodPicker = false
             },
-            onDismiss = { showPeriodPicker = false }
+            onDismiss = { showPeriodPicker = false },
+            onAllTimeSelected = {
+                viewModel.selectAllTime()
+                showPeriodPicker = false
+            }
         )
     }
 
