@@ -34,6 +34,7 @@ data class StatisticsUiState(
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
     val totalAmount: Double = 0.0,
     val isLoading: Boolean = true,
+    val error: String? = null,
     val selectedPeriod: TimePeriod = TimePeriod.THIS_MONTH,
     val selectedTab: StatisticsTab = StatisticsTab.EXPENSES
 )
@@ -67,55 +68,66 @@ class StatisticsViewModel @Inject constructor(
 
     private fun loadData() {
         loadDataJob?.cancel()
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         loadDataJob = viewModelScope.launch {
-            val currentState = _uiState.value
-            val startTime = getStartTimeForPeriod(currentState.selectedPeriod)
+            try {
+                val currentState = _uiState.value
+                val startTime = getStartTimeForPeriod(currentState.selectedPeriod)
 
-            val expensesFlow = if (startTime != null) {
-                getExpensesUseCase.getByDateRange(startTime, Long.MAX_VALUE)
-            } else {
-                getExpensesUseCase()
-            }
-            val incomesFlow = if (startTime != null) {
-                getIncomesUseCase.getByDateRange(startTime, Long.MAX_VALUE)
-            } else {
-                getIncomesUseCase()
-            }
-
-            combine(
-                expensesFlow,
-                incomesFlow,
-                getCategoriesUseCase()
-            ) { expenses, incomes, categories ->
-                val (stats, total) = when (currentState.selectedTab) {
-                    StatisticsTab.EXPENSES -> {
-                        val totalAmount = expenses.sumOf { it.amount }
-                        val categoryStats = calculateCategoryStatistics(
-                            expenses, { it.amount }, { it.categoryId }, categories
-                        )
-                        categoryStats to totalAmount
-                    }
-                    StatisticsTab.INCOMES -> {
-                        val totalAmount = incomes.sumOf { it.amount }
-                        val categoryStats = calculateCategoryStatistics(
-                            incomes, { it.amount }, { it.categoryId }, categories
-                        )
-                        categoryStats to totalAmount
-                    }
+                val expensesFlow = if (startTime != null) {
+                    getExpensesUseCase.getByDateRange(startTime, Long.MAX_VALUE)
+                } else {
+                    getExpensesUseCase()
+                }
+                val incomesFlow = if (startTime != null) {
+                    getIncomesUseCase.getByDateRange(startTime, Long.MAX_VALUE)
+                } else {
+                    getIncomesUseCase()
                 }
 
-                StatisticsUiState(
-                    expenses = expenses,
-                    incomes = incomes,
-                    categories = categories,
-                    categoryStatistics = stats,
-                    totalAmount = total,
+                combine(
+                    expensesFlow,
+                    incomesFlow,
+                    getCategoriesUseCase()
+                ) { expenses, incomes, categories ->
+                    val (stats, total) = when (currentState.selectedTab) {
+                        StatisticsTab.EXPENSES -> {
+                            val totalAmount = expenses.sumOf { it.amount }
+                            val categoryStats = calculateCategoryStatistics(
+                                expenses, { it.amount }, { it.categoryId }, categories
+                            )
+                            categoryStats to totalAmount
+                        }
+                        StatisticsTab.INCOMES -> {
+                            val totalAmount = incomes.sumOf { it.amount }
+                            val categoryStats = calculateCategoryStatistics(
+                                incomes, { it.amount }, { it.categoryId }, categories
+                            )
+                            categoryStats to totalAmount
+                        }
+                    }
+
+                    StatisticsUiState(
+                        expenses = expenses,
+                        incomes = incomes,
+                        categories = categories,
+                        categoryStatistics = stats,
+                        totalAmount = total,
+                        isLoading = false,
+                        error = null,
+                        selectedPeriod = currentState.selectedPeriod,
+                        selectedTab = currentState.selectedTab
+                    )
+                }.collect { state ->
+                    _uiState.value = state
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    selectedPeriod = currentState.selectedPeriod,
-                    selectedTab = currentState.selectedTab
+                    error = e.message ?: "Unknown error"
                 )
-            }.collect { state ->
-                _uiState.value = state
             }
         }
     }

@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -124,22 +125,21 @@ class TransactionFormViewModel @Inject constructor(
     private var cachedRateCurrency: String? = null
 
     init {
-        bankRepository.getFavoriteBanks()
-            .onEach { banks -> _uiState.value = _uiState.value.copy(availableBanks = banks) }
-            .launchIn(viewModelScope)
-
-        preferencesManager.favoriteCurrenciesFlow
-            .onEach { favorites -> _uiState.value = _uiState.value.copy(favoriteCurrencies = favorites) }
-            .launchIn(viewModelScope)
-
-        preferencesManager.baseCurrencyFlow
-            .onEach { currency ->
-                _uiState.value = _uiState.value.copy(
-                    baseCurrency = currency,
-                    selectedCurrency = if (_uiState.value.selectedCurrency == _uiState.value.baseCurrency) currency else _uiState.value.selectedCurrency
-                )
-            }
-            .launchIn(viewModelScope)
+        combine(
+            bankRepository.getFavoriteBanks(),
+            preferencesManager.favoriteCurrenciesFlow,
+            preferencesManager.baseCurrencyFlow
+        ) { banks, favorites, currency ->
+            Triple(banks, favorites, currency)
+        }.onEach { (banks, favorites, currency) ->
+            val current = _uiState.value
+            _uiState.value = current.copy(
+                availableBanks = banks,
+                favoriteCurrencies = favorites,
+                baseCurrency = currency,
+                selectedCurrency = if (current.selectedCurrency == current.baseCurrency) currency else current.selectedCurrency
+            )
+        }.launchIn(viewModelScope)
     }
 
     private fun checkNetworkStatus() {
@@ -932,7 +932,13 @@ class TransactionFormViewModel @Inject constructor(
         state: TransactionFormUiState,
         amountDouble: Double
     ) {
-        val originalTransaction = state.originalTransaction!!
+        val originalTransaction = state.originalTransaction ?: run {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                showError = context.getString(R.string.error_loading, "Original transaction not found")
+            )
+            return
+        }
 
         if (state.transactionType == originalTransaction.type) {
             updateExistingTransaction(
@@ -1158,6 +1164,8 @@ class TransactionFormViewModel @Inject constructor(
             is AddTransactionError.ConversionFailed -> error.message
             is AddTransactionError.NetworkUnavailable ->
                 context.getString(R.string.error_currency_service_unavailable)
+            is AddTransactionError.InvalidAmount ->
+                context.getString(R.string.validation_amount_positive)
         }
     }
 
@@ -1168,6 +1176,8 @@ class TransactionFormViewModel @Inject constructor(
             is AddTransactionError.ConversionFailed -> error.message
             is AddTransactionError.NetworkUnavailable ->
                 context.getString(R.string.error_currency_service_unavailable)
+            is AddTransactionError.InvalidAmount ->
+                context.getString(R.string.validation_amount_positive)
         }
     }
 

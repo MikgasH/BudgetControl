@@ -84,6 +84,9 @@ class AddExpenseUseCase @Inject constructor(
         bankCommission: Double? = null,
         rateSource: String = "USER_CORRECTED"
     ): AddExpenseResult {
+        if (exactBaseAmount <= 0.0) {
+            return AddExpenseResult.Error(AddTransactionError.InvalidAmount)
+        }
         return try {
             val expense = Expense(
                 id = UUID.randomUUID().toString(),

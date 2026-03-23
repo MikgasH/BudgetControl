@@ -28,6 +28,7 @@ data class ExpensesScreenUiState(
     val transactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
     val isLoading: Boolean = true,
+    val error: String? = null,
     val totalAmount: Double = 0.0
 )
 
@@ -51,22 +52,31 @@ class ExpensesScreenViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            combine(
-                getExpensesUseCase(),
-                getCategoriesUseCase()
-            ) { expenses, categories ->
-                val transactions = expenses.map { it.toTransaction() }
-                    .sortedByDescending { it.date }
+            try {
+                combine(
+                    getExpensesUseCase(),
+                    getCategoriesUseCase()
+                ) { expenses, categories ->
+                    val transactions = expenses.map { it.toTransaction() }
+                        .sortedByDescending { it.date }
 
-                ExpensesScreenUiState(
-                    expenses = expenses,
-                    transactions = transactions,
-                    categories = categories,
+                    ExpensesScreenUiState(
+                        expenses = expenses,
+                        transactions = transactions,
+                        categories = categories,
+                        isLoading = false,
+                        totalAmount = expenses.sumOf { it.amount }
+                    )
+                }.collect { state ->
+                    _uiState.value = state
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    totalAmount = expenses.sumOf { it.amount }
+                    error = e.message ?: "Unknown error"
                 )
-            }.collect { state ->
-                _uiState.value = state
             }
         }
     }

@@ -43,6 +43,7 @@ data class MainScreenUiState(
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
     val totalAmount: Double = 0.0,
     val isLoading: Boolean = true,
+    val error: String? = null,
     val selectedPeriodType: PeriodType = PeriodType.DAY,
     val selectedOperationType: OperationType = OperationType.EXPENSES,
     val currentPeriodIndex: Int = 0,
@@ -93,67 +94,78 @@ class MainScreenViewModel @Inject constructor(
     private fun loadData() {
         // Cancel the previous combine collector — period/tab change starts a new one
         loadDataJob?.cancel()
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         loadDataJob = viewModelScope.launch {
-            val currentState = _uiState.value
+            try {
+                val currentState = _uiState.value
 
-            val dateRange = if (!currentState.isAllTimePeriod) {
-                DateRangeHelper.getDateRange(
-                    periodType = currentState.selectedPeriodType,
-                    periodOffset = currentState.currentPeriodIndex,
-                    customStartDate = currentState.customStartDate,
-                    customEndDate = currentState.customEndDate
-                )
-            } else null
+                val dateRange = if (!currentState.isAllTimePeriod) {
+                    DateRangeHelper.getDateRange(
+                        periodType = currentState.selectedPeriodType,
+                        periodOffset = currentState.currentPeriodIndex,
+                        customStartDate = currentState.customStartDate,
+                        customEndDate = currentState.customEndDate
+                    )
+                } else null
 
-            val expensesFlow = if (dateRange != null) {
-                getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
-            } else {
-                getExpensesUseCase()
-            }
-            val incomesFlow = if (dateRange != null) {
-                getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
-            } else {
-                getIncomesUseCase()
-            }
-
-            combine(
-                expensesFlow,
-                incomesFlow,
-                getCategoriesUseCase()
-            ) { expenses, incomes, categories ->
-                val currentTransactions = when (currentState.selectedOperationType) {
-                    OperationType.EXPENSES -> expenses.map { it.toTransaction() }
-                    OperationType.INCOMES -> incomes.map { it.toTransaction() }
-                }.sortedByDescending { it.date }
-
-                val (totalAmount, categoryStats) = when (currentState.selectedOperationType) {
-                    OperationType.EXPENSES -> {
-                        val total = expenses.sumOf { it.amount }
-                        val stats = calculateCategoryStatistics(
-                            expenses, { it.amount }, { it.categoryId },
-                            categories.filter { it.type == CategoryType.EXPENSE }
-                        )
-                        Pair(total, stats)
-                    }
-                    OperationType.INCOMES -> {
-                        val total = incomes.sumOf { it.amount }
-                        val stats = calculateCategoryStatistics(
-                            incomes, { it.amount }, { it.categoryId },
-                            categories.filter { it.type == CategoryType.INCOME }
-                        )
-                        Pair(total, stats)
-                    }
+                val expensesFlow = if (dateRange != null) {
+                    getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
+                } else {
+                    getExpensesUseCase()
+                }
+                val incomesFlow = if (dateRange != null) {
+                    getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
+                } else {
+                    getIncomesUseCase()
                 }
 
-                currentState.copy(
-                    transactions = currentTransactions,
-                    categories = categories,
-                    categoryStatistics = categoryStats,
-                    totalAmount = totalAmount,
-                    isLoading = false
+                combine(
+                    expensesFlow,
+                    incomesFlow,
+                    getCategoriesUseCase()
+                ) { expenses, incomes, categories ->
+                    val currentTransactions = when (currentState.selectedOperationType) {
+                        OperationType.EXPENSES -> expenses.map { it.toTransaction() }
+                        OperationType.INCOMES -> incomes.map { it.toTransaction() }
+                    }.sortedByDescending { it.date }
+
+                    val (totalAmount, categoryStats) = when (currentState.selectedOperationType) {
+                        OperationType.EXPENSES -> {
+                            val total = expenses.sumOf { it.amount }
+                            val stats = calculateCategoryStatistics(
+                                expenses, { it.amount }, { it.categoryId },
+                                categories.filter { it.type == CategoryType.EXPENSE }
+                            )
+                            Pair(total, stats)
+                        }
+                        OperationType.INCOMES -> {
+                            val total = incomes.sumOf { it.amount }
+                            val stats = calculateCategoryStatistics(
+                                incomes, { it.amount }, { it.categoryId },
+                                categories.filter { it.type == CategoryType.INCOME }
+                            )
+                            Pair(total, stats)
+                        }
+                    }
+
+                    currentState.copy(
+                        transactions = currentTransactions,
+                        categories = categories,
+                        categoryStatistics = categoryStats,
+                        totalAmount = totalAmount,
+                        isLoading = false,
+                        error = null
+                    )
+                }.collect { state ->
+                    _uiState.value = state
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Unknown error"
                 )
-            }.collect { state ->
-                _uiState.value = state
             }
         }
     }

@@ -110,9 +110,11 @@ class RateHistoryViewModel @Inject constructor(
     }
 
     fun swapCurrencies() {
-        val from = _selectedFrom.value
-        _selectedFrom.value = _selectedTo.value
-        _selectedTo.value = from
+        val oldFrom = _selectedFrom.value
+        val oldTo = _selectedTo.value
+        // Set both values atomically before triggering a single load
+        _selectedFrom.value = oldTo
+        _selectedTo.value = oldFrom
         loadTrends()
     }
 

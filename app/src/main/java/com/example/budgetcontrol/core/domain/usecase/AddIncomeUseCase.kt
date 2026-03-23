@@ -78,6 +78,9 @@ class AddIncomeUseCase @Inject constructor(
         bankCommission: Double? = null,
         rateSource: String = "USER_CORRECTED"
     ): AddIncomeResult {
+        if (exactBaseAmount <= 0.0) {
+            return AddIncomeResult.Error(AddTransactionError.InvalidAmount)
+        }
         return try {
             val income = Income(
                 id = UUID.randomUUID().toString(),
