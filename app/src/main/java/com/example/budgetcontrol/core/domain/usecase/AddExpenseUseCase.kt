@@ -94,6 +94,7 @@ class AddExpenseUseCase @Inject constructor(
                 createdAt = System.currentTimeMillis(),
                 originalAmount = originalAmount,
                 originalCurrency = originalCurrency,
+                // Derive the effective rate from user-provided amounts (inverse of normal API rate direction)
                 exchangeRate = if (originalAmount > 0) originalAmount / exactBaseAmount else null,
                 bankName = bankName,
                 bankCommission = bankCommission,

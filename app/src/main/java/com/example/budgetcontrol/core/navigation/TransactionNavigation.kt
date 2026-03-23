@@ -31,7 +31,7 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Добавление расхода с выбранной датой
+    // Route variant that accepts a pre-selected date via query param
     composable(
         route = "${Screen.AddExpense.route}?selectedDate={selectedDate}",
         enterTransition = { slideInFromBottom + fadeIn },
@@ -71,7 +71,7 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Добавление дохода с выбранной датой
+    // Route variant that accepts a pre-selected date via query param
     composable(
         route = "${Screen.AddIncome.route}?selectedDate={selectedDate}",
         enterTransition = { slideInFromBottom + fadeIn },
@@ -111,7 +111,6 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Расходы по категории
     composable("${Screen.ExpensesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}") { backStackEntry ->
         val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
         val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
@@ -131,7 +130,6 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Детали расхода
     composable(
         route = "${Screen.ExpenseDetail.route}/{expenseId}",
         enterTransition = { fadeIn },
@@ -152,7 +150,6 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Редактирование расхода
     composable(
         route = "${Screen.EditExpense.route}/{expenseId}",
         enterTransition = { slideInFromBottom + fadeIn },
@@ -171,7 +168,6 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Детали дохода
     composable(
         route = "${Screen.IncomeDetail.route}/{incomeId}",
         enterTransition = { fadeIn },
@@ -192,7 +188,6 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Редактирование дохода
     composable(
         route = "${Screen.EditIncome.route}/{incomeId}",
         enterTransition = { slideInFromBottom + fadeIn },
@@ -211,7 +206,6 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Доходы по категории
     composable("${Screen.IncomesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}") { backStackEntry ->
         val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
         val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()

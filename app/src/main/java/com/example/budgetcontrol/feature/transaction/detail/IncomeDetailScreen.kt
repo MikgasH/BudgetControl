@@ -31,12 +31,10 @@ fun IncomeDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
-    // Загружаем транзакцию при создании экрана
     LaunchedEffect(incomeId) {
         viewModel.loadTransaction(incomeId, TransactionType.INCOME)
     }
 
-    // Отслеживаем успешное удаление
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
             onDeleteSuccess()
@@ -59,11 +57,10 @@ fun IncomeDetailScreen(
                         .padding(
                             start = 20.dp,
                             end = 20.dp,
-                            top = 60.dp, // ЕДИНЫЙ отступ сверху
-                            bottom = 10.dp // ЕДИНЫЙ отступ снизу
+                            top = 60.dp,
+                            bottom = 10.dp
                         )
                 ) {
-                    // Кнопка назад слева
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier.align(Alignment.CenterStart)
@@ -76,7 +73,6 @@ fun IncomeDetailScreen(
                         )
                     }
 
-                    // Заголовок по центру
                     Text(
                         text = uiState.category?.displayName()?.uppercase() ?: stringResource(R.string.income_upper),
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -86,7 +82,6 @@ fun IncomeDetailScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
 
-                    // Кнопка редактирования справа
                     IconButton(
                         onClick = { onEditClick(incomeId) },
                         modifier = Modifier.align(Alignment.CenterEnd)
@@ -150,7 +145,6 @@ fun IncomeDetailScreen(
                         modifier = Modifier.padding(paddingValues)
                     )
                 } ?: run {
-                    // Если транзакция не загрузилась, показываем ошибку
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

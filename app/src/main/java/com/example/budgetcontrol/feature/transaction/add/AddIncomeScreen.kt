@@ -5,10 +5,6 @@ import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.feature.transaction.common.TransactionFormMode
 import com.example.budgetcontrol.feature.transaction.common.TransactionFormScreen
 
-/**
- * Экран добавления дохода
- * Теперь простая обертка над универсальным TransactionFormScreen
- */
 @Composable
 fun AddIncomeScreen(
     selectedDate: Long = System.currentTimeMillis(),

@@ -82,6 +82,7 @@ class CurrencyExchangeViewModel @Inject constructor(
             return
         }
 
+        // Rate = "how many TO units per 1 FROM unit" — matches how exchange bureaus display rates
         val exchangeRate = toAmount / fromAmount
 
         viewModelScope.launch {

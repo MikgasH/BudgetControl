@@ -74,7 +74,7 @@ class GeminiRepository @Inject constructor(
                 return GeminiResult.NotFound
             }
 
-            // Try to extract number from response (Gemini sometimes adds % or text around it)
+            // Gemini may wrap the number in text (e.g. "about 1.5%" or "2.0 percent") — extract with regex first, fall back to direct parse
             val numberRegex = Regex("""(\d+\.?\d*)""")
             val matchResult = numberRegex.find(text)
             val value = matchResult?.groupValues?.get(1)?.toDoubleOrNull()

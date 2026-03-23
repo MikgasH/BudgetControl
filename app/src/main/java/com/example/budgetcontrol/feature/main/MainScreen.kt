@@ -74,7 +74,6 @@ fun MainScreen(
     )
     var showPeriodPicker by remember { mutableStateOf(false) }
 
-    // Показываем период пикер
     if (showPeriodPicker) {
         PeriodRangePicker(
             onPeriodSelected = { startDate, endDate ->
@@ -87,7 +86,6 @@ fun MainScreen(
 
     Scaffold(
         topBar = {
-            // Верхняя панель с балансом
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -102,8 +100,8 @@ fun MainScreen(
                         .padding(
                             start = 20.dp,
                             end = 20.dp,
-                            top = 60.dp, // УВЕЛИЧИЛИ отступ сверху для статус бара
-                            bottom = 10.dp // УВЕЛИЧИЛИ отступ снизу
+                            top = 60.dp,
+                            bottom = 10.dp
                         )
                 ) {
                     IconButton(
@@ -497,7 +495,6 @@ private fun CategoryStatisticItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка категории
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -517,7 +514,6 @@ private fun CategoryStatisticItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Информация о категории
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = statistic.category.displayName(),
@@ -527,7 +523,6 @@ private fun CategoryStatisticItem(
                 )
             }
 
-            // Статистика
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${String.format(Locale.US, "%.1f", statistic.percentage)}%",

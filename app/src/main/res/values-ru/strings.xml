@@ -405,6 +405,8 @@
     <string name="rate_history_amount">Сумма</string>
     <string name="rate_history_screen_title">История курсов валют</string>
     <string name="rate_history_swap">Поменять валюты</string>
+    <string name="rate_history_not_enough_data">Недостаточно данных для графика</string>
+    <string name="rate_history_updates_interval">Обновляется каждые 8 часов</string>
 
     <!-- Cash mode hints -->
     <string name="cash_rate_desc">Введите курс обмена, полученный в обменном пункте.</string>

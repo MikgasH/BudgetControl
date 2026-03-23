@@ -4,22 +4,13 @@ import android.content.Context
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 
-/**
- * Утилиты для валидации данных транзакций
- */
 object ValidationHelper {
 
-    /**
-     * Результат валидации
-     */
     sealed class ValidationResult {
         object Success : ValidationResult()
         data class Error(val message: String) : ValidationResult()
     }
 
-    /**
-     * Валидация суммы
-     */
     fun validateAmount(context: Context, amount: String): ValidationResult {
         val normalized = amount.replace(',', '.')
         return when {
@@ -30,9 +21,6 @@ object ValidationHelper {
         }
     }
 
-    /**
-     * Валидация категории
-     */
     fun validateCategory(context: Context, category: Category?): ValidationResult {
         return if (category == null) {
             ValidationResult.Error(context.getString(R.string.validation_select_category))
@@ -42,7 +30,7 @@ object ValidationHelper {
     }
 
     /**
-     * Фильтрация ввода суммы (только цифры и одна точка/запятая → точка)
+     * Filters input to allow only digits and a single decimal separator (comma → dot).
      */
     fun filterAmountInput(input: String): String {
         // Replace comma with dot first (European decimal separator)
@@ -51,7 +39,7 @@ object ValidationHelper {
         return if (filtered.count { it == '.' } <= 1) {
             filtered
         } else {
-            // Оставляем только первую точку
+            // Keep only the first decimal point
             val firstDotIndex = filtered.indexOf('.')
             filtered.substring(0, firstDotIndex + 1) +
                     filtered.substring(firstDotIndex + 1).replace(".", "")
@@ -65,9 +53,6 @@ object ValidationHelper {
         return input.replace(',', '.').toDoubleOrNull()
     }
 
-    /**
-     * Валидация всех полей транзакции
-     */
     fun validateTransaction(
         context: Context,
         amount: String,

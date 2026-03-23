@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 
+// Cap at 30 points to avoid YCharts rendering performance issues on dense datasets (e.g. 180-day period)
 private fun downsamplePoints(
     points: List<RatePoint>,
     maxPoints: Int = 30
@@ -63,27 +64,7 @@ internal fun RateChart(
     onPointSelected: (date: String?, rate: Double) -> Unit
 ) {
     val allPoints = trendsData.points
-    if (allPoints.size < 2) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(340.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.rate_history_no_data),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        return
-    }
+    if (allPoints.size < 2) return
 
     val points = downsamplePoints(allPoints)
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
@@ -103,7 +84,8 @@ internal fun RateChart(
     val yMin = minRate - rateRange
     val yMax = maxRate + rateRange
 
-    // Dynamically compute Y-axis width to match YCharts internal layout
+    // YCharts doesn't expose its computed Y-axis width, so we replicate the measurement
+    // to correctly position the Canvas overlay and gesture detection on top of the chart
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val ySteps = 4
@@ -155,7 +137,7 @@ internal fun RateChart(
     val steps = points.size - 1
     val xAxisStepSize = if (steps > 0) maxOf(1.dp, plotDataWidth / steps) else plotDataWidth
 
-    // X-axis: no labels rendered by chart — we draw our own below
+    // YCharts clips long x-axis labels; we disable them here and render our own Row below the chart
     val xAxisData = AxisData.Builder()
         .axisStepSize(xAxisStepSize)
         .steps(steps)

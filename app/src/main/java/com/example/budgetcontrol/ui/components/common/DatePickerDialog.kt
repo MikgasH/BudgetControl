@@ -36,7 +36,7 @@ fun DatePickerDialog(
         mutableStateOf(Calendar.getInstance().apply { timeInMillis = selectedDate })
     }
 
-    // ОГРАНИЧИВАЕМ максимальный месяц текущим
+    // Prevent navigating beyond the current month
     val maxMonth = Calendar.getInstance()
 
     Dialog(onDismissRequest = onDismiss) {
@@ -60,7 +60,6 @@ fun DatePickerDialog(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Навигация по месяцам
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,12 +105,11 @@ fun DatePickerDialog(
                             )
                         }
                     } else {
-                        // Пустой блок чтобы сохранить центрирование
+                        // Placeholder to keep the title centered
                         Box(modifier = Modifier.size(48.dp))
                     }
                 }
 
-                // Дни недели
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -129,12 +127,10 @@ fun DatePickerDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Календарь
                 CalendarGrid(
                     currentMonth = currentMonth,
                     selectedDate = selectedDate,
                     onDateSelected = { date ->
-                        // ПРОВЕРЯЕМ что дата не в будущем
                         if (date <= System.currentTimeMillis()) {
                             onDateSelected(date)
                             onDismiss()
@@ -144,7 +140,6 @@ fun DatePickerDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Кнопки
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -189,7 +184,7 @@ private fun DayItem(
 ) {
     val isSelected = isSameDay(dayInfo.date, selectedDate)
     val isToday = isSameDay(dayInfo.date, System.currentTimeMillis())
-    val isFuture = dayInfo.date > System.currentTimeMillis() && !isToday // ДОБАВИЛИ проверку на будущее
+    val isFuture = dayInfo.date > System.currentTimeMillis() && !isToday
 
     Box(
         modifier = Modifier
@@ -202,7 +197,7 @@ private fun DayItem(
                     else -> Color.Transparent
                 }
             )
-            .clickable(enabled = dayInfo.isCurrentMonth && !isFuture) { // ОТКЛЮЧАЕМ клик для будущих дат
+            .clickable(enabled = dayInfo.isCurrentMonth && !isFuture) {
                 onDateSelected(dayInfo.date)
             },
         contentAlignment = Alignment.Center
@@ -212,7 +207,7 @@ private fun DayItem(
             style = MaterialTheme.typography.bodyMedium,
             color = when {
                 !dayInfo.isCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) // ДЕЛАЕМ БУДУЩИЕ ДАТЫ СЕРЫМИ
+                isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 isSelected -> MaterialTheme.colorScheme.onPrimary
                 isToday -> MaterialTheme.colorScheme.onTertiary
                 else -> MaterialTheme.colorScheme.onSurface
@@ -231,17 +226,15 @@ private data class DayInfo(
 private fun getDaysInMonth(currentMonth: Calendar): List<DayInfo> {
     val days = mutableListOf<DayInfo>()
 
-    // Первый день месяца
     val firstDayOfMonth = Calendar.getInstance().apply {
         timeInMillis = currentMonth.timeInMillis
         set(Calendar.DAY_OF_MONTH, 1)
     }
 
-    // Первый день недели (понедельник = 2)
+    // Monday = Calendar.MONDAY (2), so offset accordingly
     val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK)
     val daysFromPrevMonth = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - 2
 
-    // Добавляем дни из предыдущего месяца
     val prevMonth = Calendar.getInstance().apply {
         timeInMillis = firstDayOfMonth.timeInMillis
         add(Calendar.MONTH, -1)
@@ -258,7 +251,6 @@ private fun getDaysInMonth(currentMonth: Calendar): List<DayInfo> {
         days.add(DayInfo(date, day, false))
     }
 
-    // Добавляем дни текущего месяца
     val daysInCurrentMonth = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
     for (day in 1..daysInCurrentMonth) {
         val date = Calendar.getInstance().apply {
@@ -269,8 +261,8 @@ private fun getDaysInMonth(currentMonth: Calendar): List<DayInfo> {
         days.add(DayInfo(date, day, true))
     }
 
-    // Добавляем дни из следующего месяца для заполнения сетки
-    val totalCells = 42 // 6 недель x 7 дней
+    // Fill remaining cells to complete a 6-week grid
+    val totalCells = 42
     val remainingCells = totalCells - days.size
 
     for (day in 1..remainingCells) {

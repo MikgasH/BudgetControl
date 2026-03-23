@@ -58,20 +58,17 @@ data class TransactionFormUiState(
     val pendingTypeChange: TransactionType? = null,
     val selectedExpenseCategory: Category? = null,
     val selectedIncomeCategory: Category? = null,
-    // Мультивалютность
     val baseCurrency: String = DEFAULT_BASE_CURRENCY,
     val availableCurrencies: List<String> = listOf(DEFAULT_BASE_CURRENCY),
     val selectedCurrency: String = DEFAULT_BASE_CURRENCY,
     val isCurrenciesLoading: Boolean = false,
     val currenciesError: String? = null,
-    // Банк и комиссия
     val availableBanks: List<Bank> = emptyList(),
     val selectedBank: Bank? = null,
     val convertedAmountPreview: String = "",
-    // Уточнить сумму вручную
     val exactEurAmount: String = "",
     val isExactAmountEnabled: Boolean = false,
-    // Оригинальная сумма в исходной валюте (заполняется только в EDIT mode)
+    // Only populated in EDIT mode
     val originalAmount: Double = 0.0,
     val favoriteCurrencies: Set<String> = emptySet(),
     // Cash mode
@@ -168,7 +165,7 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     /**
-     * Инициализация ViewModel
+     * Initializes the ViewModel for add or edit mode
      */
     fun initialize(
         mode: TransactionFormMode,
@@ -184,7 +181,6 @@ class TransactionFormViewModel @Inject constructor(
             canChangeType = mode == TransactionFormMode.EDIT
         )
 
-        // Загружаем валюты для расходов и доходов
         loadCurrencies()
         checkNetworkStatus()
 
@@ -206,7 +202,7 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     /**
-     * Загрузка списка валют из CERPS (с кэшированием в памяти)
+     * Loads available currencies from CERPS (with in-memory caching)
      */
     private fun loadCurrencies() {
         // Serve from cache if already fetched
@@ -234,7 +230,7 @@ class TransactionFormViewModel @Inject constructor(
                     )
                 }
                 is CerpsResult.Error -> {
-                    // Если CERPS недоступен, оставляем только base currency
+                    // Fall back to base currency only when CERPS is unavailable
                     _uiState.value = _uiState.value.copy(
                         availableCurrencies = listOf(_uiState.value.baseCurrency),
                         isCurrenciesLoading = false,
@@ -245,9 +241,6 @@ class TransactionFormViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Выбор валюты
-     */
     fun selectCurrency(currency: String) {
         val current = _uiState.value
         val baseCurrency = current.baseCurrency
@@ -349,9 +342,6 @@ class TransactionFormViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Выбор банка
-     */
     fun selectBank(bank: Bank) {
         val current = _uiState.value
         _uiState.value = current.copy(selectedBank = bank, convertedAmountPreview = "")
@@ -361,12 +351,11 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     /**
-     * Получить межбанковский курс и обновить превью конвертации.
+     * Fetches interbank rate and updates the conversion preview.
      *
-     * CERPS возвращает курс как "1 EUR = X единиц иностранной валюты".
-     * Чтобы получить этот курс, конвертируем EUR→currency (1 EUR).
-     * Формула: convertedAmount = originalAmount / realRate
-     * Пример: 150 BYN / 3.48 ≈ 43 EUR ✓
+     * CERPS returns rate as "1 base = X foreign units".
+     * Formula: convertedAmount = originalAmount / realRate
+     * Example: 150 BYN / 3.48 ~ 43 EUR
      */
     private fun fetchRateAndUpdatePreview(currency: String, amount: String, bank: Bank?) {
         if (bank == null) return
@@ -405,7 +394,7 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     /**
-     * Строим строку превью конвертации
+     * Builds the conversion preview string.
      * realRate = interBankRate * (1 - commission/100)
      * convertedAmount = originalAmount / realRate
      */
@@ -423,9 +412,6 @@ class TransactionFormViewModel @Inject constructor(
         return context.getString(R.string.conversion_preview_format, convertedFormatted, realRateFormatted, commissionFormatted)
     }
 
-    /**
-     * Смена типа транзакции
-     */
     fun changeTransactionType(newType: TransactionType) {
         if (!_uiState.value.canChangeType || newType == _uiState.value.transactionType) return
 
@@ -647,9 +633,6 @@ class TransactionFormViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Сохранение транзакции
-     */
     fun saveTransaction() {
         val currentState = _uiState.value
 

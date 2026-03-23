@@ -36,7 +36,6 @@ fun PieChart(
                 drawPieChart(data)
             }
 
-            // Центральный текст с общей суммой
             Text(
                 text = "${String.format(Locale.US, "%.2f", totalAmount).trimEnd('0').trimEnd('.', ',')} ${getCurrencySymbol(baseCurrency)}",
                 fontSize = 20.sp,
@@ -54,7 +53,7 @@ private fun DrawScope.drawPieChart(data: List<CategoryStatistic>) {
     val radius = size.minDimension / 2 * 0.8f
     val strokeWidth = size.minDimension * 0.22f
 
-    var startAngle = -90f // Начинаем сверху
+    var startAngle = -90f // Canvas 0° is 3 o'clock; -90° shifts the start to 12 o'clock (top)
 
     data.forEach { stat ->
         val sweepAngle = (stat.percentage / 100f) * 360f

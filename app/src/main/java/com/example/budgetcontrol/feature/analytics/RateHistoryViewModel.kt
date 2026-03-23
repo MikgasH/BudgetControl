@@ -78,6 +78,7 @@ class RateHistoryViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             preferencesManager.baseCurrencyFlow.collect { currency ->
+                // Only auto-sync "to" currency if user hasn't manually changed it from the default
                 if (_selectedTo.value == DEFAULT_BASE_CURRENCY) {
                     _selectedTo.value = currency
                 }
@@ -166,6 +167,7 @@ class RateHistoryViewModel @Inject constructor(
                     }
                 }
             } catch (e: CancellationException) {
+                // Must rethrow — swallowing CancellationException breaks structured concurrency
                 Log.d(TAG, "loadTrends CANCELLED: period=$period")
                 throw e
             } catch (e: Exception) {

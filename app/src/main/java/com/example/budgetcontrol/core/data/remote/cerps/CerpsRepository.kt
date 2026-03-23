@@ -36,7 +36,8 @@ class CerpsRepository @Inject constructor(
     private var ratesLoadedThisSession: Boolean = false
 
     companion object {
-        private const val STALE_THRESHOLD_MS = 8 * 60 * 60 * 1000L // 8 hours (for stale warning only)
+        // 8h threshold balances freshness vs API usage — forex rates don't change drastically intraday
+        private const val STALE_THRESHOLD_MS = 8 * 60 * 60 * 1000L
     }
 
     suspend fun getCurrencies(): CerpsResult<List<String>> {
@@ -66,13 +67,13 @@ class CerpsRepository @Inject constructor(
     // --- Exchange rates loading & caching ---
 
     suspend fun ensureRatesLoaded(): CerpsResult<Map<String, Double>> {
-        // After first successful API fetch this session, serve from memory
+        // Once the API succeeds this session, skip further network calls — rates are stable enough
         val rates = cachedRates
         if (ratesLoadedThisSession && rates != null) {
             return CerpsResult.Success(rates)
         }
 
-        // Always try API on first call after app launch
+        // First call after app launch always hits the API to get fresh rates
         return try {
             val response = apiService.getCurrentRates()
             val ratesResponse = response.body()
@@ -90,11 +91,11 @@ class CerpsRepository @Inject constructor(
         }
     }
 
+    // Cascade: memory → DataStore → error. Stale rates are better than no conversion at all.
     private suspend fun fallbackToCache(): CerpsResult<Map<String, Double>> {
-        // Try memory cache first
         cachedRates?.let { return CerpsResult.Success(it) }
 
-        // Then DataStore
+        // DataStore survives process death, so rates from a previous session can still be used
         val dsRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
         val dsTimestamp = preferencesManager.getLastRatesTimestamp().firstOrNull() ?: 0L
         return if (dsRates.isNotEmpty()) {
@@ -172,6 +173,7 @@ class CerpsRepository @Inject constructor(
                 CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }
         } catch (e: CancellationException) {
+            // Must rethrow — swallowing CancellationException breaks structured concurrency
             throw e
         } catch (e: Exception) {
             CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))

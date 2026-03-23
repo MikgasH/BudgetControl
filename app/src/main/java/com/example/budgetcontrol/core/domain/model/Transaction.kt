@@ -3,7 +3,7 @@ package com.example.budgetcontrol.core.domain.model
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 
 /**
- * Объединенная модель для расходов и доходов
+ * Unified model for expenses and incomes, allowing the main screen to display both types uniformly.
  */
 sealed class Transaction {
     abstract val id: String
@@ -23,9 +23,11 @@ sealed class Transaction {
         override val createdAt: Long,
         val originalAmount: Double = amount,
         val originalCurrency: String = DEFAULT_BASE_CURRENCY,
+        val exchangeRate: Double? = null,
         val bankName: String? = null,
         val bankCommission: Double? = null,
-        val rateSource: String? = null
+        val rateSource: String? = null,
+        val accountId: String? = null
     ) : Transaction() {
         override val type: TransactionType = TransactionType.EXPENSE
     }
@@ -39,17 +41,16 @@ sealed class Transaction {
         override val createdAt: Long,
         val originalAmount: Double = amount,
         val originalCurrency: String = DEFAULT_BASE_CURRENCY,
+        val exchangeRate: Double? = null,
         val bankName: String? = null,
         val bankCommission: Double? = null,
-        val rateSource: String? = null
+        val rateSource: String? = null,
+        val accountId: String? = null
     ) : Transaction() {
         override val type: TransactionType = TransactionType.INCOME
     }
 }
 
-/**
- * Тип транзакции
- */
 enum class TransactionType {
     EXPENSE,
     INCOME;
@@ -59,7 +60,7 @@ enum class TransactionType {
 }
 
 /**
- * Конвертация из старых моделей в новую
+ * Convert legacy Expense/Income models to the unified Transaction type.
  */
 fun Expense.toTransaction(): Transaction.ExpenseTransaction {
     return Transaction.ExpenseTransaction(
@@ -71,9 +72,11 @@ fun Expense.toTransaction(): Transaction.ExpenseTransaction {
         createdAt = createdAt,
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
+        exchangeRate = exchangeRate,
         bankName = bankName,
         bankCommission = bankCommission,
-        rateSource = rateSource
+        rateSource = rateSource,
+        accountId = accountId
     )
 }
 
@@ -87,14 +90,16 @@ fun Income.toTransaction(): Transaction.IncomeTransaction {
         createdAt = createdAt,
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
+        exchangeRate = exchangeRate,
         bankName = bankName,
         bankCommission = bankCommission,
-        rateSource = rateSource
+        rateSource = rateSource,
+        accountId = accountId
     )
 }
 
 /**
- * Конвертация обратно в старые модели (для совместимости)
+ * Convert back to legacy models for backward compatibility with existing code.
  */
 fun Transaction.ExpenseTransaction.toExpense(): Expense {
     return Expense(
@@ -106,9 +111,11 @@ fun Transaction.ExpenseTransaction.toExpense(): Expense {
         createdAt = createdAt,
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
+        exchangeRate = exchangeRate,
         bankName = bankName,
         bankCommission = bankCommission,
-        rateSource = rateSource
+        rateSource = rateSource,
+        accountId = accountId
     )
 }
 
@@ -122,8 +129,10 @@ fun Transaction.IncomeTransaction.toIncome(): Income {
         createdAt = createdAt,
         originalAmount = originalAmount,
         originalCurrency = originalCurrency,
+        exchangeRate = exchangeRate,
         bankName = bankName,
         bankCommission = bankCommission,
-        rateSource = rateSource
+        rateSource = rateSource,
+        accountId = accountId
     )
 }

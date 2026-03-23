@@ -151,31 +151,39 @@ fun RateHistoryScreen(
                 }
                 trendsData != null -> {
                     val data = trendsData ?: return@Column
-                    var selectedDate by remember { mutableStateOf<String?>(null) }
-                    var selectedRate by remember { mutableStateOf<Double?>(null) }
-                    var amountText by remember { mutableStateOf("100") }
+                    if (data.points.size < 2) {
+                        InsufficientDataCard(
+                            trendsData = data,
+                            selectedFrom = selectedFrom,
+                            selectedTo = selectedTo
+                        )
+                    } else {
+                        var selectedDate by remember { mutableStateOf<String?>(null) }
+                        var selectedRate by remember { mutableStateOf<Double?>(null) }
+                        var amountText by remember { mutableStateOf("100") }
 
-                    LaunchedEffect(trendsData) {
-                        selectedDate = null
-                        selectedRate = null
-                    }
-
-                    StatsRow(
-                        trendsData = data,
-                        selectedDate = selectedDate,
-                        selectedRate = selectedRate,
-                        selectedFrom = selectedFrom,
-                        selectedTo = selectedTo,
-                        amountText = amountText,
-                        onAmountChange = { amountText = it }
-                    )
-                    RateChart(
-                        trendsData = data,
-                        onPointSelected = { date, rate ->
-                            selectedDate = date
-                            selectedRate = rate
+                        LaunchedEffect(trendsData) {
+                            selectedDate = null
+                            selectedRate = null
                         }
-                    )
+
+                        StatsRow(
+                            trendsData = data,
+                            selectedDate = selectedDate,
+                            selectedRate = selectedRate,
+                            selectedFrom = selectedFrom,
+                            selectedTo = selectedTo,
+                            amountText = amountText,
+                            onAmountChange = { amountText = it }
+                        )
+                        RateChart(
+                            trendsData = data,
+                            onPointSelected = { date, rate ->
+                                selectedDate = date
+                                selectedRate = rate
+                            }
+                        )
+                    }
                 }
             }
 
@@ -663,6 +671,61 @@ private fun StatsRow(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun InsufficientDataCard(
+    trendsData: TrendsResponse,
+    selectedFrom: String,
+    selectedTo: String
+) {
+    val changeColor = if (trendsData.changePercentage >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val changePrefix = if (trendsData.changePercentage >= 0) "+" else ""
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 48.dp, horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "${String.format(Locale.US, "%.4f", trendsData.newRate)} $selectedTo",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "1 $selectedFrom = ${String.format(Locale.US, "%.4f", trendsData.newRate)} $selectedTo",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${changePrefix}${String.format(Locale.US, "%.2f", trendsData.changePercentage)}%",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = changeColor
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.rate_history_not_enough_data),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = stringResource(R.string.rate_history_updates_interval),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

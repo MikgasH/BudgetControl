@@ -163,7 +163,6 @@ fun AddTransactionContent(
                     ConversionPreview(preview = convertedAmountPreview)
                 }
 
-                // Toggle: Уточнить сумму вручную
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()

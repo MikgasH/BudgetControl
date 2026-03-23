@@ -311,7 +311,7 @@ private fun CategorySegmentedBar(
 }
 
 /**
- * Проверка можно ли навигировать в будущий период
+ * Checks whether forward navigation is allowed (prevents going into a future period)
  */
 private fun canNavigateToFuture(uiState: MainScreenUiState): Boolean {
     if (uiState.isAllTimePeriod) return false
@@ -319,27 +319,23 @@ private fun canNavigateToFuture(uiState: MainScreenUiState): Boolean {
     val calendar = Calendar.getInstance()
     val today = calendar.timeInMillis
 
-    // Вычисляем следующий период
     val nextPeriodCalendar = Calendar.getInstance()
 
     return when (uiState.selectedPeriodType) {
         PeriodType.DAY -> {
             nextPeriodCalendar.add(Calendar.DAY_OF_MONTH, uiState.currentPeriodIndex + 1)
-            // Нельзя идти в завтрашний день
             nextPeriodCalendar.timeInMillis <= today
         }
 
         PeriodType.WEEK -> {
             nextPeriodCalendar.add(Calendar.WEEK_OF_YEAR, uiState.currentPeriodIndex + 1)
             nextPeriodCalendar.set(Calendar.DAY_OF_WEEK, nextPeriodCalendar.firstDayOfWeek)
-            // Нельзя идти в будущую неделю
             nextPeriodCalendar.timeInMillis <= today
         }
 
         PeriodType.MONTH -> {
             nextPeriodCalendar.add(Calendar.MONTH, uiState.currentPeriodIndex + 1)
             nextPeriodCalendar.set(Calendar.DAY_OF_MONTH, 1)
-            // Нельзя идти в будущий месяц
             nextPeriodCalendar.get(Calendar.YEAR) < Calendar.getInstance().get(Calendar.YEAR) ||
                     (nextPeriodCalendar.get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR) &&
                             nextPeriodCalendar.get(Calendar.MONTH) <= Calendar.getInstance().get(Calendar.MONTH))
@@ -347,10 +343,9 @@ private fun canNavigateToFuture(uiState: MainScreenUiState): Boolean {
 
         PeriodType.YEAR -> {
             nextPeriodCalendar.add(Calendar.YEAR, uiState.currentPeriodIndex + 1)
-            // Нельзя идти в будущий год
             nextPeriodCalendar.get(Calendar.YEAR) <= Calendar.getInstance().get(Calendar.YEAR)
         }
 
-        PeriodType.PERIOD -> false // Для кастомного периода навигация отключена
+        PeriodType.PERIOD -> false
     }
 }

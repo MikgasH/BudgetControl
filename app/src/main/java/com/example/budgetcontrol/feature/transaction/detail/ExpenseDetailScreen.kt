@@ -30,12 +30,10 @@ fun ExpenseDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
-    // Загружаем транзакцию при создании экрана
     LaunchedEffect(expenseId) {
         viewModel.loadTransaction(expenseId, TransactionType.EXPENSE)
     }
 
-    // Отслеживаем успешное удаление
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
             onDeleteSuccess()
@@ -58,11 +56,10 @@ fun ExpenseDetailScreen(
                         .padding(
                             start = 20.dp,
                             end = 20.dp,
-                            top = 60.dp, // ЕДИНЫЙ отступ сверху
-                            bottom = 10.dp // ЕДИНЫЙ отступ снизу
+                            top = 60.dp,
+                            bottom = 10.dp
                         )
                 ) {
-                    // Кнопка назад слева
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier.align(Alignment.CenterStart)
@@ -75,7 +72,6 @@ fun ExpenseDetailScreen(
                         )
                     }
 
-                    // Заголовок по центру
                     Text(
                         text = stringResource(R.string.operation_details),
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -85,7 +81,6 @@ fun ExpenseDetailScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
 
-                    // Кнопка редактирования справа
                     IconButton(
                         onClick = { onEditClick(expenseId) },
                         modifier = Modifier.align(Alignment.CenterEnd)
@@ -149,7 +144,6 @@ fun ExpenseDetailScreen(
                         modifier = Modifier.padding(paddingValues)
                     )
                 } ?: run {
-                    // Если транзакция не загрузилась, показываем ошибку
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

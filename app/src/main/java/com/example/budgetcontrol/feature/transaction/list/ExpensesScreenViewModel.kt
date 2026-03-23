@@ -78,7 +78,7 @@ class ExpensesScreenViewModel @Inject constructor(
                     deleteExpenseUseCase(transaction.toExpense())
                 }
                 else -> {
-                    // Это не должно происходить в ExpensesScreen, но на всякий случай
+                    // Should not happen in ExpensesScreen, but handle as fallback
                 }
             }
         }

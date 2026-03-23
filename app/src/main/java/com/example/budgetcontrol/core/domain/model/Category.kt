@@ -13,8 +13,8 @@ data class Category(
 )
 
 enum class CategoryType {
-    EXPENSE,  // Расходы
-    INCOME    // Доходы
+    EXPENSE,
+    INCOME
 }
 
 fun List<Category>.findById(categoryId: String): Category? =

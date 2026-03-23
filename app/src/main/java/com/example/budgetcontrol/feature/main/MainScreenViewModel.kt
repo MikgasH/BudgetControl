@@ -78,6 +78,7 @@ class MainScreenViewModel @Inject constructor(
         preferencesManager.initialBalanceFlow
     ) { expenses, incomes, initialBalance ->
         initialBalance + incomes.sumOf { it.amount } - expenses.sumOf { it.amount }
+    // 5s stop timeout keeps the upstream Flows alive briefly during config changes (e.g. rotation)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
@@ -90,6 +91,7 @@ class MainScreenViewModel @Inject constructor(
     }
 
     private fun loadData() {
+        // Cancel the previous combine collector — period/tab change starts a new one
         loadDataJob?.cancel()
         loadDataJob = viewModelScope.launch {
             val currentState = _uiState.value
@@ -156,7 +158,6 @@ class MainScreenViewModel @Inject constructor(
         }
     }
 
-    // ДОБАВИЛИ функцию удаления транзакции
     fun deleteTransaction(transaction: Transaction) {
         viewModelScope.launch {
             when (transaction) {

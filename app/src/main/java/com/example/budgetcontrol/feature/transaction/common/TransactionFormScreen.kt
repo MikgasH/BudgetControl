@@ -64,6 +64,7 @@ fun TransactionFormScreen(
         uiState.transactionType,
         uiState.selectedCurrency
     ) {
+        // In EDIT mode, compare against original values; in ADD mode, any input counts as a change
         hasChanges = if (mode == TransactionFormMode.EDIT) {
             viewModel.hasChanges()
         } else {

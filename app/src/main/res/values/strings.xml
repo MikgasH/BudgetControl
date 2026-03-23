@@ -405,6 +405,8 @@
     <string name="rate_history_amount">Amount</string>
     <string name="rate_history_screen_title">Exchange Rate History</string>
     <string name="rate_history_swap">Swap currencies</string>
+    <string name="rate_history_not_enough_data">Not enough data for chart</string>
+    <string name="rate_history_updates_interval">Updates every 8 hours</string>
 
     <!-- Cash mode hints -->
     <string name="cash_rate_desc">Enter the exchange rate you received at the exchange point.</string>

@@ -58,7 +58,6 @@ fun PeriodRangePicker(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Навигация по месяцам
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -100,7 +99,6 @@ fun PeriodRangePicker(
                     }
                 }
 
-                // Дни недели
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -118,7 +116,6 @@ fun PeriodRangePicker(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Календарь
                 PeriodCalendarGrid(
                     currentMonth = currentMonth,
                     startDate = startDate,
@@ -126,16 +123,14 @@ fun PeriodRangePicker(
                     onDateSelected = { date ->
                         when {
                             startDate == null || (endDate != null) -> {
-                                // Начинаем новый выбор
                                 startDate = date
                                 endDate = null
                             }
                             startDate != null && endDate == null -> {
-                                // Выбираем конечную дату
                                 if (date >= startDate!!) {
                                     endDate = date
                                 } else {
-                                    // Если выбрали дату раньше начальной, меняем местами
+                                    // Selected date is before start, so swap them
                                     endDate = startDate
                                     startDate = date
                                 }
@@ -146,7 +141,6 @@ fun PeriodRangePicker(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Информация о выбранном периоде
                 if (startDate != null) {
                     Text(
                         text = when {
@@ -159,19 +153,17 @@ fun PeriodRangePicker(
                     )
                 }
 
-                // ДОБАВИЛИ кнопку "За все время"
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextButton(
                         onClick = {
-                            // За все время - выбираем очень большой диапазон
                             val allTimeStart = Calendar.getInstance().apply {
-                                set(2020, 0, 1) // 1 января 2020
+                                set(2020, 0, 1)
                             }.timeInMillis
                             val allTimeEnd = Calendar.getInstance().apply {
-                                set(2030, 11, 31) // 31 декабря 2030
+                                set(2030, 11, 31)
                             }.timeInMillis
                             onPeriodSelected(allTimeStart, allTimeEnd)
                             onDismiss()
@@ -189,7 +181,6 @@ fun PeriodRangePicker(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Кнопки действий
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -293,17 +284,15 @@ private data class PeriodDayInfo(
 private fun getPeriodDaysInMonth(currentMonth: Calendar): List<PeriodDayInfo> {
     val days = mutableListOf<PeriodDayInfo>()
 
-    // Первый день месяца
     val firstDayOfMonth = Calendar.getInstance().apply {
         timeInMillis = currentMonth.timeInMillis
         set(Calendar.DAY_OF_MONTH, 1)
     }
 
-    // Первый день недели (понедельник = 2)
+    // Monday = Calendar.MONDAY (2), so offset accordingly
     val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK)
     val daysFromPrevMonth = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - 2
 
-    // Добавляем дни из предыдущего месяца
     val prevMonth = Calendar.getInstance().apply {
         timeInMillis = firstDayOfMonth.timeInMillis
         add(Calendar.MONTH, -1)
@@ -320,7 +309,6 @@ private fun getPeriodDaysInMonth(currentMonth: Calendar): List<PeriodDayInfo> {
         days.add(PeriodDayInfo(date, day, false))
     }
 
-    // Добавляем дни текущего месяца
     val daysInCurrentMonth = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
     for (day in 1..daysInCurrentMonth) {
         val date = Calendar.getInstance().apply {
@@ -331,8 +319,8 @@ private fun getPeriodDaysInMonth(currentMonth: Calendar): List<PeriodDayInfo> {
         days.add(PeriodDayInfo(date, day, true))
     }
 
-    // Добавляем дни из следующего месяца для заполнения сетки
-    val totalCells = 42 // 6 недель x 7 дней
+    // Fill remaining cells to complete a 6-week grid
+    val totalCells = 42
     val remainingCells = totalCells - days.size
 
     for (day in 1..remainingCells) {

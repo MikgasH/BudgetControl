@@ -19,7 +19,8 @@ class NetworkStatusRepository @Inject constructor(
     private var lastHealthCheckTimestamp: Long = 0L
 
     companion object {
-        private const val HEALTH_CHECK_CACHE_MS = 30_000L // 30 seconds
+        // 30s cache prevents hammering CERPS with health checks on every screen transition
+        private const val HEALTH_CHECK_CACHE_MS = 30_000L
     }
 
     fun isInternetAvailable(): Boolean {
@@ -38,6 +39,7 @@ class NetworkStatusRepository @Inject constructor(
         }
 
         val result = try {
+            // 3s timeout matches the OkHttp connect timeout — fail fast if CERPS is unreachable
             val response = withTimeoutOrNull(3000L) {
                 cerpsApiService.healthCheck()
             }

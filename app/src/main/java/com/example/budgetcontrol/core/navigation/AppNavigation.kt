@@ -27,7 +27,7 @@ sealed class Screen(val route: String) {
 
 const val ANIMATION_DURATION = 200
 
-// Анимация входа слева направо (для перехода вперед)
+// Slide-in-from-right animation for forward navigation
 val slideInFromRight = slideInHorizontally(
     initialOffsetX = { fullWidth -> fullWidth },
     animationSpec = tween(ANIMATION_DURATION)
@@ -38,7 +38,7 @@ val slideOutToLeft = slideOutHorizontally(
     animationSpec = tween(ANIMATION_DURATION)
 )
 
-// Анимация входа справа налево (для возврата назад)
+// Slide-in-from-left animation for back navigation
 val slideInFromLeft = slideInHorizontally(
     initialOffsetX = { fullWidth -> -fullWidth },
     animationSpec = tween(ANIMATION_DURATION)
@@ -49,7 +49,7 @@ val slideOutToRight = slideOutHorizontally(
     animationSpec = tween(ANIMATION_DURATION)
 )
 
-// Анимация для модальных окон (добавление/редактирование)
+// Slide-up animation for modal screens (add/edit)
 val slideInFromBottom = slideInVertically(
     initialOffsetY = { fullHeight -> fullHeight },
     animationSpec = tween(ANIMATION_DURATION)
@@ -60,7 +60,7 @@ val slideOutToBottom = slideOutVertically(
     animationSpec = tween(ANIMATION_DURATION)
 )
 
-// Fade анимация для быстрых переходов
+// Fade animation for quick transitions
 val fadeIn = fadeIn(animationSpec = tween(ANIMATION_DURATION))
 val fadeOut = fadeOut(animationSpec = tween(ANIMATION_DURATION))
 
@@ -72,7 +72,6 @@ fun AppNavigation(
     NavHost(
         navController = navController,
         startDestination = if (onboardingCompleted) Screen.Main.route else Screen.Onboarding.route,
-        // Быстрые анимации по умолчанию
         enterTransition = { slideInFromRight + fadeIn },
         exitTransition = { slideOutToLeft + fadeOut },
         popEnterTransition = { slideInFromLeft + fadeIn },

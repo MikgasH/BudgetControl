@@ -113,6 +113,7 @@ class PreferencesManager @Inject constructor(
     fun getLastRates(): Flow<Map<String, Double>> = dataStore.data.map { preferences ->
         val json = preferences[LAST_RATES_KEY] ?: return@map emptyMap()
         try {
+            // Anonymous TypeToken subclass captures the generic type at runtime (Gson's type erasure workaround)
             val type = object : TypeToken<Map<String, Double>>() {}.type
             Gson().fromJson(json, type)
         } catch (_: Exception) {

@@ -6,14 +6,8 @@ import com.example.budgetcontrol.feature.main.PeriodType
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Утилиты для работы с диапазонами дат
- */
 object DateRangeHelper {
 
-    /**
-     * Получить диапазон дат для указанного периода
-     */
     fun getDateRange(
         periodType: PeriodType,
         periodOffset: Int = 0,
@@ -21,7 +15,7 @@ object DateRangeHelper {
         customEndDate: Long? = null
     ): Pair<Long, Long> {
 
-        // Если указан кастомный период
+        // If a custom period is specified
         if (periodType == PeriodType.PERIOD && customStartDate != null && customEndDate != null) {
             return Pair(customStartDate, customEndDate)
         }
@@ -50,6 +44,7 @@ object DateRangeHelper {
 
             PeriodType.WEEK -> {
                 calendar.add(Calendar.WEEK_OF_YEAR, periodOffset)
+                // firstDayOfWeek is locale-dependent (Monday in EU, Sunday in US)
                 calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
@@ -106,7 +101,7 @@ object DateRangeHelper {
             }
 
             else -> {
-                // По умолчанию возвращаем текущий день
+                // Default to current day
                 val startOfDay = calendar.apply {
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
@@ -126,9 +121,6 @@ object DateRangeHelper {
         }
     }
 
-    /**
-     * Получить текстовое представление периода
-     */
     fun getPeriodDisplayText(
         context: Context,
         periodType: PeriodType,
@@ -188,9 +180,7 @@ object DateRangeHelper {
         }
     }
 
-    /**
-     * Проверка является ли период "За все время"
-     */
+    // Sentinel years: the date picker uses year ≤2020 for "start of time" and ≥2099 for "end of time"
     fun isAllTimePeriod(startDate: Long, endDate: Long): Boolean {
         val startCal = Calendar.getInstance().apply { timeInMillis = startDate }
         val endCal = Calendar.getInstance().apply { timeInMillis = endDate }
@@ -198,9 +188,6 @@ object DateRangeHelper {
         return startCal.get(Calendar.YEAR) <= 2020 && endCal.get(Calendar.YEAR) >= 2099
     }
 
-    /**
-     * Проверка что две даты в один день
-     */
     fun isSameDay(date1: Long, date2: Long): Boolean {
         val cal1 = Calendar.getInstance().apply { timeInMillis = date1 }
         val cal2 = Calendar.getInstance().apply { timeInMillis = date2 }

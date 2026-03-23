@@ -71,6 +71,8 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL(
                     "ALTER TABLE expenses ADD COLUMN exchangeRate REAL DEFAULT NULL"
                 )
+                // Backfill: originalAmount=0 is the DEFAULT from ALTER TABLE, not a real user value.
+                // Real expenses always have amount > 0, so 0 safely identifies unmigrated rows.
                 database.execSQL(
                     "UPDATE expenses SET originalAmount = amount WHERE originalAmount = 0"
                 )
@@ -125,6 +127,7 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL(
                     "ALTER TABLE categories ADD COLUMN usageCount INTEGER NOT NULL DEFAULT 0"
                 )
+                // Migrate legacy isDefault semantics: all default categories become system-protected
                 database.execSQL(
                     "UPDATE categories SET isSystem = 1 WHERE isDefault = 1"
                 )
@@ -193,6 +196,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // accountId is nullable to preserve existing single-account data without a destructive migration
         val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE expenses ADD COLUMN accountId TEXT DEFAULT NULL")
@@ -213,6 +217,7 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+            // onOpen re-checks because onCreate may not fire during a migration-only upgrade
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
                 CoroutineScope(Dispatchers.IO).launch {

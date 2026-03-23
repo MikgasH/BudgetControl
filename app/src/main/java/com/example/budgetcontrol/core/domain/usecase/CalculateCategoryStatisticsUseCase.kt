@@ -10,6 +10,7 @@ fun <T> calculateCategoryStatistics(
     categories: List<Category>
 ): List<CategoryStatistic> {
     val totalAmount = items.sumOf(getAmount)
+    // Avoid division by zero in percentage calc; also hides the pie chart when there's no data
     if (totalAmount == 0.0) return emptyList()
 
     val itemsByCategory = items.groupBy(getCategoryId)

@@ -112,7 +112,6 @@ fun ExpensesScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Заголовок с общей суммой
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,7 +141,6 @@ fun ExpensesScreen(
                 }
             }
 
-            // Список трат
             when {
                 uiState.isLoading -> {
                     Box(
@@ -197,7 +195,6 @@ fun ExpensesScreen(
                             )
                         }
 
-                        // Добавляем отступ внизу для FAB
                         item {
                             Spacer(modifier = Modifier.height(80.dp))
                         }

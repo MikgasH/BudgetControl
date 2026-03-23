@@ -98,7 +98,6 @@ fun StatisticsScreen(
                 }
             }
 
-            // Фильтр по периодам
             item {
                 PeriodSelector(
                     selectedPeriod = uiState.selectedPeriod,
@@ -106,7 +105,6 @@ fun StatisticsScreen(
                 )
             }
 
-            // Диаграмма
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -145,7 +143,6 @@ fun StatisticsScreen(
                 }
             }
 
-            // Список категорий со статистикой
             items(uiState.categoryStatistics) { stat ->
                 CategoryStatisticItem(statistic = stat, baseCurrency = baseCurrency)
             }
@@ -206,7 +203,6 @@ private fun CategoryStatisticItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка категории
             val categoryColor = try {
                 Color(statistic.category.color.toColorInt())
             } catch (_: Exception) {
@@ -229,7 +225,6 @@ private fun CategoryStatisticItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Информация о категории
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = statistic.category.displayName(),
@@ -243,7 +238,6 @@ private fun CategoryStatisticItem(
                 )
             }
 
-            // Статистика
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${String.format(Locale.US, "%.0f", statistic.percentage)}%",

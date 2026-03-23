@@ -39,7 +39,6 @@ fun IncomesByCategoryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
-    // Загружаем транзакции при создании экрана
     LaunchedEffect(categoryId, startDate, endDate) {
         viewModel.loadTransactions(categoryId, TransactionType.INCOME, startDate, endDate)
     }
@@ -60,11 +59,10 @@ fun IncomesByCategoryScreen(
                         .padding(
                             start = 20.dp,
                             end = 20.dp,
-                            top = 60.dp, // как на главной
-                            bottom = 10.dp // как на главной
+                            top = 60.dp, // Match main screen top bar
+                            bottom = 10.dp // Match main screen top bar
                         )
                 ) {
-                    // Кнопка назад слева
                     IconButton(
                         onClick = onBackClick,
                         modifier = Modifier.align(Alignment.CenterStart)
@@ -77,7 +75,6 @@ fun IncomesByCategoryScreen(
                         )
                     }
 
-                    // Заголовок и цена по центру
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.align(Alignment.Center)
@@ -161,7 +158,6 @@ fun IncomesByCategoryScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Группируем транзакции по датам
                     val groupedTransactions = uiState.transactions.groupBy { transaction ->
                         val calendar = Calendar.getInstance()
                         calendar.timeInMillis = transaction.date
@@ -189,7 +185,6 @@ fun IncomesByCategoryScreen(
                         }
                     }
 
-                    // Отступ для FAB
                     item {
                         Spacer(modifier = Modifier.height(80.dp))
                     }

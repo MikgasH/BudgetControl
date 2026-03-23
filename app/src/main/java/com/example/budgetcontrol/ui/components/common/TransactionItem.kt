@@ -28,7 +28,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Общий компонент для отображения транзакции (расход или доход)
+ * Unified component for displaying a transaction (expense or income)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +79,6 @@ fun TransactionItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка категории
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -100,7 +99,6 @@ fun TransactionItem(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Информация о транзакции
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -130,7 +128,6 @@ fun TransactionItem(
                 )
             }
 
-            // Сумма и кнопка удаления
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -151,7 +148,6 @@ fun TransactionItem(
                     color = amountColor
                 )
 
-                // Кнопка удаления
                 IconButton(
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier.size(24.dp)
@@ -169,7 +165,7 @@ fun TransactionItem(
 }
 
 /**
- * Детальный компонент транзакции для экранов по категориям
+ * Detailed transaction component for category-grouped screens
  */
 @Composable
 fun TransactionItemDetailed(
@@ -194,7 +190,6 @@ fun TransactionItemDetailed(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка категории
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -215,7 +210,6 @@ fun TransactionItemDetailed(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Информация о транзакции
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -250,7 +244,6 @@ fun TransactionItemDetailed(
                 }
             }
 
-            // Сумма
             val amountText = when (transaction.type) {
                 TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
                 TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
@@ -274,7 +267,7 @@ fun TransactionItemDetailed(
 
 
 /**
- * Форматирование даты
+ * Formats a timestamp into a human-readable date string
  */
 private fun formatDate(timestamp: Long): String {
     val formatter = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())

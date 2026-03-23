@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Общий контент для экранов детального просмотра транзакций
+ * Shared content for transaction detail screens
  */
 @Composable
 fun TransactionDetailContent(
@@ -74,13 +74,11 @@ fun TransactionDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Карточка с суммой
         TransactionAmountCard(
             transaction = transaction,
             baseCurrency = baseCurrency
         )
 
-        // Категория
         DetailItem(
             label = stringResource(R.string.category),
             value = category?.displayName() ?: stringResource(R.string.unknown_category),
@@ -90,21 +88,18 @@ fun TransactionDetailContent(
             } ?: MaterialTheme.colorScheme.primary
         )
 
-        // Дата
         DetailItem(
             label = stringResource(R.string.detail_date),
             value = SimpleDateFormat(stringResource(R.string.date_format_full), Locale.getDefault())
                 .format(Date(transaction.date))
         )
 
-        // Время
         DetailItem(
             label = stringResource(R.string.detail_time),
             value = SimpleDateFormat("HH:mm", Locale.getDefault())
                 .format(Date(transaction.date))
         )
 
-        // Оригинальная сумма и банк (для конвертированных транзакций)
         val originalCurrency = when (transaction) {
             is Transaction.ExpenseTransaction -> transaction.originalCurrency
             is Transaction.IncomeTransaction -> transaction.originalCurrency
@@ -191,7 +186,6 @@ fun TransactionDetailContent(
             }
         }
 
-        // Комментарий
         transaction.description?.takeIf { it.isNotBlank() }?.let { description ->
             DetailItem(
                 label = stringResource(R.string.detail_comment),
@@ -201,7 +195,6 @@ fun TransactionDetailContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Кнопка удаления
         Button(
             onClick = { showDeleteDialog = true },
             modifier = Modifier.fillMaxWidth(),

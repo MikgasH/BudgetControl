@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Общий компонент для выбора даты
+ * Shared component for date selection
  */
 @Composable
 fun DateSelector(
@@ -42,14 +42,12 @@ fun DateSelector(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Быстрые варианты дат
             QuickDateOptions(
                 selectedDate = selectedDate,
                 onDateSelect = onDateSelect,
                 modifier = Modifier.weight(1f)
             )
 
-            // Кнопка календаря
             IconButton(onClick = onShowDatePicker) {
                 Icon(
                     imageVector = Icons.Default.CalendarToday,
@@ -92,7 +90,7 @@ private fun QuickDateOptions(
     )
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp), // УМЕНЬШИЛИ отступы между кнопками
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
     ) {
         quickDates.forEach { (date, labelPair) ->
@@ -106,14 +104,14 @@ private fun QuickDateOptions(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier
-                            .height(44.dp) // УВЕЛИЧИЛИ высоту контейнера
+                            .height(44.dp)
                             .fillMaxWidth()
-                            .padding(horizontal = 2.dp) // УМЕНЬШИЛИ внутренние отступы
+                            .padding(horizontal = 2.dp)
                     ) {
                         Text(
                             text = dateText,
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp, // УВЕЛИЧИЛИ размер шрифта
+                                fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             ),
                             textAlign = TextAlign.Center,
@@ -122,7 +120,7 @@ private fun QuickDateOptions(
                         Text(
                             text = dayText,
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp, // УВЕЛИЧИЛИ размер шрифта
+                                fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             ),
                             textAlign = TextAlign.Center,
@@ -138,12 +136,12 @@ private fun QuickDateOptions(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp), // УВЕЛИЧИЛИ высоту чипа
+                    .height(56.dp),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
             )
         }
 
-        // Показываем выбранную дату если она не среди быстрых вариантов
+        // Show the selected date chip when it's not one of the quick options
         if (!quickDates.any { DateRangeHelper.isSameDay(it.first, selectedDate) }) {
             FilterChip(
                 onClick = { },
