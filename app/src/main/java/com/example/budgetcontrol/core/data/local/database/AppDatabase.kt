@@ -205,19 +205,9 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         val PREPOPULATE_CALLBACK = object : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                CoroutineScope(Dispatchers.IO).launch {
-                    DEFAULT_BANKS.forEach { bank ->
-                        db.execSQL(
-                            "INSERT INTO banks (name, commissionPercent, isDefault, isFavorite) VALUES (?, ?, ?, ?)",
-                            arrayOf(bank.name, bank.commissionPercent, if (bank.isDefault) 1 else 0, if (bank.isFavorite) 1 else 0)
-                        )
-                    }
-                }
-            }
-
-            // onOpen re-checks because onCreate may not fire during a migration-only upgrade
+            // Only use onOpen (not onCreate) to avoid a race condition:
+            // Room fires both callbacks on first creation, and each launches an async coroutine —
+            // onOpen's count check can see 0 before onCreate's inserts complete, duplicating banks.
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
                 CoroutineScope(Dispatchers.IO).launch {

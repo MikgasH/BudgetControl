@@ -31,9 +31,9 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Route variant that accepts a pre-selected date via query param
+    // Route variant that accepts a pre-selected date and optional categoryId via query params
     composable(
-        route = "${Screen.AddExpense.route}?selectedDate={selectedDate}",
+        route = "${Screen.AddExpense.route}?selectedDate={selectedDate}&categoryId={categoryId}",
         enterTransition = { slideInFromBottom + fadeIn },
         exitTransition = { slideOutToBottom + fadeOut },
         popEnterTransition = { slideInFromBottom + fadeIn },
@@ -41,9 +41,11 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
     ) { backStackEntry ->
         val selectedDateString = backStackEntry.arguments?.getString("selectedDate")
         val selectedDate = selectedDateString?.toLongOrNull() ?: System.currentTimeMillis()
+        val categoryId = backStackEntry.arguments?.getString("categoryId")
 
         AddExpenseScreen(
             selectedDate = selectedDate,
+            preSelectedCategoryId = categoryId,
             onBackClick = {
                 navController.popBackStack()
             },

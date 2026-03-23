@@ -57,7 +57,7 @@ fun OnboardingScreen(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
-                userScrollEnabled = false
+                userScrollEnabled = true
             ) { page ->
                 when (page) {
                     0 -> LanguagePage(
@@ -132,41 +132,48 @@ fun OnboardingScreen(
                     .padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (pagerState.currentPage == 4) {
-                    // Balance page: Skip + Next
+                if (pagerState.currentPage == 5) {
+                    // Ready page: Back + Start
                     OutlinedButton(
                         onClick = {
-                            viewModel.setInitialBalance("")
-                            scope.launch { pagerState.animateScrollToPage(5) }
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(stringResource(R.string.onboarding_skip))
+                        Text(stringResource(R.string.onboarding_back))
                     }
-                    Button(
-                        onClick = {
-                            scope.launch { pagerState.animateScrollToPage(5) }
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(stringResource(R.string.onboarding_next))
-                    }
-                } else if (pagerState.currentPage == 5) {
-                    // Ready page: Start button
                     Button(
                         onClick = {
                             viewModel.completeOnboarding()
                             onFinish()
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             text = stringResource(R.string.onboarding_start),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
+                } else if (pagerState.currentPage > 0) {
+                    // Pages 1-4: Back + Next
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.onboarding_back))
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.onboarding_next))
+                    }
                 } else {
-                    // Pages 0-3: Next button
+                    // Page 0: Next only
                     Button(
                         onClick = {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -713,14 +720,17 @@ private fun FavoriteCurrenciesPage(
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredCurrencies = remember(currencies, searchQuery, baseCurrency) {
+    val filteredCurrencies = remember(currencies, searchQuery, baseCurrency, favoriteCurrencies) {
         val list = currencies.ifEmpty { PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES }
         val withoutBase = list.filter { it != baseCurrency }
-        if (searchQuery.isBlank()) withoutBase
+        val filtered = if (searchQuery.isBlank()) withoutBase
         else withoutBase.filter { code ->
             code.contains(searchQuery, ignoreCase = true) ||
                     getCurrencyName(code).contains(searchQuery, ignoreCase = true)
         }
+        val favorites = filtered.filter { favoriteCurrencies.contains(it) }
+        val rest = filtered.filter { !favoriteCurrencies.contains(it) }
+        favorites + rest
     }
 
     Column(

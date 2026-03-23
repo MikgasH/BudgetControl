@@ -21,6 +21,9 @@ import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -141,6 +144,7 @@ class RateHistoryViewModel @Inject constructor(
         _sameCurrencyWarning.value = false
         _isLoading.value = true
         _error.value = null
+        _trendsData.value = null
 
         Log.d(TAG, "loadTrends: requesting $from→$to period=$period")
 
@@ -152,11 +156,17 @@ class RateHistoryViewModel @Inject constructor(
                     period = period
                 )) {
                     is CerpsResult.Success -> {
-                        val data = result.data
-                        Log.d(TAG, "loadTrends SUCCESS: period=$period, " +
-                                "response.period=${data.period}, " +
+                        val raw = result.data
+                        Log.d(TAG, "loadTrends RAW: period=$period, " +
+                                "response.period=${raw.period}, " +
+                                "rawPoints=${raw.points.size}, " +
+                                "dataPoints=${raw.dataPoints}, " +
+                                "startDate=${raw.startDate}, endDate=${raw.endDate}, " +
+                                "first=${raw.points.firstOrNull()?.timestamp}, " +
+                                "last=${raw.points.lastOrNull()?.timestamp}")
+                        val data = filterPointsByDateRange(raw)
+                        Log.d(TAG, "loadTrends FILTERED: period=$period, " +
                                 "points=${data.points.size}, " +
-                                "dataPoints=${data.dataPoints}, " +
                                 "first=${data.points.firstOrNull()?.timestamp}, " +
                                 "last=${data.points.lastOrNull()?.timestamp}")
                         _trendsData.value = data
@@ -185,5 +195,40 @@ class RateHistoryViewModel @Inject constructor(
     fun retry() {
         loadCurrencies()
         loadTrends()
+    }
+
+    // The API may return more points than the requested period covers (observed for 1D).
+    // Filter to only include points within the response's startDate-endDate range.
+    private fun filterPointsByDateRange(data: TrendsResponse): TrendsResponse {
+        if (data.points.size <= 1) return data
+
+        val startDate = parseTimestamp(data.startDate)
+        val endDate = parseTimestamp(data.endDate)
+        if (startDate == null || endDate == null) return data
+
+        val filtered = data.points.filter { point ->
+            val ts = parseTimestamp(point.timestamp)
+            ts != null && !ts.before(startDate) && !ts.after(endDate)
+        }
+
+        return if (filtered.size == data.points.size || filtered.isEmpty()) {
+            data
+        } else {
+            Log.d(TAG, "filterPointsByDateRange: ${data.points.size} → ${filtered.size} points")
+            data.copy(points = filtered, dataPoints = filtered.size)
+        }
+    }
+
+    private fun parseTimestamp(ts: String): Date? {
+        val clean = ts.trimEnd('Z')
+        return try {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).parse(clean)
+        } catch (_: Exception) {
+            try {
+                SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(clean)
+            } catch (_: Exception) {
+                null
+            }
+        }
     }
 }

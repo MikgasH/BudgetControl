@@ -19,6 +19,7 @@ import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
@@ -303,12 +304,15 @@ class MainScreenViewModel @Inject constructor(
         )
     }
 
+    fun getTopExpenseCategories(limit: Int = 3): List<Category> {
+        return _uiState.value.categories
+            .filter { it.type == CategoryType.EXPENSE && it.usageCount > 0 }
+            .sortedByDescending { it.usageCount }
+            .take(limit)
+    }
+
     fun formatBalance(amount: Double): String {
         val symbol = getCurrencySymbol(baseCurrency.value)
-        return if (amount == amount.toLong().toDouble()) {
-            "${amount.toLong()} $symbol"
-        } else {
-            "${String.format(Locale.US, "%.2f", amount)} $symbol"
-        }
+        return "${formatAmount(amount)} $symbol"
     }
 }

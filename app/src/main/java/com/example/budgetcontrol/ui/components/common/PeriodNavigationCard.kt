@@ -32,11 +32,11 @@ import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.feature.main.MainScreenUiState
 import com.example.budgetcontrol.feature.main.OperationType
 import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.ui.components.charts.PieChart
 import androidx.core.graphics.toColorInt
 import java.util.Calendar
-import java.util.Locale
 
 @Composable
 internal fun PeriodNavigationCard(
@@ -147,7 +147,7 @@ internal fun PeriodNavigationCard(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "${String.format(Locale.US, "%.2f", totalAmount)} ${getCurrencySymbol(baseCurrency)}",
+                                text = "${formatAmount(totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),

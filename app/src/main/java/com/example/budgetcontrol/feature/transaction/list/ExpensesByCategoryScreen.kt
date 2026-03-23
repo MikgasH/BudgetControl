@@ -21,6 +21,7 @@ import com.example.budgetcontrol.feature.transaction.common.TransactionsByCatego
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.ui.util.displayName
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import java.text.SimpleDateFormat
 import java.util.*
@@ -87,7 +88,7 @@ fun ExpensesByCategoryScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "${String.format(Locale.US, "%.2f", uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
+                            text = "${formatAmount(uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold

@@ -84,11 +84,12 @@ internal fun CurrenciesBottomSheet(
         }
     }
 
-    // EUR always first, then the rest in server order
-    val sortedCurrencies = remember(filteredCurrencies, baseCurrency) {
+    // Base currency first, then favorites, then the rest
+    val sortedCurrencies = remember(filteredCurrencies, baseCurrency, favoriteCurrencies) {
         val base = filteredCurrencies.filter { it == baseCurrency }
-        val rest = filteredCurrencies.filter { it != baseCurrency }
-        base + rest
+        val favorites = filteredCurrencies.filter { it != baseCurrency && favoriteCurrencies.contains(it) }
+        val rest = filteredCurrencies.filter { it != baseCurrency && !favoriteCurrencies.contains(it) }
+        base + favorites + rest
     }
 
     ModalBottomSheet(

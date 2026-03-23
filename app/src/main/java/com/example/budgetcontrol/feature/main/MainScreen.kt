@@ -49,12 +49,17 @@ import androidx.core.graphics.toColorInt
 import java.util.Locale
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import com.example.budgetcontrol.core.util.DateRangeHelper
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
     onAddExpenseClick: (Long) -> Unit,
     onAddIncomeClick: (Long) -> Unit,
+    onAddExpenseWithCategory: (Long, String) -> Unit = { date, _ -> onAddExpenseClick(date) },
     onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean) -> Unit = { _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
     onRateHistoryClick: () -> Unit = {},
@@ -145,22 +150,90 @@ fun MainScreen(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    val selectedDate = viewModel.getCurrentSelectedDate()
-                    val operationType = viewModel.getCurrentSelectedOperationType()
-                    when (operationType) {
-                        OperationType.EXPENSES -> onAddExpenseClick(selectedDate)
-                        OperationType.INCOMES -> onAddIncomeClick(selectedDate)
+            var showQuickAdd by remember { mutableStateOf(false) }
+            val topCategories = remember(uiState.categories) {
+                viewModel.getTopExpenseCategories()
+            }
+
+            Box {
+                Surface(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(FloatingActionButtonDefaults.shape)
+                        .combinedClickable(
+                            onClick = {
+                                val selectedDate = viewModel.getCurrentSelectedDate()
+                                when (viewModel.getCurrentSelectedOperationType()) {
+                                    OperationType.EXPENSES -> onAddExpenseClick(selectedDate)
+                                    OperationType.INCOMES -> onAddIncomeClick(selectedDate)
+                                }
+                            },
+                            onLongClick = {
+                                if (topCategories.isNotEmpty() &&
+                                    viewModel.getCurrentSelectedOperationType() == OperationType.EXPENSES
+                                ) {
+                                    showQuickAdd = true
+                                }
+                            }
+                        ),
+                    shape = FloatingActionButtonDefaults.shape,
+                    color = MaterialTheme.colorScheme.primary,
+                    shadowElevation = 6.dp
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.add_operation),
+                            tint = Color.White
+                        )
                     }
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.add_operation),
-                    tint = Color.White
-                )
+                }
+
+                DropdownMenu(
+                    expanded = showQuickAdd,
+                    onDismissRequest = { showQuickAdd = false }
+                ) {
+                    topCategories.forEach { category ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                try { Color(category.color.toColorInt()) }
+                                                catch (_: Exception) { Color.Gray }
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = getCategoryIcon(category.iconName),
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = category.displayName(),
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            },
+                            onClick = {
+                                showQuickAdd = false
+                                val selectedDate = viewModel.getCurrentSelectedDate()
+                                onAddExpenseWithCategory(selectedDate, category.id)
+                            }
+                        )
+                    }
+                }
             }
         }
     ) { paddingValues ->
@@ -536,7 +609,7 @@ private fun CategoryStatisticItem(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
+                    text = "${formatAmount(statistic.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),

@@ -23,6 +23,7 @@ import com.example.budgetcontrol.ui.components.charts.PieChart
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.core.graphics.toColorInt
 import java.util.Locale
@@ -246,7 +247,7 @@ private fun CategoryStatisticItem(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", statistic.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
+                    text = "${formatAmount(statistic.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

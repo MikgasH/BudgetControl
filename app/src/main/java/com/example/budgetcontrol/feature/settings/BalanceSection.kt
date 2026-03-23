@@ -14,8 +14,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
-import java.util.Locale
 
 @Composable
 internal fun BalanceSection(
@@ -45,7 +45,7 @@ internal fun BalanceSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", totalBalance)} ${getCurrencySymbol(baseCurrency)}",
+                    text = "${formatAmount(totalBalance)} ${getCurrencySymbol(baseCurrency)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -67,7 +67,7 @@ internal fun BalanceEditDialog(
     onDismiss: () -> Unit
 ) {
     var balanceText by remember(totalBalance) {
-        mutableStateOf(String.format(Locale.US, "%.2f", totalBalance))
+        mutableStateOf(formatAmount(totalBalance))
     }
 
     AlertDialog(

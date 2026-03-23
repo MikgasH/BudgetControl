@@ -22,6 +22,7 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.core.graphics.toColorInt
 import java.text.SimpleDateFormat
@@ -132,8 +133,8 @@ fun TransactionItem(
                 horizontalAlignment = Alignment.End
             ) {
                 val amountText = when (transaction.type) {
-                    TransactionType.EXPENSE -> "-${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
-                    TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+                    TransactionType.EXPENSE -> "-${formatAmount(transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+                    TransactionType.INCOME -> "+${formatAmount(transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
                 }
 
                 val amountColor = when (transaction.type) {
@@ -147,6 +148,30 @@ fun TransactionItem(
                     fontWeight = FontWeight.SemiBold,
                     color = amountColor
                 )
+
+                val originalAmount = when (transaction) {
+                    is Transaction.ExpenseTransaction -> transaction.originalAmount
+                    is Transaction.IncomeTransaction -> transaction.originalAmount
+                }
+                val originalCurrency = when (transaction) {
+                    is Transaction.ExpenseTransaction -> transaction.originalCurrency
+                    is Transaction.IncomeTransaction -> transaction.originalCurrency
+                }
+                val bankName = when (transaction) {
+                    is Transaction.ExpenseTransaction -> transaction.bankName
+                    is Transaction.IncomeTransaction -> transaction.bankName
+                }
+
+                if (originalCurrency != baseCurrency && originalAmount != transaction.amount) {
+                    val bankSuffix = bankName?.let { " · $it" } ?: ""
+                    Text(
+                        text = "${formatAmount(originalAmount)} ${getCurrencySymbol(originalCurrency)}$bankSuffix",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 IconButton(
                     onClick = { showDeleteDialog = true },
@@ -245,8 +270,8 @@ fun TransactionItemDetailed(
             }
 
             val amountText = when (transaction.type) {
-                TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
-                TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+                TransactionType.EXPENSE -> "${formatAmount(transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+                TransactionType.INCOME -> "+${formatAmount(transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
             }
 
             val amountColor = when (transaction.type) {

@@ -381,7 +381,7 @@ class TransactionFormViewModel @Inject constructor(
             val staleWarning = if (interBankRate != null && cerpsRepository.areRatesStale()) {
                 val ageMs = System.currentTimeMillis() - cerpsRepository.getRatesTimestamp()
                 val ageHours = (ageMs / (1000 * 60 * 60)).toInt()
-                context.getString(R.string.stale_rate_warning, ageHours.toString())
+                context.getString(R.string.stale_rate_warning_improved, ageHours.toString())
             } else null
 
             if (interBankRate != null) {

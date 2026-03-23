@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.analytics
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -64,9 +65,17 @@ internal fun RateChart(
     onPointSelected: (date: String?, rate: Double) -> Unit
 ) {
     val allPoints = trendsData.points
-    if (allPoints.size < 2) return
+    Log.d("RateChart", "RateChart called: ${allPoints.size} points, " +
+            "period=${trendsData.period}, change=${trendsData.changePercentage}%")
+    if (allPoints.size < 2) {
+        Log.d("RateChart", "Early return: < 2 points")
+        return
+    }
 
     val points = downsamplePoints(allPoints)
+    Log.d("RateChart", "After downsample: ${points.size} points, " +
+            "first=${points.first().timestamp}/${points.first().rate}, " +
+            "last=${points.last().timestamp}/${points.last().rate}")
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(points) { selectedIndex = null }
@@ -116,15 +125,32 @@ internal fun RateChart(
     val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
     val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
     val inputFormatAlt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    val outputFormat = SimpleDateFormat("d MMM", appLocale)
+
+    fun parseTimestamp(timestamp: String): java.util.Date? {
+        val clean = timestamp.trimEnd('Z')
+        return try { inputFormat.parse(clean) }
+        catch (_: Exception) {
+            try { inputFormatAlt.parse(clean) }
+            catch (_: Exception) { null }
+        }
+    }
+
+    // Detect if all points fall on the same calendar day (typical for 1D period)
+    // to show time-of-day labels instead of date labels
+    val allSameDay = run {
+        val dayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val days = points.mapNotNull { parseTimestamp(it.timestamp) }.map { dayFmt.format(it) }.toSet()
+        days.size <= 1
+    }
+
+    val outputFormat = if (allSameDay) {
+        SimpleDateFormat("HH:mm", appLocale)
+    } else {
+        SimpleDateFormat("d MMM", appLocale)
+    }
 
     fun parseAndFormat(timestamp: String): String {
-        return try {
-            val date = try { inputFormat.parse(timestamp) } catch (_: Exception) { inputFormatAlt.parse(timestamp) }
-            date?.let { outputFormat.format(it) } ?: timestamp.take(10)
-        } catch (_: Exception) {
-            timestamp.take(10)
-        }
+        return parseTimestamp(timestamp)?.let { outputFormat.format(it) } ?: timestamp.take(10)
     }
 
     val formattedDates = points.map { parseAndFormat(it.timestamp) }

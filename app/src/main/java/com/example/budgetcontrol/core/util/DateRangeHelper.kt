@@ -8,6 +8,14 @@ import java.util.*
 
 object DateRangeHelper {
 
+    // Capitalize the first letter in a date string (e.g. "21 марта" → "21 Марта")
+    // Standard replaceFirstChar fails when the string starts with a digit.
+    private fun capitalizeFirstLetter(text: String): String {
+        val idx = text.indexOfFirst { it.isLetter() }
+        if (idx < 0) return text
+        return text.substring(0, idx) + text[idx].uppercaseChar() + text.substring(idx + 1)
+    }
+
     fun getDateRange(
         periodType: PeriodType,
         periodOffset: Int = 0,
@@ -136,8 +144,8 @@ object DateRangeHelper {
 
         if (periodType == PeriodType.PERIOD && customStartDate != null && customEndDate != null) {
             val formatter = SimpleDateFormat("d MMM", Locale.getDefault())
-            val startFormatted = formatter.format(Date(customStartDate))
-            val endFormatted = formatter.format(Date(customEndDate))
+            val startFormatted = capitalizeFirstLetter(formatter.format(Date(customStartDate)))
+            val endFormatted = capitalizeFirstLetter(formatter.format(Date(customEndDate)))
             return "$startFormatted - $endFormatted"
         }
 
@@ -146,29 +154,47 @@ object DateRangeHelper {
         return when (periodType) {
             PeriodType.DAY -> {
                 calendar.add(Calendar.DAY_OF_MONTH, periodOffset)
-                val dateStr = android.text.format.DateFormat.format("d MMMM", calendar).toString()
+                val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                val dateYear = calendar.get(Calendar.YEAR)
+                val dateStr = capitalizeFirstLetter(
+                    android.text.format.DateFormat.format("d MMMM", calendar).toString()
+                )
                 when (periodOffset) {
                     0 -> context.getString(R.string.period_today, dateStr)
                     -1 -> context.getString(R.string.period_yesterday, dateStr)
                     1 -> context.getString(R.string.period_tomorrow, dateStr)
-                    else -> android.text.format.DateFormat.format("d MMMM yyyy", calendar).toString()
+                    else -> {
+                        if (dateYear == currentYear) {
+                            dateStr
+                        } else {
+                            capitalizeFirstLetter(
+                                android.text.format.DateFormat.format("d MMMM yyyy", calendar).toString()
+                            )
+                        }
+                    }
                 }
             }
 
             PeriodType.WEEK -> {
                 calendar.add(Calendar.WEEK_OF_YEAR, periodOffset)
                 calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-                val weekStart = android.text.format.DateFormat.format("d MMM", calendar)
+                val weekStart = capitalizeFirstLetter(
+                    android.text.format.DateFormat.format("d MMM", calendar).toString()
+                )
 
                 calendar.add(Calendar.DAY_OF_MONTH, 6)
-                val weekEnd = android.text.format.DateFormat.format("d MMM", calendar)
+                val weekEnd = capitalizeFirstLetter(
+                    android.text.format.DateFormat.format("d MMM", calendar).toString()
+                )
 
                 "$weekStart - $weekEnd"
             }
 
             PeriodType.MONTH -> {
                 calendar.add(Calendar.MONTH, periodOffset)
-                android.text.format.DateFormat.format("MMMM yyyy", calendar).toString()
+                capitalizeFirstLetter(
+                    android.text.format.DateFormat.format("MMMM yyyy", calendar).toString()
+                )
             }
 
             PeriodType.YEAR -> {

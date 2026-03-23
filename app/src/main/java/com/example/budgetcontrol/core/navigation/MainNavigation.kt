@@ -15,6 +15,9 @@ fun NavGraphBuilder.mainNavigation(navController: NavHostController) {
             onAddIncomeClick = { selectedDate ->
                 navController.navigate("${Screen.AddIncome.route}?selectedDate=$selectedDate")
             },
+            onAddExpenseWithCategory = { selectedDate, categoryId ->
+                navController.navigate("${Screen.AddExpense.route}?selectedDate=$selectedDate&categoryId=$categoryId")
+            },
             onCategoryClick = { categoryId, operationType, startDate, endDate, isAllTime ->
                 when (operationType) {
                     OperationType.INCOMES -> {

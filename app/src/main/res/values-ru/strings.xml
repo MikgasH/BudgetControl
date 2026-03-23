@@ -373,7 +373,6 @@
     <string name="onboarding_ready_desc">Приложение настроено и готово к использованию</string>
     <string name="onboarding_start">Начать</string>
     <string name="onboarding_next">Далее</string>
-    <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_add_custom_bank">Добавить свой банк</string>
 
     <!-- Bank dialog -->
@@ -413,7 +412,16 @@
     <string name="cash_rate_placeholder">напр. %1$s</string>
     <string name="using_interbank_rate_hint">Используется межбанковский курс · неточно</string>
 
+    <!-- Onboarding -->
+    <string name="onboarding_back">Назад</string>
+
     <!-- Onboarding summary -->
     <string name="onboarding_currencies_summary">Валюты</string>
     <string name="currencies_selected_summary">Выбрано: %1$d</string>
+
+    <!-- Bank commission tooltip -->
+    <string name="commission_info_tooltip">Комиссия может отличаться в зависимости от плана, дня недели и суммы трат. Используйте кнопку \'Уточнить сумму\' для 100% точности.</string>
+
+    <!-- Stale rate improved warning -->
+    <string name="stale_rate_warning_improved">Курс может быть неактуальным (обновлён %1$s ч. назад). Вы можете продолжить — используйте \'Уточнить сумму\' для 100% точности.</string>
 </resources>

@@ -38,6 +38,7 @@ fun TransactionFormScreen(
     mode: TransactionFormMode,
     transactionId: String? = null,
     initialDate: Long = System.currentTimeMillis(),
+    preSelectedCategoryId: String? = null,
     onBackClick: () -> Unit,
     onSuccess: () -> Unit,
     viewModel: TransactionFormViewModel = hiltViewModel()
@@ -54,6 +55,16 @@ fun TransactionFormScreen(
             transactionId = transactionId,
             initialDate = initialDate
         )
+    }
+
+    // Pre-select category from quick-add
+    LaunchedEffect(preSelectedCategoryId, uiState.categories) {
+        if (preSelectedCategoryId != null && uiState.categories.isNotEmpty() && uiState.selectedCategory == null) {
+            val category = uiState.categories.find { it.id == preSelectedCategoryId }
+            if (category != null) {
+                viewModel.selectCategory(category)
+            }
+        }
     }
 
     LaunchedEffect(

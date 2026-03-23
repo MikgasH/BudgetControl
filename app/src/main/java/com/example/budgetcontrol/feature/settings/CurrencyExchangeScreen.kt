@@ -23,6 +23,7 @@ import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
 import java.text.SimpleDateFormat
 import java.util.Date
+import com.example.budgetcontrol.core.util.formatAmount
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -353,7 +354,7 @@ private fun ExchangeHistoryItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${String.format(Locale.US, "%.2f", exchange.fromAmount)} ${exchange.fromCurrency} → ${String.format(Locale.US, "%.2f", exchange.toAmount)} ${exchange.toCurrency}",
+                    text = "${formatAmount(exchange.fromAmount)} ${exchange.fromCurrency} → ${formatAmount(exchange.toAmount)} ${exchange.toCurrency}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )

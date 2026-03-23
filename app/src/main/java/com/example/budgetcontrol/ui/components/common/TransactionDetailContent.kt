@@ -26,6 +26,7 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.core.graphics.toColorInt
 import java.text.SimpleDateFormat
@@ -122,8 +123,7 @@ fun TransactionDetailContent(
         }
 
         if (originalCurrency != baseCurrency) {
-            val originalFormatted = String.format(Locale.US, "%.2f", originalAmount)
-                .trimEnd('0').trimEnd('.', ',')
+            val originalFormatted = formatAmount(originalAmount)
             val displayName = try {
                 Currency.getInstance(originalCurrency)
                     .getDisplayName(Locale.getDefault())
@@ -220,8 +220,8 @@ private fun TransactionAmountCard(
     modifier: Modifier = Modifier
 ) {
     val amountText = when (transaction.type) {
-        TransactionType.EXPENSE -> "${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
-        TransactionType.INCOME -> "+${String.format(Locale.US, "%.2f", transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+        TransactionType.EXPENSE -> "${formatAmount(transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
+        TransactionType.INCOME -> "+${formatAmount(transaction.amount)} ${getCurrencySymbol(baseCurrency)}"
     }
 
     Card(

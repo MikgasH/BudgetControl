@@ -37,7 +37,10 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
+import android.util.Log
+import com.example.budgetcontrol.core.data.remote.cerps.dto.RatePoint
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.util.formatAmount
 import java.util.Currency
 import java.util.Locale
 
@@ -151,37 +154,61 @@ fun RateHistoryScreen(
                 }
                 trendsData != null -> {
                     val data = trendsData ?: return@Column
-                    if (data.points.size < 2) {
-                        InsufficientDataCard(
-                            trendsData = data,
-                            selectedFrom = selectedFrom,
-                            selectedTo = selectedTo
+                    var selectedDate by remember { mutableStateOf<String?>(null) }
+                    var selectedRate by remember { mutableStateOf<Double?>(null) }
+                    var amountText by remember { mutableStateOf("100") }
+
+                    Log.d("RateHistory", "Render: period=${data.period}, " +
+                            "points=${data.points.size}, dataPoints=${data.dataPoints}, " +
+                            "oldRate=${data.oldRate}, newRate=${data.newRate}, " +
+                            "change=${data.changePercentage}%, " +
+                            "startDate=${data.startDate}, endDate=${data.endDate}")
+
+                    LaunchedEffect(trendsData) {
+                        selectedDate = null
+                        selectedRate = null
+                    }
+
+                    StatsRow(
+                        trendsData = data,
+                        selectedDate = selectedDate,
+                        selectedRate = selectedRate,
+                        selectedFrom = selectedFrom,
+                        selectedTo = selectedTo,
+                        amountText = amountText,
+                        onAmountChange = { amountText = it }
+                    )
+
+                    // For periods with < 2 data points (e.g. 1D), synthesize a 2-point
+                    // line from oldRate→newRate so the chart can still render
+                    val chartData = if (data.points.size < 2 && data.oldRate > 0 && data.newRate > 0) {
+                        Log.d("RateHistory", "Synthesizing chart: ${data.points.size} points → " +
+                                "2 synthetic (${data.oldRate}→${data.newRate})")
+                        data.copy(
+                            points = listOf(
+                                RatePoint(timestamp = data.startDate, rate = data.oldRate),
+                                RatePoint(timestamp = data.endDate, rate = data.newRate)
+                            )
                         )
                     } else {
-                        var selectedDate by remember { mutableStateOf<String?>(null) }
-                        var selectedRate by remember { mutableStateOf<Double?>(null) }
-                        var amountText by remember { mutableStateOf("100") }
+                        data
+                    }
 
-                        LaunchedEffect(trendsData) {
-                            selectedDate = null
-                            selectedRate = null
-                        }
-
-                        StatsRow(
-                            trendsData = data,
-                            selectedDate = selectedDate,
-                            selectedRate = selectedRate,
-                            selectedFrom = selectedFrom,
-                            selectedTo = selectedTo,
-                            amountText = amountText,
-                            onAmountChange = { amountText = it }
-                        )
+                    if (chartData.points.size >= 2) {
+                        Log.d("RateHistory", "RateChart: rendering ${chartData.points.size} points")
                         RateChart(
-                            trendsData = data,
+                            trendsData = chartData,
                             onPointSelected = { date, rate ->
                                 selectedDate = date
                                 selectedRate = rate
                             }
+                        )
+                    } else {
+                        Log.d("RateHistory", "InsufficientData: no valid rates to synthesize")
+                        InsufficientDataCard(
+                            trendsData = data,
+                            selectedFrom = selectedFrom,
+                            selectedTo = selectedTo
                         )
                     }
                 }
@@ -661,7 +688,7 @@ private fun StatsRow(
                 Text(
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(String.format(Locale.US, "%.2f", convertedAmount))
+                            append(formatAmount(convertedAmount))
                         }
                         append(" $selectedTo")
                     },
@@ -681,9 +708,6 @@ private fun InsufficientDataCard(
     selectedFrom: String,
     selectedTo: String
 ) {
-    val changeColor = if (trendsData.changePercentage >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val changePrefix = if (trendsData.changePercentage >= 0) "+" else ""
-
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -692,28 +716,16 @@ private fun InsufficientDataCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 48.dp, horizontal = 24.dp),
+                .padding(vertical = 32.dp, horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "${String.format(Locale.US, "%.4f", trendsData.newRate)} $selectedTo",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
             Text(
                 text = "1 $selectedFrom = ${String.format(Locale.US, "%.4f", trendsData.newRate)} $selectedTo",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "${changePrefix}${String.format(Locale.US, "%.2f", trendsData.changePercentage)}%",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = changeColor
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.rate_history_not_enough_data),
                 style = MaterialTheme.typography.bodyLarge,

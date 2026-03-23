@@ -20,8 +20,8 @@ import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.ui.components.common.TransactionItem
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +133,7 @@ fun ExpensesScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${String.format(Locale.US, "%.2f", uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
+                        text = "${formatAmount(uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
