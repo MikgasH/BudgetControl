@@ -57,7 +57,8 @@ private val CHART_HEIGHT = 310.dp
 private val START_DRAW_PAD = 12.dp
 private val CONTAINER_PAD_END = 16.dp
 private val PLOT_TOP = 30.dp          // LineChartData.paddingTop default
-private val PLOT_BOTTOM_INSET = 20.dp // bottomPadding(10) + x-axis(~10)
+// XAxis height: labelHeight(0) + axisLineThickness(2) + indicatorLineWidth(5) + labelAndAxisLinePadding(4) + bottomPadding(10)
+private val X_AXIS_HEIGHT = 21.dp
 
 @Composable
 internal fun RateChart(
@@ -219,7 +220,7 @@ internal fun RateChart(
     // Pre-compute pixel values for gesture & canvas overlay
     val yAxisWidthPx = with(density) { yAxisWidthDp.toPx() }
     val plotTopPx = with(density) { PLOT_TOP.toPx() }
-    val plotBottomInsetPx = with(density) { PLOT_BOTTOM_INSET.toPx() }
+    val xAxisHeightPx = with(density) { X_AXIS_HEIGHT.toPx() }
     val xAxisStepSizePx = with(density) { xAxisStepSize.toPx() }
 
     Card(
@@ -243,24 +244,30 @@ internal fun RateChart(
                 val currentSelectedIndex = selectedIndex
                 if (currentSelectedIndex != null) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val plotBottomPx = size.height - plotBottomInsetPx
-                        val plotHeightPx = plotBottomPx - plotTopPx
+                        // YCharts: yBottom = canvasHeight - xAxisHeight
+                        val yBottom = size.height - xAxisHeightPx
+                        val plotHeightPx = yBottom - plotTopPx
 
                         // X: YCharts places point i at columnWidth + i * axisStepSize
                         val xPx = yAxisWidthPx + currentSelectedIndex * xAxisStepSizePx
 
-                        // Y: normalized data maps [0, maxNormalizedY] to [plotBottom, plotTop]
+                        // Y: YCharts maps [yMinData, yMaxData] to [yBottom, paddingTop]
                         val rate = points[currentSelectedIndex].rate.toFloat()
-                        val maxNormalizedY = pointsData.maxOf { it.y }
+                        val yMinData = pointsData.minOf { it.y }
+                        val yMaxData = pointsData.maxOf { it.y }
+                        val yDataRange = yMaxData - yMinData
                         val normalizedY = if (yRange > 0f) ((rate - yMin) / yRange) * ySteps else ySteps / 2f
-                        val yFraction = if (maxNormalizedY > 0f) (normalizedY / maxNormalizedY).coerceIn(0f, 1f) else 0.5f
-                        val yPx = plotBottomPx - yFraction * plotHeightPx
+                        val yPx = if (yDataRange > 0f) {
+                            yBottom - ((normalizedY - yMinData) / yDataRange) * plotHeightPx
+                        } else {
+                            yBottom - plotHeightPx / 2f
+                        }
 
                         // Vertical guide line (dashed)
                         drawLine(
                             color = lineColor.copy(alpha = 0.4f),
                             start = Offset(xPx, plotTopPx),
-                            end = Offset(xPx, plotBottomPx),
+                            end = Offset(xPx, yBottom),
                             strokeWidth = 1.dp.toPx(),
                             pathEffect = PathEffect.dashPathEffect(
                                 floatArrayOf(8.dp.toPx(), 4.dp.toPx())
