@@ -544,10 +544,12 @@ class TransactionFormViewModel @Inject constructor(
                         current.availableBanks.firstOrNull { it.name == restoredBankName }
                     } else null
 
+                    val origAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
+
                     _uiState.value = current.copy(
                         categories = filteredCategories,
                         selectedCategory = selectedCategory,
-                        amount = transaction.amount.toString(),
+                        amount = origAmount.toString(),
                         description = transaction.description ?: "",
                         selectedDate = transaction.date,
                         originalTransaction = transaction,
@@ -555,7 +557,7 @@ class TransactionFormViewModel @Inject constructor(
                         selectedIncomeCategory = initialIncomeCategory,
                         selectedCurrency = restoredCurrency,
                         selectedBank = restoredBank,
-                        originalAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount,
+                        originalAmount = origAmount,
                         isLoading = false
                     )
 
@@ -1120,7 +1122,7 @@ class TransactionFormViewModel @Inject constructor(
         val currentState = _uiState.value
         val original = currentState.originalTransaction ?: return false
 
-        return currentState.amount != original.amount.toString() ||
+        return currentState.amount != currentState.originalAmount.toString() ||
                 currentState.description != (original.description ?: "") ||
                 currentState.selectedCategory?.id != original.categoryId ||
                 currentState.transactionType != original.type ||
