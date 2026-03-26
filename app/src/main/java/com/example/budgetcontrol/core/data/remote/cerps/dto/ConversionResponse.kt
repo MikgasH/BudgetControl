@@ -3,7 +3,6 @@ package com.example.budgetcontrol.core.data.remote.cerps.dto
 import java.math.BigDecimal
 
 data class ConversionResponse(
-    val success: Boolean,
     val originalAmount: BigDecimal,
     val fromCurrency: String,
     val toCurrency: String,

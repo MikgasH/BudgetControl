@@ -139,7 +139,6 @@ class CerpsRepository @Inject constructor(
             val response = apiService.convert(request)
             val body = response.body()
             if (response.isSuccessful && body != null) {
-                if (body.success) {
                     val rateKey = "${from}_${to}"
                     val reverseKey = "${to}_${from}"
                     val rate = body.exchangeRate.toDouble()
@@ -148,9 +147,6 @@ class CerpsRepository @Inject constructor(
                     val merged = existing + mapOf(rateKey to rate, reverseKey to reverseRate)
                     preferencesManager.saveLastRates(merged, System.currentTimeMillis())
                     CerpsResult.Success(body)
-                } else {
-                    CerpsResult.Error(context.getString(R.string.conversion_failed))
-                }
             } else {
                 CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }
