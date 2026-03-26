@@ -129,12 +129,13 @@ private val presetColors = listOf(
 fun CreateCategoryBottomSheet(
     categoryType: CategoryType,
     onDismiss: () -> Unit,
-    onSave: (name: String, iconName: String, color: String, type: CategoryType) -> Unit
+    onSave: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
+    initialName: String = ""
 ) {
     val defaultIcon = "category"
     val defaultColor = presetColors[4] // #2196F3
 
-    var name by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialName) }
     var selectedIcon by remember { mutableStateOf(defaultIcon) }
     var selectedColor by remember { mutableStateOf(defaultColor) }
     var showMoreIcons by remember { mutableStateOf(false) }
@@ -150,7 +151,7 @@ fun CreateCategoryBottomSheet(
     // Track unsaved changes
     val hasUnsavedChanges by remember {
         derivedStateOf {
-            name.isNotBlank() || selectedIcon != defaultIcon || selectedColor != defaultColor
+            (name.isNotBlank() && name != initialName) || selectedIcon != defaultIcon || selectedColor != defaultColor
         }
     }
 

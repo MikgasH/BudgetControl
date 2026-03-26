@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -76,16 +77,21 @@ fun CategorySelector(
 
     var showMoreSheet by remember { mutableStateOf(false) }
     var showCreateSheet by remember { mutableStateOf(false) }
+    var createSheetInitialName by remember { mutableStateOf("") }
     var settingsCategory by remember { mutableStateOf<Category?>(null) }
 
     // Sheets
     if (showCreateSheet && onCreateCategory != null) {
         CreateCategoryBottomSheet(
             categoryType = categoryType,
-            onDismiss = { showCreateSheet = false },
+            onDismiss = {
+                showCreateSheet = false
+                createSheetInitialName = ""
+            },
             onSave = { name, iconName, color, type ->
                 onCreateCategory(name, iconName, color, type)
-            }
+            },
+            initialName = createSheetInitialName
         )
     }
 
@@ -100,6 +106,12 @@ fun CategorySelector(
             onDismiss = { showMoreSheet = false },
             onCreateCategory = if (onCreateCategory != null) {
                 { showCreateSheet = true }
+            } else null,
+            onCreateCategoryWithName = if (onCreateCategory != null) {
+                { name ->
+                    createSheetInitialName = name
+                    showCreateSheet = true
+                }
             } else null,
             onLongPress = { settingsCategory = it }
         )
@@ -309,6 +321,7 @@ private fun AllCategoriesBottomSheet(
     onCategorySelect: (Category) -> Unit,
     onDismiss: () -> Unit,
     onCreateCategory: (() -> Unit)?,
+    onCreateCategoryWithName: ((String) -> Unit)? = null,
     onLongPress: (Category) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -370,63 +383,82 @@ private fun AllCategoriesBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (filtered.isEmpty() && searchQuery.isNotBlank()) {
-                Text(
-                    text = stringResource(R.string.no_categories_found),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                // 4-column grid of all categories + "+" button
-                Column(
+            // Fixed-height container: grid and empty state overlap so
+            // toggling between them never changes the layout height.
+            // 2 rows of items: (52 icon + 4 spacer + 36 text) × 2 + 12 gap = 196dp
+            val showEmptyCreate = filtered.isEmpty() && searchQuery.isNotBlank() && onCreateCategoryWithName != null
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 196.dp)
+            ) {
+                // Category grid — always in layout, invisible when empty create is shown
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(GRID_COLUMNS),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 400.dp)
-                        .verticalScroll(rememberScrollState())
+                        .alpha(if (showEmptyCreate) 0f else 1f),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    userScrollEnabled = !showEmptyCreate
                 ) {
-                    val gridItems: List<Any> = filtered + Unit // Unit = "+" sentinel
-                    val rows = gridItems.chunked(GRID_COLUMNS)
-
-                    rows.forEach { row ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp)
-                        ) {
-                            row.forEach { item ->
-                                when (item) {
-                                    is Category -> CompactCategoryItem(
-                                        category = item,
-                                        isSelected = item.id == selectedCategory?.id,
-                                        onClick = { onCategorySelect(item) },
-                                        onLongClick = {
-                                            onLongPress(item)
-                                        },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    else -> {
-                                        // "+" create button
-                                        if (onCreateCategory != null) {
-                                            AddCategoryItem(
-                                                onClick = onCreateCategory,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        } else {
-                                            Spacer(modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                            }
-                            repeat(GRID_COLUMNS - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                    items(
+                        items = filtered,
+                        key = { it.id }
+                    ) { category ->
+                        CompactCategoryItem(
+                            category = category,
+                            isSelected = category.id == selectedCategory?.id,
+                            onClick = { onCategorySelect(category) },
+                            onLongClick = { onLongPress(category) },
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                    if (onCreateCategory != null && searchQuery.isBlank()) {
+                        item(key = "add_category") {
+                            AddCategoryItem(
+                                onClick = onCreateCategory,
+                                modifier = Modifier.animateItem()
+                            )
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                // Empty state — overlaid on top, same reserved space
+                if (showEmptyCreate) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 196.dp)
+                            .clickable { onCreateCategoryWithName?.invoke(searchQuery.trim()) },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.create_category_suggestion, searchQuery.trim()),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }

@@ -307,7 +307,8 @@
     <string name="select_icon">Иконка</string>
     <string name="select_color">Цвет</string>
     <string name="system_category">Системная</string>
-    <string name="no_categories_found">Категории не найдены</string>
+    <string name="no_categories_found">Категория не найдена</string>
+    <string name="create_category_suggestion">Создать \u00AB%1$s\u00BB</string>
     <string name="reset_categories_to_defaults">Сбросить к настройкам по умолчанию</string>
     <string name="reset_categories_confirm">Удалить все пользовательские категории и восстановить по умолчанию?</string>
 

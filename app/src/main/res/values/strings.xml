@@ -307,7 +307,8 @@
     <string name="select_icon">Icon</string>
     <string name="select_color">Color</string>
     <string name="system_category">System</string>
-    <string name="no_categories_found">No categories found</string>
+    <string name="no_categories_found">Category not found</string>
+    <string name="create_category_suggestion">Create \u00AB%1$s\u00BB</string>
     <string name="reset_categories_to_defaults">Reset to defaults</string>
     <string name="reset_categories_confirm">Delete all custom categories and restore defaults?</string>
 
