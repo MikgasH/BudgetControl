@@ -314,9 +314,13 @@ private fun AllCategoriesBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
 
-    val filtered = remember(categories, searchQuery) {
+    // Build a map of category id -> localized display name so filtering
+    // matches what the user actually sees (not the internal name/key).
+    val displayNames = categories.associateBy({ it.id }, { it.displayName() })
+
+    val filtered = remember(categories, searchQuery, displayNames) {
         if (searchQuery.isBlank()) categories
-        else categories.filter { it.name.contains(searchQuery, ignoreCase = true) }
+        else categories.filter { (displayNames[it.id] ?: it.name).contains(searchQuery, ignoreCase = true) }
     }
 
     ModalBottomSheet(
