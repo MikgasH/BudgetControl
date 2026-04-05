@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 import java.util.Currency
 import java.util.Locale
 
-private const val PAGE_COUNT = 6
+private const val PAGE_COUNT = 7
 
 @Composable
 fun OnboardingScreen(
@@ -64,13 +64,17 @@ fun OnboardingScreen(
                         selectedLanguage = uiState.selectedLanguage,
                         onLanguageSelected = viewModel::setLanguage
                     )
-                    1 -> CurrencyPage(
+                    1 -> ThemePage(
+                        selectedTheme = uiState.selectedTheme,
+                        onThemeSelected = viewModel::setTheme
+                    )
+                    2 -> CurrencyPage(
                         currencies = uiState.currencies,
                         selectedCurrency = uiState.selectedCurrency,
                         isLoading = uiState.currenciesLoading,
                         onCurrencySelected = viewModel::setCurrency
                     )
-                    2 -> BanksPage(
+                    3 -> BanksPage(
                         banks = banks,
                         onToggleFavorite = viewModel::toggleBankFavorite,
                         onAddBank = viewModel::addBank,
@@ -78,20 +82,21 @@ fun OnboardingScreen(
                         onLookup = viewModel::lookupBankCommission,
                         onResetLookup = viewModel::resetCommissionLookup
                     )
-                    3 -> FavoriteCurrenciesPage(
+                    4 -> FavoriteCurrenciesPage(
                         currencies = uiState.currencies,
                         favoriteCurrencies = uiState.favoriteCurrencies,
                         baseCurrency = uiState.selectedCurrency,
                         isLoading = uiState.currenciesLoading,
                         onToggleCurrency = viewModel::toggleFavoriteCurrency
                     )
-                    4 -> BalancePage(
+                    5 -> BalancePage(
                         balance = uiState.initialBalance,
                         currency = uiState.selectedCurrency,
                         onBalanceChanged = viewModel::setInitialBalance
                     )
-                    5 -> ReadyPage(
+                    6 -> ReadyPage(
                         language = uiState.selectedLanguage,
+                        theme = uiState.selectedTheme,
                         currency = uiState.selectedCurrency,
                         banksCount = banks.count { it.isFavorite },
                         favoriteCurrenciesCount = uiState.favoriteCurrencies.size
@@ -132,7 +137,7 @@ fun OnboardingScreen(
                     .padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (pagerState.currentPage == 5) {
+                if (pagerState.currentPage == PAGE_COUNT - 1) {
                     // Ready page: Back + Start
                     OutlinedButton(
                         onClick = {
@@ -305,7 +310,139 @@ private fun LanguageCard(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Page 2: Currency
+// Page 2: Theme
+// ═══════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun ThemePage(
+    selectedTheme: String,
+    onThemeSelected: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Palette,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = stringResource(R.string.onboarding_theme_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.onboarding_theme_desc),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ThemeCard(
+                icon = Icons.Default.LightMode,
+                label = stringResource(R.string.theme_light),
+                isSelected = selectedTheme == "light",
+                onClick = { onThemeSelected("light") },
+                modifier = Modifier.weight(1f)
+            )
+            ThemeCard(
+                icon = Icons.Default.DarkMode,
+                label = stringResource(R.string.theme_dark),
+                isSelected = selectedTheme == "dark",
+                onClick = { onThemeSelected("dark") },
+                modifier = Modifier.weight(1f)
+            )
+            ThemeCard(
+                icon = Icons.Default.SettingsBrightness,
+                label = stringResource(R.string.theme_system),
+                isSelected = selectedTheme == "system",
+                onClick = { onThemeSelected("system") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .then(
+                if (isSelected) Modifier.border(
+                    2.dp,
+                    MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(12.dp)
+                ) else Modifier
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+                tint = if (isSelected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                textAlign = TextAlign.Center
+            )
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Page 3: Currency
 // ═══════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -899,6 +1036,7 @@ private fun BalancePage(
 @Composable
 private fun ReadyPage(
     language: String,
+    theme: String,
     currency: String,
     banksCount: Int,
     favoriteCurrenciesCount: Int = 0
@@ -954,6 +1092,15 @@ private fun ReadyPage(
                         "en" -> "English"
                         "ru" -> "Русский"
                         else -> stringResource(R.string.language_system)
+                    }
+                )
+                SummaryRow(
+                    icon = Icons.Default.Palette,
+                    label = stringResource(R.string.appearance),
+                    value = when (theme) {
+                        "light" -> stringResource(R.string.theme_light)
+                        "dark" -> stringResource(R.string.theme_dark)
+                        else -> stringResource(R.string.theme_system)
                     }
                 )
                 SummaryRow(

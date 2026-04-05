@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.navigation.AppNavigation
 import com.example.budgetcontrol.core.theme.BudgetControlTheme
@@ -39,5 +40,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun recreate() {
+        // Smooth crossfade instead of the default jarring flash
+        // when the Activity recreates (language or locale change).
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+        super.recreate()
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
 }

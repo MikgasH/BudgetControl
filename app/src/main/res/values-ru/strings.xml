@@ -361,6 +361,8 @@
     <!-- Onboarding -->
     <string name="onboarding_welcome">Добро пожаловать в BudgetControl</string>
     <string name="onboarding_language_title">Выберите язык</string>
+    <string name="onboarding_theme_title">Выберите тему</string>
+    <string name="onboarding_theme_desc">Вы сможете изменить её позже в настройках</string>
     <string name="onboarding_currency_title">Ваша основная валюта</string>
     <string name="onboarding_currency_desc">Все расходы будут конвертированы в эту валюту для учёта</string>
     <string name="onboarding_banks_title">Ваши банки</string>

@@ -29,6 +29,7 @@ import javax.inject.Inject
 
 data class OnboardingUiState(
     val selectedLanguage: String = "",
+    val selectedTheme: String = "system",
     val selectedCurrency: String = DEFAULT_BASE_CURRENCY,
     val initialBalance: String = "",
     val currencies: List<String> = emptyList(),
@@ -55,6 +56,9 @@ class OnboardingViewModel @Inject constructor(
         preferencesManager.languageFlow
             .onEach { tag -> _uiState.value = _uiState.value.copy(selectedLanguage = tag) }
             .launchIn(viewModelScope)
+        preferencesManager.themeFlow
+            .onEach { theme -> _uiState.value = _uiState.value.copy(selectedTheme = theme) }
+            .launchIn(viewModelScope)
         loadCurrencies()
     }
 
@@ -67,6 +71,12 @@ class OnboardingViewModel @Inject constructor(
                 LocaleListCompat.forLanguageTags(tag)
             }
             AppCompatDelegate.setApplicationLocales(locales)
+        }
+    }
+
+    fun setTheme(theme: String) {
+        viewModelScope.launch {
+            preferencesManager.setTheme(theme)
         }
     }
 
