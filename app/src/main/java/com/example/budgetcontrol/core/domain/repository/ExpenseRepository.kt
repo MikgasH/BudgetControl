@@ -16,4 +16,7 @@ interface ExpenseRepository {
     suspend fun getMinDate(): Long?
     suspend fun getMaxDate(): Long?
     fun getExpensesByAccount(accountId: String): Flow<List<Expense>>
+    fun getExpensesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<Expense>>
+    suspend fun reassignExpenses(sourceAccountId: String, targetAccountId: String)
+    suspend fun getExpenseCountByAccount(accountId: String): Int
 }

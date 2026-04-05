@@ -20,7 +20,17 @@ class GetIncomesUseCase @Inject constructor(
         return repository.getIncomesByCategory(categoryId)
     }
 
+    fun getByAccount(accountId: String): Flow<List<Income>> {
+        return repository.getIncomesByAccount(accountId)
+    }
+
+    fun getByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<Income>> {
+        return repository.getIncomesByAccountAndDateRange(accountId, startDate, endDate)
+    }
+
     suspend fun getMinDate(): Long? = repository.getMinDate()
 
     suspend fun getMaxDate(): Long? = repository.getMaxDate()
+
+    suspend fun getIncomeCountByAccount(accountId: String): Int = repository.getIncomeCountByAccount(accountId)
 }

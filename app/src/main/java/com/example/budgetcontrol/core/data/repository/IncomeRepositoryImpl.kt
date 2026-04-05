@@ -58,4 +58,16 @@ class IncomeRepositoryImpl @Inject constructor(
     override fun getIncomesByAccount(accountId: String): Flow<List<Income>> {
         return incomeDao.getIncomesByAccount(accountId).map { it.toDomain() }
     }
+
+    override fun getIncomesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<Income>> {
+        return incomeDao.getIncomesByAccountAndDateRange(accountId, startDate, endDate).map { it.toDomain() }
+    }
+
+    override suspend fun reassignIncomes(sourceAccountId: String, targetAccountId: String) {
+        incomeDao.reassignIncomes(sourceAccountId, targetAccountId)
+    }
+
+    override suspend fun getIncomeCountByAccount(accountId: String): Int {
+        return incomeDao.getIncomeCountByAccount(accountId)
+    }
 }

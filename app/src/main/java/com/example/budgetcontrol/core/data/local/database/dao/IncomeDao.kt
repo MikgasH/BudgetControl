@@ -48,4 +48,13 @@ interface IncomeDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM incomes WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate")
     fun getTotalIncomesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<Double>
+
+    @Query("SELECT * FROM incomes WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    fun getIncomesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<IncomeEntity>>
+
+    @Query("UPDATE incomes SET accountId = :targetAccountId WHERE accountId = :sourceAccountId")
+    suspend fun reassignIncomes(sourceAccountId: String, targetAccountId: String)
+
+    @Query("SELECT COUNT(*) FROM incomes WHERE accountId = :accountId")
+    suspend fun getIncomeCountByAccount(accountId: String): Int
 }

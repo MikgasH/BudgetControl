@@ -48,4 +48,13 @@ interface ExpenseDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expenses WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate")
     fun getTotalExpensesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<Double>
+
+    @Query("SELECT * FROM expenses WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    fun getExpensesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<ExpenseEntity>>
+
+    @Query("UPDATE expenses SET accountId = :targetAccountId WHERE accountId = :sourceAccountId")
+    suspend fun reassignExpenses(sourceAccountId: String, targetAccountId: String)
+
+    @Query("SELECT COUNT(*) FROM expenses WHERE accountId = :accountId")
+    suspend fun getExpenseCountByAccount(accountId: String): Int
 }

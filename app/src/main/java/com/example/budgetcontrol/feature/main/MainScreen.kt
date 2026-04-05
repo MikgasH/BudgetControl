@@ -53,6 +53,8 @@ import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import com.example.budgetcontrol.ui.components.common.AccountsBottomSheet
+import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -93,6 +95,48 @@ fun MainScreen(
         )
     }
 
+    if (uiState.showAccountsSheet) {
+        AccountsBottomSheet(
+            accounts = uiState.accounts,
+            selectedAccountId = uiState.selectedAccountId,
+            totalBalance = viewModel.getTotalBalance(),
+            baseCurrency = baseCurrency,
+            onAccountSelect = { accountId ->
+                viewModel.selectAccount(accountId)
+            },
+            onCreateAccount = {
+                viewModel.dismissAccountsSheet()
+                viewModel.showCreateAccountSheet()
+            },
+            onEditAccount = { accountId ->
+                viewModel.dismissAccountsSheet()
+                viewModel.showEditAccountSheet(accountId)
+            },
+            onDismiss = { viewModel.dismissAccountsSheet() }
+        )
+    }
+
+    if (uiState.showCreateEditAccountSheet) {
+        val editingAccount = viewModel.getEditingAccount()
+        CreateEditAccountBottomSheet(
+            isEditMode = editingAccount != null,
+            account = editingAccount,
+            baseCurrency = baseCurrency,
+            transactionCount = uiState.editingAccountTransactionCount,
+            onSave = { name, iconName, color, initialBalance, currency ->
+                if (editingAccount != null) {
+                    viewModel.updateAccount(name, iconName, color, initialBalance, currency)
+                } else {
+                    viewModel.createAccount(name, iconName, color, initialBalance, currency)
+                }
+            },
+            onDelete = if (editingAccount != null && !editingAccount.isDefault) {
+                { viewModel.deleteAccount(editingAccount.id) }
+            } else null,
+            onDismiss = { viewModel.dismissCreateEditAccountSheet() }
+        )
+    }
+
     Scaffold(
         topBar = {
             Card(
@@ -125,15 +169,29 @@ fun MainScreen(
                         )
                     }
 
-                    Text(
-                        text = viewModel.formatBalance(balance),
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .clickable { viewModel.toggleAccountsSheet() },
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = viewModel.formatBalance(balance),
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color.White
+                        )
+                        val selectedName = viewModel.getSelectedAccountName()
+                        if (selectedName != null) {
+                            Text(
+                                text = selectedName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
 
                     IconButton(
                         onClick = onSettingsClick,

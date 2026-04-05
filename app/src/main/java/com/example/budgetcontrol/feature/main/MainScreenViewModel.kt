@@ -16,7 +16,13 @@ import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
+import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
+import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.repository.AccountRepository
+import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
+import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.formatAmount
@@ -32,7 +38,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.*
@@ -50,7 +58,13 @@ data class MainScreenUiState(
     val currentPeriodIndex: Int = 0,
     val customStartDate: Long? = null,
     val customEndDate: Long? = null,
-    val isAllTimePeriod: Boolean = false
+    val isAllTimePeriod: Boolean = false,
+    val accounts: List<AccountWithBalance> = emptyList(),
+    val selectedAccountId: String? = null,
+    val showAccountsSheet: Boolean = false,
+    val showCreateEditAccountSheet: Boolean = false,
+    val editingAccountId: String? = null,
+    val editingAccountTransactionCount: Int = 0
 )
 
 enum class PeriodType(@StringRes val displayNameRes: Int) {
@@ -68,19 +82,27 @@ class MainScreenViewModel @Inject constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val deleteIncomeUseCase: DeleteIncomeUseCase,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val getAccountsUseCase: GetAccountsUseCase,
+    private val accountRepository: AccountRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val incomeRepository: IncomeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainScreenUiState())
     val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
 
+    private val _accountsWithBalances = MutableStateFlow<List<AccountWithBalance>>(emptyList())
+
     val balance: StateFlow<Double> = combine(
-        getExpensesUseCase(),
-        getIncomesUseCase(),
-        preferencesManager.initialBalanceFlow
-    ) { expenses, incomes, initialBalance ->
-        initialBalance + incomes.sumOf { it.amount } - expenses.sumOf { it.amount }
-    // 5s stop timeout keeps the upstream Flows alive briefly during config changes (e.g. rotation)
+        _accountsWithBalances,
+        _uiState.map { it.selectedAccountId }
+    ) { accounts, selectedId ->
+        if (selectedId == null) {
+            accounts.sumOf { it.currentBalance }
+        } else {
+            accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
@@ -89,6 +111,12 @@ class MainScreenViewModel @Inject constructor(
     private var loadDataJob: Job? = null
 
     init {
+        getAccountsUseCase.getAccountsWithBalances()
+            .onEach { accounts ->
+                _accountsWithBalances.value = accounts
+                _uiState.value = _uiState.value.copy(accounts = accounts)
+            }.launchIn(viewModelScope)
+
         loadData()
     }
 
@@ -99,6 +127,7 @@ class MainScreenViewModel @Inject constructor(
         loadDataJob = viewModelScope.launch {
             try {
                 val currentState = _uiState.value
+                val accountId = currentState.selectedAccountId
 
                 val dateRange = if (!currentState.isAllTimePeriod) {
                     DateRangeHelper.getDateRange(
@@ -109,15 +138,25 @@ class MainScreenViewModel @Inject constructor(
                     )
                 } else null
 
-                val expensesFlow = if (dateRange != null) {
-                    getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
-                } else {
-                    getExpensesUseCase()
+                val expensesFlow = when {
+                    accountId != null && dateRange != null ->
+                        getExpensesUseCase.getByAccountAndDateRange(accountId, dateRange.first, dateRange.second)
+                    accountId != null ->
+                        getExpensesUseCase.getByAccount(accountId)
+                    dateRange != null ->
+                        getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
+                    else ->
+                        getExpensesUseCase()
                 }
-                val incomesFlow = if (dateRange != null) {
-                    getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
-                } else {
-                    getIncomesUseCase()
+                val incomesFlow = when {
+                    accountId != null && dateRange != null ->
+                        getIncomesUseCase.getByAccountAndDateRange(accountId, dateRange.first, dateRange.second)
+                    accountId != null ->
+                        getIncomesUseCase.getByAccount(accountId)
+                    dateRange != null ->
+                        getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
+                    else ->
+                        getIncomesUseCase()
                 }
 
                 combine(
@@ -309,6 +348,119 @@ class MainScreenViewModel @Inject constructor(
             .filter { it.type == CategoryType.EXPENSE && it.usageCount > 0 }
             .sortedByDescending { it.usageCount }
             .take(limit)
+    }
+
+    // ── Account management ────────────────────────────────────────────
+
+    fun selectAccount(accountId: String?) {
+        _uiState.value = _uiState.value.copy(selectedAccountId = accountId)
+        loadData()
+    }
+
+    fun toggleAccountsSheet() {
+        _uiState.value = _uiState.value.copy(
+            showAccountsSheet = !_uiState.value.showAccountsSheet
+        )
+    }
+
+    fun dismissAccountsSheet() {
+        _uiState.value = _uiState.value.copy(showAccountsSheet = false)
+    }
+
+    fun showCreateAccountSheet() {
+        _uiState.value = _uiState.value.copy(
+            showCreateEditAccountSheet = true,
+            editingAccountId = null,
+            editingAccountTransactionCount = 0
+        )
+    }
+
+    fun showEditAccountSheet(accountId: String) {
+        viewModelScope.launch {
+            val expenseCount = getExpensesUseCase.getExpenseCountByAccount(accountId)
+            val incomeCount = getIncomesUseCase.getIncomeCountByAccount(accountId)
+            _uiState.value = _uiState.value.copy(
+                showCreateEditAccountSheet = true,
+                editingAccountId = accountId,
+                editingAccountTransactionCount = expenseCount + incomeCount
+            )
+        }
+    }
+
+    fun dismissCreateEditAccountSheet() {
+        _uiState.value = _uiState.value.copy(
+            showCreateEditAccountSheet = false,
+            editingAccountId = null,
+            editingAccountTransactionCount = 0
+        )
+    }
+
+    fun createAccount(name: String, iconName: String, color: String, initialBalance: Double, currency: String) {
+        viewModelScope.launch {
+            val account = Account(
+                id = UUID.randomUUID().toString(),
+                name = name,
+                iconName = iconName,
+                color = color,
+                initialBalance = initialBalance,
+                currency = currency,
+                isDefault = false,
+                createdAt = System.currentTimeMillis(),
+                lastUsedAt = System.currentTimeMillis(),
+                sortOrder = 0
+            )
+            accountRepository.insertAccount(account)
+            dismissCreateEditAccountSheet()
+        }
+    }
+
+    fun updateAccount(name: String, iconName: String, color: String, initialBalance: Double, currency: String) {
+        val accountId = _uiState.value.editingAccountId ?: return
+        viewModelScope.launch {
+            val existing = accountRepository.getAccountById(accountId) ?: return@launch
+            val updated = existing.copy(
+                name = name,
+                iconName = iconName,
+                color = color,
+                initialBalance = initialBalance,
+                currency = currency
+            )
+            accountRepository.updateAccount(updated)
+            dismissCreateEditAccountSheet()
+        }
+    }
+
+    fun deleteAccount(accountId: String) {
+        viewModelScope.launch {
+            val account = accountRepository.getAccountById(accountId) ?: return@launch
+            if (account.isDefault) return@launch
+
+            // Reassign transactions to default account
+            expenseRepository.reassignExpenses(accountId, Account.DEFAULT_ACCOUNT_ID)
+            incomeRepository.reassignIncomes(accountId, Account.DEFAULT_ACCOUNT_ID)
+            accountRepository.deleteAccount(account)
+
+            // If the deleted account was selected, reset to all accounts
+            if (_uiState.value.selectedAccountId == accountId) {
+                _uiState.value = _uiState.value.copy(selectedAccountId = null)
+                loadData()
+            }
+            dismissCreateEditAccountSheet()
+        }
+    }
+
+    fun getEditingAccount(): Account? {
+        val id = _uiState.value.editingAccountId ?: return null
+        return _uiState.value.accounts.find { it.account.id == id }?.account
+    }
+
+    fun getSelectedAccountName(): String? {
+        val id = _uiState.value.selectedAccountId ?: return null
+        return _uiState.value.accounts.find { it.account.id == id }?.account?.name
+    }
+
+    fun getTotalBalance(): Double {
+        return _accountsWithBalances.value.sumOf { it.currentBalance }
     }
 
     fun formatBalance(amount: Double): String {

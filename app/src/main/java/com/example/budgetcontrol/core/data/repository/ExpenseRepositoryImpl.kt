@@ -58,4 +58,16 @@ class ExpenseRepositoryImpl @Inject constructor(
     override fun getExpensesByAccount(accountId: String): Flow<List<Expense>> {
         return expenseDao.getExpensesByAccount(accountId).map { it.toDomain() }
     }
+
+    override fun getExpensesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<Expense>> {
+        return expenseDao.getExpensesByAccountAndDateRange(accountId, startDate, endDate).map { it.toDomain() }
+    }
+
+    override suspend fun reassignExpenses(sourceAccountId: String, targetAccountId: String) {
+        expenseDao.reassignExpenses(sourceAccountId, targetAccountId)
+    }
+
+    override suspend fun getExpenseCountByAccount(accountId: String): Int {
+        return expenseDao.getExpenseCountByAccount(accountId)
+    }
 }
