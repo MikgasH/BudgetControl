@@ -28,6 +28,7 @@ import com.example.budgetcontrol.ui.components.common.AddTransactionContent
 import com.example.budgetcontrol.ui.components.common.TransactionFormState
 import com.example.budgetcontrol.ui.components.common.TransactionFormCallbacks
 import com.example.budgetcontrol.ui.components.common.TransactionCategoryActions
+import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
 
@@ -223,6 +224,7 @@ fun TransactionFormScreen(
                 onDeleteCategory = viewModel::deleteCustomCategory,
                 onPaymentMethodSelect = viewModel::selectPaymentMethod,
                 onCashRateChange = viewModel::updateCashRate,
+                onAccountSelect = viewModel::selectAccount,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -249,6 +251,7 @@ private fun TransactionFormContent(
     onDeleteCategory: (Category) -> Unit = {},
     onPaymentMethodSelect: (String) -> Unit = {},
     onCashRateChange: (String) -> Unit = {},
+    onAccountSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (uiState.mode == TransactionFormMode.ADD) {
@@ -301,7 +304,10 @@ private fun TransactionFormContent(
             cashRateHint = uiState.cashRateHint,
             lastCashExchange = uiState.lastCashExchange,
             networkStatus = uiState.networkStatus,
-            staleRateWarning = uiState.staleRateWarning
+            staleRateWarning = uiState.staleRateWarning,
+            accounts = uiState.accounts,
+            selectedAccountId = uiState.selectedAccountId,
+            onAccountSelect = onAccountSelect
         )
     } else {
         EditTransactionFormContent(
@@ -319,6 +325,9 @@ private fun TransactionFormContent(
             onUpdateCategoryColor = onUpdateCategoryColor,
             onUpdateCategory = onUpdateCategory,
             onDeleteCategory = onDeleteCategory,
+            accounts = uiState.accounts,
+            selectedAccountId = uiState.selectedAccountId,
+            onAccountSelect = onAccountSelect,
             modifier = modifier
         )
     }
@@ -340,6 +349,9 @@ private fun EditTransactionFormContent(
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
     onDeleteCategory: (Category) -> Unit = {},
+    accounts: List<AccountWithBalance> = emptyList(),
+    selectedAccountId: String = "",
+    onAccountSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -381,6 +393,14 @@ private fun EditTransactionFormContent(
             onUpdateCategory = onUpdateCategory,
             onDeleteCategory = onDeleteCategory
         )
+
+        if (accounts.size > 1) {
+            com.example.budgetcontrol.ui.components.common.AccountSelector(
+                accounts = accounts,
+                selectedAccountId = selectedAccountId,
+                onAccountSelect = onAccountSelect
+            )
+        }
 
         com.example.budgetcontrol.ui.components.common.DateSelector(
             selectedDate = uiState.selectedDate,

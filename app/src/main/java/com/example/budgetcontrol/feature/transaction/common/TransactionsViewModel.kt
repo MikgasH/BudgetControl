@@ -25,6 +25,10 @@ import com.example.budgetcontrol.core.domain.usecase.AddExpenseResult
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.AddIncomeResult
 import com.example.budgetcontrol.core.domain.usecase.AddTransactionError
+import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
+import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
+import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.ValidationHelper
@@ -85,7 +89,10 @@ data class TransactionFormUiState(
     // Save cash rate dialog
     val showSaveRateDialog: Boolean = false,
     val pendingSaveCurrency: String = "",
-    val pendingSaveRate: Double = 0.0
+    val pendingSaveRate: Double = 0.0,
+    // Accounts
+    val accounts: List<AccountWithBalance> = emptyList(),
+    val selectedAccountId: String = Account.DEFAULT_ACCOUNT_ID
 )
 
 enum class NetworkStatus {
@@ -109,7 +116,9 @@ class TransactionFormViewModel @Inject constructor(
     private val bankRepository: BankRepository,
     private val preferencesManager: PreferencesManager,
     private val currencyExchangeRepository: CurrencyExchangeRepository,
-    private val networkStatusRepository: NetworkStatusRepository
+    private val networkStatusRepository: NetworkStatusRepository,
+    private val getAccountsUseCase: GetAccountsUseCase,
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionFormUiState())
@@ -140,6 +149,20 @@ class TransactionFormViewModel @Inject constructor(
                 selectedCurrency = if (current.selectedCurrency == current.baseCurrency) currency else current.selectedCurrency
             )
         }.launchIn(viewModelScope)
+
+        getAccountsUseCase.getAccountsWithBalances()
+            .onEach { accountsWithBalances ->
+                val current = _uiState.value
+                _uiState.value = current.copy(
+                    accounts = accountsWithBalances,
+                    selectedAccountId = if (accountsWithBalances.any { it.account.id == current.selectedAccountId }) {
+                        current.selectedAccountId
+                    } else {
+                        accountsWithBalances.firstOrNull { it.account.isDefault }?.account?.id
+                            ?: Account.DEFAULT_ACCOUNT_ID
+                    }
+                )
+            }.launchIn(viewModelScope)
     }
 
     private fun checkNetworkStatus() {
@@ -350,6 +373,10 @@ class TransactionFormViewModel @Inject constructor(
         }
     }
 
+    fun selectAccount(accountId: String) {
+        _uiState.value = _uiState.value.copy(selectedAccountId = accountId)
+    }
+
     /**
      * Fetches interbank rate and updates the conversion preview.
      *
@@ -546,6 +573,10 @@ class TransactionFormViewModel @Inject constructor(
 
                     val origAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
 
+                    val restoredAccountId = expense?.accountId
+                        ?: income?.accountId
+                        ?: Account.DEFAULT_ACCOUNT_ID
+
                     _uiState.value = current.copy(
                         categories = filteredCategories,
                         selectedCategory = selectedCategory,
@@ -558,6 +589,7 @@ class TransactionFormViewModel @Inject constructor(
                         selectedCurrency = restoredCurrency,
                         selectedBank = restoredBank,
                         originalAmount = origAmount,
+                        selectedAccountId = restoredAccountId,
                         isLoading = false
                     )
 
@@ -715,7 +747,8 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE"
+                rateSource = "CASH_EXCHANGE",
+                accountId = state.selectedAccountId
             )
         } else if (isCashMode) {
             // Cash mode: use the cash rate directly
@@ -738,7 +771,8 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE"
+                rateSource = "CASH_EXCHANGE",
+                accountId = state.selectedAccountId
             )
         } else if (
             state.isExactAmountEnabled &&
@@ -761,7 +795,8 @@ class TransactionFormViewModel @Inject constructor(
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
                 bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent
+                bankCommission = state.selectedBank?.commissionPercent,
+                accountId = state.selectedAccountId
             )
         } else {
             addExpenseUseCase(
@@ -772,12 +807,14 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = state.selectedBank?.name,
                 bankCommission = state.selectedBank?.commissionPercent,
-                baseCurrency = baseCurrency
+                baseCurrency = baseCurrency,
+                accountId = state.selectedAccountId
             )
         }
 
         when (result) {
             is AddExpenseResult.Success -> {
+                accountRepository.updateLastUsedAt(state.selectedAccountId)
                 if (isCashMode && !state.isExactAmountEnabled) {
                     val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
                         ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
@@ -837,7 +874,8 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE"
+                rateSource = "CASH_EXCHANGE",
+                accountId = state.selectedAccountId
             )
         } else if (isCashMode) {
             // Cash mode: use the cash rate directly
@@ -860,7 +898,8 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE"
+                rateSource = "CASH_EXCHANGE",
+                accountId = state.selectedAccountId
             )
         } else if (
             state.isExactAmountEnabled &&
@@ -883,7 +922,8 @@ class TransactionFormViewModel @Inject constructor(
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
                 bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent
+                bankCommission = state.selectedBank?.commissionPercent,
+                accountId = state.selectedAccountId
             )
         } else {
             addIncomeUseCase(
@@ -894,12 +934,14 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = state.selectedBank?.name,
                 bankCommission = state.selectedBank?.commissionPercent,
-                baseCurrency = baseCurrency
+                baseCurrency = baseCurrency,
+                accountId = state.selectedAccountId
             )
         }
 
         when (result) {
             is AddIncomeResult.Success -> {
+                accountRepository.updateLastUsedAt(state.selectedAccountId)
                 if (isCashMode && !state.isExactAmountEnabled) {
                     val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
                         ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
@@ -951,7 +993,8 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 selectedCurrency = state.selectedCurrency,
                 bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent
+                bankCommission = state.selectedBank?.commissionPercent,
+                accountId = state.selectedAccountId
             )
         } else {
             replaceTransactionWithNewType(
@@ -960,7 +1003,8 @@ class TransactionFormViewModel @Inject constructor(
                 amount = amountDouble,
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
-                date = state.selectedDate
+                date = state.selectedDate,
+                accountId = state.selectedAccountId
             )
         }
     }
@@ -973,12 +1017,12 @@ class TransactionFormViewModel @Inject constructor(
         date: Long,
         selectedCurrency: String,
         bankName: String? = null,
-        bankCommission: Double? = null
+        bankCommission: Double? = null,
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ) {
         val baseCurrency = _uiState.value.baseCurrency
         when (originalTransaction) {
             is Transaction.ExpenseTransaction -> {
-                // Use AddExpenseUseCase to handle conversion (re-calculates via CERPS)
                 addExpenseUseCase(
                     amount = amount,
                     currency = selectedCurrency,
@@ -987,13 +1031,12 @@ class TransactionFormViewModel @Inject constructor(
                     date = date,
                     bankName = bankName,
                     bankCommission = bankCommission,
-                    baseCurrency = baseCurrency
+                    baseCurrency = baseCurrency,
+                    accountId = accountId
                 )
-                // Delete the old record after inserting the new one
                 expenseRepository.deleteExpenseById(originalTransaction.id)
             }
             is Transaction.IncomeTransaction -> {
-                // Use AddIncomeUseCase to handle conversion (re-calculates via CERPS)
                 addIncomeUseCase(
                     amount = amount,
                     currency = selectedCurrency,
@@ -1002,12 +1045,13 @@ class TransactionFormViewModel @Inject constructor(
                     date = date,
                     bankName = bankName,
                     bankCommission = bankCommission,
-                    baseCurrency = baseCurrency
+                    baseCurrency = baseCurrency,
+                    accountId = accountId
                 )
-                // Delete the old record after inserting the new one
                 incomeRepository.deleteIncomeById(originalTransaction.id)
             }
         }
+        accountRepository.updateLastUsedAt(accountId)
     }
 
     private suspend fun replaceTransactionWithNewType(
@@ -1016,7 +1060,8 @@ class TransactionFormViewModel @Inject constructor(
         amount: Double,
         categoryId: String,
         description: String?,
-        date: Long
+        date: Long,
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ) {
         when (originalTransaction) {
             is Transaction.ExpenseTransaction -> {
@@ -1035,7 +1080,8 @@ class TransactionFormViewModel @Inject constructor(
                     baseCurrency = baseCurrency,
                     categoryId = categoryId,
                     description = description,
-                    date = date
+                    date = date,
+                    accountId = accountId
                 )
             }
             TransactionType.INCOME -> {
@@ -1044,10 +1090,12 @@ class TransactionFormViewModel @Inject constructor(
                     baseCurrency = baseCurrency,
                     categoryId = categoryId,
                     description = description,
-                    date = date
+                    date = date,
+                    accountId = accountId
                 )
             }
         }
+        accountRepository.updateLastUsedAt(accountId)
     }
 
     fun createCategory(name: String, iconName: String, color: String, type: CategoryType) {

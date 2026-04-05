@@ -231,7 +231,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val now = System.currentTimeMillis()
                 database.execSQL(
                     "INSERT INTO accounts (id, name, iconName, color, initialBalance, currency, isDefault, createdAt, lastUsedAt, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    arrayOf(Account.DEFAULT_ACCOUNT_ID, "Main", "AccountBalance", "#4CAF50", 0.0, "EUR", 1, now, now, 0)
+                    arrayOf(Account.DEFAULT_ACCOUNT_ID, "Main", "account_balance", "#4CAF50", 0.0, "EUR", 1, now, now, 0)
                 )
 
                 database.execSQL(

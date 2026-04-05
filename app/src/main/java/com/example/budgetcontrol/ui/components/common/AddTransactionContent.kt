@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
+import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.feature.transaction.common.NetworkStatus
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -82,7 +83,10 @@ fun AddTransactionContent(
     cashRateHint: String = "",
     lastCashExchange: CurrencyExchange? = null,
     networkStatus: NetworkStatus = NetworkStatus.ONLINE,
-    staleRateWarning: String? = null
+    staleRateWarning: String? = null,
+    accounts: List<AccountWithBalance> = emptyList(),
+    selectedAccountId: String = "",
+    onAccountSelect: (String) -> Unit = {}
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -253,6 +257,14 @@ fun AddTransactionContent(
             onUpdateCategory = categoryActions.onUpdateCategory,
             onDeleteCategory = categoryActions.onDeleteCategory
         )
+
+        if (accounts.size > 1) {
+            AccountSelector(
+                accounts = accounts,
+                selectedAccountId = selectedAccountId,
+                onAccountSelect = onAccountSelect
+            )
+        }
 
         DescriptionSection(
             description = formState.description,
