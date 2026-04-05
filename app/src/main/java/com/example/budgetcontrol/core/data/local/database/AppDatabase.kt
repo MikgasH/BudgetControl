@@ -14,13 +14,16 @@ import com.example.budgetcontrol.core.data.local.database.entities.CategoryEntit
 import com.example.budgetcontrol.core.data.local.database.entities.CurrencyExchangeEntity
 import com.example.budgetcontrol.core.data.local.database.entities.ExpenseEntity
 import com.example.budgetcontrol.core.data.local.database.entities.IncomeEntity
+import com.example.budgetcontrol.core.data.local.database.dao.AccountDao
+import com.example.budgetcontrol.core.data.local.database.entities.AccountEntity
+import com.example.budgetcontrol.core.domain.model.Account
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class],
-    version = 13,
+    entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class, AccountEntity::class],
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun incomeDao(): IncomeDao
     abstract fun bankDao(): BankDao
     abstract fun currencyExchangeDao(): CurrencyExchangeDao
+    abstract fun accountDao(): AccountDao
 
     companion object {
         const val DATABASE_NAME = "budget_control_db"
@@ -201,6 +205,43 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE expenses ADD COLUMN accountId TEXT DEFAULT NULL")
                 database.execSQL("ALTER TABLE incomes ADD COLUMN accountId TEXT DEFAULT NULL")
+            }
+        }
+
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS accounts (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        iconName TEXT NOT NULL,
+                        color TEXT NOT NULL,
+                        initialBalance REAL NOT NULL DEFAULT 0.0,
+                        currency TEXT NOT NULL DEFAULT 'EUR',
+                        isDefault INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL,
+                        lastUsedAt INTEGER NOT NULL,
+                        sortOrder INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_accounts_isDefault` ON `accounts` (`isDefault`)")
+
+                val now = System.currentTimeMillis()
+                database.execSQL(
+                    "INSERT INTO accounts (id, name, iconName, color, initialBalance, currency, isDefault, createdAt, lastUsedAt, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    arrayOf(Account.DEFAULT_ACCOUNT_ID, "Main", "AccountBalance", "#4CAF50", 0.0, "EUR", 1, now, now, 0)
+                )
+
+                database.execSQL(
+                    "UPDATE expenses SET accountId = ? WHERE accountId IS NULL",
+                    arrayOf(Account.DEFAULT_ACCOUNT_ID)
+                )
+                database.execSQL(
+                    "UPDATE incomes SET accountId = ? WHERE accountId IS NULL",
+                    arrayOf(Account.DEFAULT_ACCOUNT_ID)
+                )
             }
         }
 

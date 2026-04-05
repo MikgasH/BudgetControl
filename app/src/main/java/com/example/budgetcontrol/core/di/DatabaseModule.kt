@@ -3,6 +3,7 @@ package com.example.budgetcontrol.core.di
 import android.content.Context
 import androidx.room.Room
 import com.example.budgetcontrol.core.data.local.database.AppDatabase
+import com.example.budgetcontrol.core.data.local.database.dao.AccountDao
 import com.example.budgetcontrol.core.data.local.database.dao.BankDao
 import com.example.budgetcontrol.core.data.local.database.dao.CategoryDao
 import com.example.budgetcontrol.core.data.local.database.dao.CurrencyExchangeDao
@@ -27,7 +28,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
         )
-            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13)
+            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14)
             .addCallback(AppDatabase.PREPOPULATE_CALLBACK)
             .fallbackToDestructiveMigration()
             .build()
@@ -56,6 +57,11 @@ object DatabaseModule {
     @Provides
     fun provideCurrencyExchangeDao(database: AppDatabase): CurrencyExchangeDao {
         return database.currencyExchangeDao()
+    }
+
+    @Provides
+    fun provideAccountDao(database: AppDatabase): AccountDao {
+        return database.accountDao()
     }
 
 }

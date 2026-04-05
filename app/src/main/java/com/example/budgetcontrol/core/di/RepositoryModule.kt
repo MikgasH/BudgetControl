@@ -1,11 +1,13 @@
 package com.example.budgetcontrol.core.di
 
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
+import com.example.budgetcontrol.core.data.repository.AccountRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.BankRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.CategoryRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.CurrencyExchangeRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.ExpenseRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.IncomeRepositoryImpl
+import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
@@ -51,6 +53,12 @@ abstract class RepositoryModule {
     abstract fun bindBankRepository(
         bankRepositoryImpl: BankRepositoryImpl
     ): BankRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAccountRepository(
+        accountRepositoryImpl: AccountRepositoryImpl
+    ): AccountRepository
 
     @Binds
     @Singleton

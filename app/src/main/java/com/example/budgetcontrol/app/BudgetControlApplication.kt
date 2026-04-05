@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +22,9 @@ class BudgetControlApplication : Application() {
     lateinit var categoryRepository: CategoryRepository
 
     @Inject
+    lateinit var accountRepository: AccountRepository
+
+    @Inject
     lateinit var preferencesManager: PreferencesManager
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -27,6 +32,7 @@ class BudgetControlApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         initializeDefaultCategories()
+        migrateInitialBalanceToDefaultAccount()
         restoreSavedLocale()
     }
 
@@ -35,6 +41,27 @@ class BudgetControlApplication : Application() {
             val categories = categoryRepository.getAllCategories().first()
             if (categories.isEmpty()) {
                 categoryRepository.initializeDefaultCategories()
+            }
+        }
+    }
+
+    private fun migrateInitialBalanceToDefaultAccount() {
+        applicationScope.launch {
+            val account = accountRepository.getAccountById(Account.DEFAULT_ACCOUNT_ID)
+                ?: return@launch
+            // Only migrate once: if the default account still has initialBalance=0
+            // and DataStore has a non-zero value, copy it over
+            if (account.initialBalance == 0.0) {
+                val dsBalance = preferencesManager.initialBalanceFlow.first()
+                val dsCurrency = preferencesManager.baseCurrencyFlow.first()
+                if (dsBalance != 0.0 || account.currency != dsCurrency) {
+                    accountRepository.updateAccount(
+                        account.copy(
+                            initialBalance = dsBalance,
+                            currency = dsCurrency
+                        )
+                    )
+                }
             }
         }
     }
