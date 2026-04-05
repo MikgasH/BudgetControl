@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.di
 
+import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
@@ -9,6 +10,7 @@ import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
 import com.example.budgetcontrol.core.domain.usecase.ConvertCurrencyUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
+import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
@@ -88,6 +90,16 @@ object UseCaseModule {
         repository: IncomeRepository
     ): DeleteIncomeUseCase {
         return DeleteIncomeUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetAccountsUseCase(
+        accountRepository: AccountRepository,
+        expenseRepository: ExpenseRepository,
+        incomeRepository: IncomeRepository
+    ): GetAccountsUseCase {
+        return GetAccountsUseCase(accountRepository, expenseRepository, incomeRepository)
     }
 
 }

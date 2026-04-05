@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.domain.usecase
 
+import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
@@ -24,7 +25,8 @@ class AddIncomeUseCase @Inject constructor(
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
         bankCommission: Double? = null,
-        baseCurrency: String
+        baseCurrency: String,
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddIncomeResult {
         return try {
             val conversionResult = convertCurrencyUseCase(amount, currency, baseCurrency)
@@ -45,7 +47,8 @@ class AddIncomeUseCase @Inject constructor(
                 exchangeRate = conversion.exchangeRate,
                 bankName = bankName,
                 bankCommission = bankCommission,
-                rateSource = conversion.rateSource
+                rateSource = conversion.rateSource,
+                accountId = accountId
             )
 
             repository.insertIncome(income)
@@ -62,9 +65,10 @@ class AddIncomeUseCase @Inject constructor(
         baseCurrency: String,
         categoryId: String,
         description: String?,
-        date: Long = System.currentTimeMillis()
+        date: Long = System.currentTimeMillis(),
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddIncomeResult {
-        return invoke(amount, baseCurrency, categoryId, description, date, baseCurrency = baseCurrency)
+        return invoke(amount, baseCurrency, categoryId, description, date, baseCurrency = baseCurrency, accountId = accountId)
     }
 
     suspend fun addWithExactBaseAmount(
@@ -76,7 +80,8 @@ class AddIncomeUseCase @Inject constructor(
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
         bankCommission: Double? = null,
-        rateSource: String = "USER_CORRECTED"
+        rateSource: String = "USER_CORRECTED",
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddIncomeResult {
         if (exactBaseAmount <= 0.0) {
             return AddIncomeResult.Error(AddTransactionError.InvalidAmount)
@@ -95,7 +100,8 @@ class AddIncomeUseCase @Inject constructor(
                 exchangeRate = if (originalAmount > 0) originalAmount / exactBaseAmount else null,
                 bankName = bankName,
                 bankCommission = bankCommission,
-                rateSource = rateSource
+                rateSource = rateSource,
+                accountId = accountId
             )
             repository.insertIncome(income)
             categoryRepository.incrementUsageCount(categoryId)

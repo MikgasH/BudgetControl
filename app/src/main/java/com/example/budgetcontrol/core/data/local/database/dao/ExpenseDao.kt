@@ -39,4 +39,13 @@ interface ExpenseDao {
 
     @Query("SELECT MAX(date) FROM expenses")
     suspend fun getMaxDate(): Long?
+
+    @Query("SELECT * FROM expenses WHERE accountId = :accountId ORDER BY date DESC")
+    fun getExpensesByAccount(accountId: String): Flow<List<ExpenseEntity>>
+
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expenses WHERE accountId = :accountId")
+    fun getTotalExpensesByAccount(accountId: String): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM expenses WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate")
+    fun getTotalExpensesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<Double>
 }

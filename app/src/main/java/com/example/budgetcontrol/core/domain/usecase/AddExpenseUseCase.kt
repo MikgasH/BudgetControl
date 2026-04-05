@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.domain.usecase
 
+import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.Expense
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
@@ -25,7 +26,8 @@ class AddExpenseUseCase @Inject constructor(
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
         bankCommission: Double? = null,
-        baseCurrency: String
+        baseCurrency: String,
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddExpenseResult {
 
         return try {
@@ -47,7 +49,8 @@ class AddExpenseUseCase @Inject constructor(
                 exchangeRate = conversion.exchangeRate,
                 bankName = bankName,
                 bankCommission = bankCommission,
-                rateSource = conversion.rateSource
+                rateSource = conversion.rateSource,
+                accountId = accountId
             )
 
             repository.insertExpense(expense)
@@ -64,9 +67,10 @@ class AddExpenseUseCase @Inject constructor(
         baseCurrency: String,
         categoryId: String,
         description: String?,
-        date: Long = System.currentTimeMillis()
+        date: Long = System.currentTimeMillis(),
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddExpenseResult {
-        return invoke(amount, baseCurrency, categoryId, description, date, baseCurrency = baseCurrency)
+        return invoke(amount, baseCurrency, categoryId, description, date, baseCurrency = baseCurrency, accountId = accountId)
     }
 
     /**
@@ -82,7 +86,8 @@ class AddExpenseUseCase @Inject constructor(
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
         bankCommission: Double? = null,
-        rateSource: String = "USER_CORRECTED"
+        rateSource: String = "USER_CORRECTED",
+        accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddExpenseResult {
         if (exactBaseAmount <= 0.0) {
             return AddExpenseResult.Error(AddTransactionError.InvalidAmount)
@@ -101,7 +106,8 @@ class AddExpenseUseCase @Inject constructor(
                 exchangeRate = if (originalAmount > 0) originalAmount / exactBaseAmount else null,
                 bankName = bankName,
                 bankCommission = bankCommission,
-                rateSource = rateSource
+                rateSource = rateSource,
+                accountId = accountId
             )
             repository.insertExpense(expense)
             categoryRepository.incrementUsageCount(categoryId)

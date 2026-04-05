@@ -54,4 +54,8 @@ class IncomeRepositoryImpl @Inject constructor(
     override suspend fun getMinDate(): Long? = incomeDao.getMinDate()
 
     override suspend fun getMaxDate(): Long? = incomeDao.getMaxDate()
+
+    override fun getIncomesByAccount(accountId: String): Flow<List<Income>> {
+        return incomeDao.getIncomesByAccount(accountId).map { it.toDomain() }
+    }
 }

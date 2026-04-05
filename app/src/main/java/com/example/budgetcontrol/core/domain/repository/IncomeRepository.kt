@@ -15,4 +15,5 @@ interface IncomeRepository {
     suspend fun getTotalAmountByDateRange(startDate: Long, endDate: Long): Double
     suspend fun getMinDate(): Long?
     suspend fun getMaxDate(): Long?
+    fun getIncomesByAccount(accountId: String): Flow<List<Income>>
 }

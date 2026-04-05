@@ -54,4 +54,8 @@ class ExpenseRepositoryImpl @Inject constructor(
     override suspend fun getMinDate(): Long? = expenseDao.getMinDate()
 
     override suspend fun getMaxDate(): Long? = expenseDao.getMaxDate()
+
+    override fun getExpensesByAccount(accountId: String): Flow<List<Expense>> {
+        return expenseDao.getExpensesByAccount(accountId).map { it.toDomain() }
+    }
 }

@@ -39,4 +39,13 @@ interface IncomeDao {
 
     @Query("SELECT MAX(date) FROM incomes")
     suspend fun getMaxDate(): Long?
+
+    @Query("SELECT * FROM incomes WHERE accountId = :accountId ORDER BY date DESC")
+    fun getIncomesByAccount(accountId: String): Flow<List<IncomeEntity>>
+
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM incomes WHERE accountId = :accountId")
+    fun getTotalIncomesByAccount(accountId: String): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM incomes WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate")
+    fun getTotalIncomesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<Double>
 }
