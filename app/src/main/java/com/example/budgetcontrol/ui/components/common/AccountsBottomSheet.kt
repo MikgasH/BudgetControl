@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.util.Locale
@@ -30,21 +30,32 @@ import java.util.Locale
 @Composable
 fun AccountsBottomSheet(
     accounts: List<AccountWithBalance>,
+    groups: List<AccountGroupWithBalance> = emptyList(),
     selectedAccountId: String?,
+    selectedGroupId: String? = null,
     totalBalance: Double,
     baseCurrency: String,
     onAccountSelect: (String?) -> Unit,
+    onGroupSelect: (String) -> Unit = {},
     onCreateAccount: () -> Unit,
     onEditAccount: (String) -> Unit,
+    onCreateGroup: () -> Unit = {},
+    onEditGroup: (String) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
     var contextMenuAccountId by remember { mutableStateOf<String?>(null) }
+    var contextMenuGroupId by remember { mutableStateOf<String?>(null) }
 
     val filteredAccounts = remember(accounts, searchQuery) {
         if (searchQuery.isBlank()) accounts
         else accounts.filter { it.account.name.contains(searchQuery, ignoreCase = true) }
+    }
+
+    val filteredGroups = remember(groups, searchQuery) {
+        if (searchQuery.isBlank()) groups
+        else groups.filter { it.group.name.contains(searchQuery, ignoreCase = true) }
     }
 
     ModalBottomSheet(
@@ -95,7 +106,7 @@ fun AccountsBottomSheet(
                 // "All accounts" item
                 if (searchQuery.isBlank()) {
                     item {
-                        val isSelected = selectedAccountId == null
+                        val isSelected = selectedAccountId == null && selectedGroupId == null
                         val bgColor by animateColorAsState(
                             if (isSelected) MaterialTheme.colorScheme.primaryContainer
                             else Color.Transparent,
@@ -159,10 +170,137 @@ fun AccountsBottomSheet(
                     }
                 }
 
+                // Groups section
+                if (filteredGroups.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.account_groups_header),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    items(filteredGroups, key = { "group_${it.group.id}" }) { groupWithBalance ->
+                        val group = groupWithBalance.group
+                        val isSelected = selectedGroupId == group.id
+                        val bgColor by animateColorAsState(
+                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else Color.Transparent,
+                            label = "groupBg"
+                        )
+
+                        Box {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .combinedClickable(
+                                        onClick = {
+                                            contextMenuGroupId = null
+                                            onGroupSelect(group.id)
+                                            onDismiss()
+                                        },
+                                        onLongClick = {
+                                            contextMenuGroupId = group.id
+                                        }
+                                    ),
+                                color = bgColor,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.tertiary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.FolderOpen,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = group.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = stringResource(
+                                                R.string.group_member_count,
+                                                groupWithBalance.memberCount
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Text(
+                                        text = formatAccountBalance(
+                                            groupWithBalance.combinedBalance,
+                                            baseCurrency
+                                        ),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (groupWithBalance.combinedBalance >= 0) {
+                                            MaterialTheme.colorScheme.onSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.error
+                                        }
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = contextMenuGroupId == group.id,
+                                onDismissRequest = { contextMenuGroupId = null }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.edit_group)) },
+                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                    onClick = {
+                                        contextMenuGroupId = null
+                                        onEditGroup(group.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                }
+
+                // Accounts section header (only when groups are present)
+                if (filteredGroups.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.accounts_header),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 4.dp)
+                        )
+                    }
+                }
+
                 // Account items
                 items(filteredAccounts, key = { it.account.id }) { accountWithBalance ->
                     val account = accountWithBalance.account
-                    val isSelected = selectedAccountId == account.id
+                    val isSelected = selectedAccountId == account.id && selectedGroupId == null
                     val bgColor by animateColorAsState(
                         if (isSelected) MaterialTheme.colorScheme.primaryContainer
                         else Color.Transparent,
@@ -255,12 +393,20 @@ fun AccountsBottomSheet(
                                     onEditAccount(account.id)
                                 }
                             )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.add_to_group)) },
+                                leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
+                                onClick = {
+                                    contextMenuAccountId = null
+                                    onCreateGroup()
+                                }
+                            )
                         }
                     }
                 }
 
                 // Empty search state
-                if (filteredAccounts.isEmpty() && searchQuery.isNotBlank()) {
+                if (filteredAccounts.isEmpty() && filteredGroups.isEmpty() && searchQuery.isNotBlank()) {
                     item {
                         Text(
                             text = stringResource(R.string.no_accounts_found),
@@ -274,26 +420,49 @@ fun AccountsBottomSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Add account button
-            Button(
-                onClick = onCreateAccount,
+            // Buttons row
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.new_account),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Button(
+                    onClick = onCreateAccount,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.new_account),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                OutlinedButton(
+                    onClick = onCreateGroup,
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CreateNewFolder,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.new_group),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }

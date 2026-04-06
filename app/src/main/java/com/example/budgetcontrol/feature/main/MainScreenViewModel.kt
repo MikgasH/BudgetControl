@@ -17,9 +17,12 @@ import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
+import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.AccountGroup
+import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
@@ -38,6 +41,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -64,7 +68,11 @@ data class MainScreenUiState(
     val showAccountsSheet: Boolean = false,
     val showCreateEditAccountSheet: Boolean = false,
     val editingAccountId: String? = null,
-    val editingAccountTransactionCount: Int = 0
+    val editingAccountTransactionCount: Int = 0,
+    val accountGroups: List<AccountGroupWithBalance> = emptyList(),
+    val selectedGroupId: String? = null,
+    val showCreateEditGroupSheet: Boolean = false,
+    val editingGroupId: String? = null
 )
 
 enum class PeriodType(@StringRes val displayNameRes: Int) {
@@ -86,7 +94,8 @@ class MainScreenViewModel @Inject constructor(
     private val getAccountsUseCase: GetAccountsUseCase,
     private val accountRepository: AccountRepository,
     private val expenseRepository: ExpenseRepository,
-    private val incomeRepository: IncomeRepository
+    private val incomeRepository: IncomeRepository,
+    private val accountGroupRepository: AccountGroupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainScreenUiState())
@@ -96,12 +105,18 @@ class MainScreenViewModel @Inject constructor(
 
     val balance: StateFlow<Double> = combine(
         _accountsWithBalances,
-        _uiState.map { it.selectedAccountId }
-    ) { accounts, selectedId ->
-        if (selectedId == null) {
-            accounts.sumOf { it.currentBalance }
-        } else {
-            accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
+        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }
+    ) { accounts, (selectedId, selectedGroupId) ->
+        when {
+            selectedGroupId != null -> {
+                val group = _uiState.value.accountGroups.find { it.group.id == selectedGroupId }
+                val memberIds = group?.group?.memberAccountIds ?: emptyList()
+                accounts.filter { it.account.id in memberIds }.sumOf { it.currentBalance }
+            }
+            selectedId != null -> {
+                accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
+            }
+            else -> accounts.sumOf { it.currentBalance }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
@@ -115,9 +130,33 @@ class MainScreenViewModel @Inject constructor(
             .onEach { accounts ->
                 _accountsWithBalances.value = accounts
                 _uiState.value = _uiState.value.copy(accounts = accounts)
+                updateGroupBalances()
+            }.launchIn(viewModelScope)
+
+        accountGroupRepository.getAllGroups()
+            .onEach { groups ->
+                _groups.value = groups
+                updateGroupBalances()
             }.launchIn(viewModelScope)
 
         loadData()
+    }
+
+    private val _groups = MutableStateFlow<List<AccountGroup>>(emptyList())
+
+    private fun updateGroupBalances() {
+        val accounts = _accountsWithBalances.value
+        val groups = _groups.value
+        val groupsWithBalance = groups.map { group ->
+            val memberBalances = accounts
+                .filter { it.account.id in group.memberAccountIds }
+            AccountGroupWithBalance(
+                group = group,
+                combinedBalance = memberBalances.sumOf { it.currentBalance },
+                memberCount = group.memberAccountIds.size
+            )
+        }
+        _uiState.value = _uiState.value.copy(accountGroups = groupsWithBalance)
     }
 
     private fun loadData() {
@@ -128,6 +167,11 @@ class MainScreenViewModel @Inject constructor(
             try {
                 val currentState = _uiState.value
                 val accountId = currentState.selectedAccountId
+                val groupId = currentState.selectedGroupId
+                val groupMemberIds = if (groupId != null) {
+                    currentState.accountGroups.find { it.group.id == groupId }
+                        ?.group?.memberAccountIds ?: emptyList()
+                } else emptyList()
 
                 val dateRange = if (!currentState.isAllTimePeriod) {
                     DateRangeHelper.getDateRange(
@@ -139,6 +183,14 @@ class MainScreenViewModel @Inject constructor(
                 } else null
 
                 val expensesFlow = when {
+                    groupId != null && groupMemberIds.isNotEmpty() -> {
+                        val flows = groupMemberIds.map { memberId ->
+                            if (dateRange != null) getExpensesUseCase.getByAccountAndDateRange(memberId, dateRange.first, dateRange.second)
+                            else getExpensesUseCase.getByAccount(memberId)
+                        }
+                        combine(flows) { arrays -> arrays.flatMap { it.toList() } }
+                    }
+                    groupId != null -> flowOf(emptyList())
                     accountId != null && dateRange != null ->
                         getExpensesUseCase.getByAccountAndDateRange(accountId, dateRange.first, dateRange.second)
                     accountId != null ->
@@ -149,6 +201,14 @@ class MainScreenViewModel @Inject constructor(
                         getExpensesUseCase()
                 }
                 val incomesFlow = when {
+                    groupId != null && groupMemberIds.isNotEmpty() -> {
+                        val flows = groupMemberIds.map { memberId ->
+                            if (dateRange != null) getIncomesUseCase.getByAccountAndDateRange(memberId, dateRange.first, dateRange.second)
+                            else getIncomesUseCase.getByAccount(memberId)
+                        }
+                        combine(flows) { arrays -> arrays.flatMap { it.toList() } }
+                    }
+                    groupId != null -> flowOf(emptyList())
                     accountId != null && dateRange != null ->
                         getIncomesUseCase.getByAccountAndDateRange(accountId, dateRange.first, dateRange.second)
                     accountId != null ->
@@ -353,7 +413,10 @@ class MainScreenViewModel @Inject constructor(
     // ── Account management ────────────────────────────────────────────
 
     fun selectAccount(accountId: String?) {
-        _uiState.value = _uiState.value.copy(selectedAccountId = accountId)
+        _uiState.value = _uiState.value.copy(
+            selectedAccountId = accountId,
+            selectedGroupId = null
+        )
         loadData()
     }
 
@@ -455,8 +518,12 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun getSelectedAccountName(): String? {
-        val id = _uiState.value.selectedAccountId ?: return null
-        return _uiState.value.accounts.find { it.account.id == id }?.account?.name
+        val state = _uiState.value
+        if (state.selectedGroupId != null) {
+            return state.accountGroups.find { it.group.id == state.selectedGroupId }?.group?.name
+        }
+        val id = state.selectedAccountId ?: return null
+        return state.accounts.find { it.account.id == id }?.account?.name
     }
 
     fun getTotalBalance(): Double {
@@ -466,5 +533,80 @@ class MainScreenViewModel @Inject constructor(
     fun formatBalance(amount: Double): String {
         val symbol = getCurrencySymbol(baseCurrency.value)
         return "${formatAmount(amount)} $symbol"
+    }
+
+    // ── Group management ───────────────────────────────────────────────
+
+    fun selectGroup(groupId: String) {
+        _uiState.value = _uiState.value.copy(
+            selectedGroupId = groupId,
+            selectedAccountId = null
+        )
+        loadData()
+    }
+
+    fun showCreateGroupSheet() {
+        _uiState.value = _uiState.value.copy(
+            showCreateEditGroupSheet = true,
+            editingGroupId = null
+        )
+    }
+
+    fun showEditGroupSheet(groupId: String) {
+        _uiState.value = _uiState.value.copy(
+            showCreateEditGroupSheet = true,
+            editingGroupId = groupId
+        )
+    }
+
+    fun dismissCreateEditGroupSheet() {
+        _uiState.value = _uiState.value.copy(
+            showCreateEditGroupSheet = false,
+            editingGroupId = null
+        )
+    }
+
+    fun createGroup(name: String, memberAccountIds: List<String>) {
+        viewModelScope.launch {
+            val group = AccountGroup(
+                id = UUID.randomUUID().toString(),
+                name = name,
+                memberAccountIds = memberAccountIds,
+                createdAt = System.currentTimeMillis()
+            )
+            accountGroupRepository.insertGroup(group)
+            dismissCreateEditGroupSheet()
+        }
+    }
+
+    fun updateGroup(name: String, memberAccountIds: List<String>) {
+        val groupId = _uiState.value.editingGroupId ?: return
+        viewModelScope.launch {
+            val existing = accountGroupRepository.getGroupById(groupId) ?: return@launch
+            val updated = existing.copy(
+                name = name,
+                memberAccountIds = memberAccountIds
+            )
+            accountGroupRepository.updateGroup(updated)
+            dismissCreateEditGroupSheet()
+        }
+    }
+
+    fun deleteGroup(groupId: String) {
+        viewModelScope.launch {
+            val group = accountGroupRepository.getGroupById(groupId) ?: return@launch
+            accountGroupRepository.deleteGroup(group)
+
+            if (_uiState.value.selectedGroupId == groupId) {
+                _uiState.value = _uiState.value.copy(selectedGroupId = null)
+                loadData()
+            }
+            dismissCreateEditGroupSheet()
+        }
+    }
+
+    fun getEditingGroup(): AccountGroup? {
+        val id = _uiState.value.editingGroupId ?: return null
+        return _uiState.value.accountGroups.find { it.group.id == id }?.group
     }
 }

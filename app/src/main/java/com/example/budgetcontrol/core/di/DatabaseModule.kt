@@ -8,6 +8,7 @@ import com.example.budgetcontrol.core.data.local.database.dao.BankDao
 import com.example.budgetcontrol.core.data.local.database.dao.CategoryDao
 import com.example.budgetcontrol.core.data.local.database.dao.CurrencyExchangeDao
 import com.example.budgetcontrol.core.data.local.database.dao.ExpenseDao
+import com.example.budgetcontrol.core.data.local.database.dao.AccountGroupDao
 import com.example.budgetcontrol.core.data.local.database.dao.IncomeDao
 import dagger.Module
 import dagger.Provides
@@ -28,7 +29,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
         )
-            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14)
+            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14, AppDatabase.MIGRATION_14_15)
             .addCallback(AppDatabase.PREPOPULATE_CALLBACK)
             .fallbackToDestructiveMigration()
             .build()
@@ -62,6 +63,11 @@ object DatabaseModule {
     @Provides
     fun provideAccountDao(database: AppDatabase): AccountDao {
         return database.accountDao()
+    }
+
+    @Provides
+    fun provideAccountGroupDao(database: AppDatabase): AccountGroupDao {
+        return database.accountGroupDao()
     }
 
 }

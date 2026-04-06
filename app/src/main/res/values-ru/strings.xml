@@ -138,6 +138,20 @@
     <string name="no_accounts_found">Счета не найдены</string>
     <string name="cannot_delete_default_account">Нельзя удалить счёт по умолчанию</string>
 
+    <!-- Account groups -->
+    <string name="account_group">Группа счетов</string>
+    <string name="account_groups_header">Группы</string>
+    <string name="accounts_header">Счета</string>
+    <string name="new_group">Новая ��руппа</string>
+    <string name="edit_group">Редактировать группу</string>
+    <string name="delete_group">Удалить группу</string>
+    <string name="delete_group_confirm">Удалить группу «%1$s»?</string>
+    <string name="add_to_group">Добавить в группу</string>
+    <string name="select_accounts">Выбрать счета</string>
+    <string name="group_name_label">Название группы</string>
+    <string name="group_name_required">Введите название группы</string>
+    <string name="group_member_count">%1$d счетов</string>
+
     <!-- BankSelector -->
     <string name="bank_payment_method">Банк / Способ оплаты</string>
 

@@ -54,6 +54,7 @@ import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import com.example.budgetcontrol.ui.components.common.AccountsBottomSheet
+import com.example.budgetcontrol.ui.components.common.AccountGroupSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -98,11 +99,16 @@ fun MainScreen(
     if (uiState.showAccountsSheet) {
         AccountsBottomSheet(
             accounts = uiState.accounts,
+            groups = uiState.accountGroups,
             selectedAccountId = uiState.selectedAccountId,
+            selectedGroupId = uiState.selectedGroupId,
             totalBalance = viewModel.getTotalBalance(),
             baseCurrency = baseCurrency,
             onAccountSelect = { accountId ->
                 viewModel.selectAccount(accountId)
+            },
+            onGroupSelect = { groupId ->
+                viewModel.selectGroup(groupId)
             },
             onCreateAccount = {
                 viewModel.dismissAccountsSheet()
@@ -111,6 +117,14 @@ fun MainScreen(
             onEditAccount = { accountId ->
                 viewModel.dismissAccountsSheet()
                 viewModel.showEditAccountSheet(accountId)
+            },
+            onCreateGroup = {
+                viewModel.dismissAccountsSheet()
+                viewModel.showCreateGroupSheet()
+            },
+            onEditGroup = { groupId ->
+                viewModel.dismissAccountsSheet()
+                viewModel.showEditGroupSheet(groupId)
             },
             onDismiss = { viewModel.dismissAccountsSheet() }
         )
@@ -134,6 +148,26 @@ fun MainScreen(
                 { viewModel.deleteAccount(editingAccount.id) }
             } else null,
             onDismiss = { viewModel.dismissCreateEditAccountSheet() }
+        )
+    }
+
+    if (uiState.showCreateEditGroupSheet) {
+        val editingGroup = viewModel.getEditingGroup()
+        AccountGroupSheet(
+            isEditMode = editingGroup != null,
+            group = editingGroup,
+            accounts = uiState.accounts,
+            onSave = { name, memberAccountIds ->
+                if (editingGroup != null) {
+                    viewModel.updateGroup(name, memberAccountIds)
+                } else {
+                    viewModel.createGroup(name, memberAccountIds)
+                }
+            },
+            onDelete = if (editingGroup != null) {
+                { viewModel.deleteGroup(editingGroup.id) }
+            } else null,
+            onDismiss = { viewModel.dismissCreateEditGroupSheet() }
         )
     }
 

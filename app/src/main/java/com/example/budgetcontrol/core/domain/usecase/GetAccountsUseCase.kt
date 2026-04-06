@@ -1,6 +1,7 @@
 package com.example.budgetcontrol.core.domain.usecase
 
 import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
@@ -11,6 +12,12 @@ import javax.inject.Inject
 data class AccountWithBalance(
     val account: Account,
     val currentBalance: Double
+)
+
+data class AccountGroupWithBalance(
+    val group: AccountGroup,
+    val combinedBalance: Double,
+    val memberCount: Int
 )
 
 class GetAccountsUseCase @Inject constructor(

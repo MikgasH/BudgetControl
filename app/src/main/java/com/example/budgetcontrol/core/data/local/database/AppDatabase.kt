@@ -15,15 +15,18 @@ import com.example.budgetcontrol.core.data.local.database.entities.CurrencyExcha
 import com.example.budgetcontrol.core.data.local.database.entities.ExpenseEntity
 import com.example.budgetcontrol.core.data.local.database.entities.IncomeEntity
 import com.example.budgetcontrol.core.data.local.database.dao.AccountDao
+import com.example.budgetcontrol.core.data.local.database.dao.AccountGroupDao
 import com.example.budgetcontrol.core.data.local.database.entities.AccountEntity
+import com.example.budgetcontrol.core.data.local.database.entities.AccountGroupEntity
+import com.example.budgetcontrol.core.data.local.database.entities.AccountGroupMemberEntity
 import com.example.budgetcontrol.core.domain.model.Account
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class, AccountEntity::class],
-    version = 14,
+    entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class, AccountEntity::class, AccountGroupEntity::class, AccountGroupMemberEntity::class],
+    version = 15,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bankDao(): BankDao
     abstract fun currencyExchangeDao(): CurrencyExchangeDao
     abstract fun accountDao(): AccountDao
+    abstract fun accountGroupDao(): AccountGroupDao
 
     companion object {
         const val DATABASE_NAME = "budget_control_db"
@@ -242,6 +246,32 @@ abstract class AppDatabase : RoomDatabase() {
                     "UPDATE incomes SET accountId = ? WHERE accountId IS NULL",
                     arrayOf(Account.DEFAULT_ACCOUNT_ID)
                 )
+            }
+        }
+
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS account_groups (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS account_group_members (
+                        groupId TEXT NOT NULL,
+                        accountId TEXT NOT NULL,
+                        PRIMARY KEY(groupId, accountId),
+                        FOREIGN KEY(groupId) REFERENCES account_groups(id) ON DELETE CASCADE,
+                        FOREIGN KEY(accountId) REFERENCES accounts(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_account_group_members_accountId` ON `account_group_members` (`accountId`)")
             }
         }
 
