@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Bank
+import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +27,6 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val banks by viewModel.banks.collectAsState()
     val favoriteCurrencies by viewModel.favoriteCurrencies.collectAsState()
-    val totalBalance by viewModel.totalBalance.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
     var showBanksSheet by remember { mutableStateOf(false) }
@@ -35,7 +35,6 @@ fun SettingsScreen(
     var editingBank by remember { mutableStateOf<Bank?>(null) }
     var initialBankName by remember { mutableStateOf<String?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
-    var showBalanceDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -81,10 +80,12 @@ fun SettingsScreen(
                 onLanguageChange = viewModel::setLanguage
             )
 
-            BalanceSection(
-                totalBalance = totalBalance,
-                baseCurrency = baseCurrency,
-                onEditClick = { showBalanceDialog = true }
+            AccountsSection(
+                accountCount = uiState.accounts.size,
+                onManageClick = { viewModel.showCreateAccountSheet() },
+                onAccountClick = { accountId -> viewModel.showEditAccountSheet(accountId) },
+                accounts = uiState.accounts,
+                baseCurrency = baseCurrency
             )
 
             // Currency exchanges
@@ -224,16 +225,25 @@ fun SettingsScreen(
         )
     }
 
-    // Total balance dialog
-    if (showBalanceDialog) {
-        BalanceEditDialog(
-            totalBalance = totalBalance,
+    // Account create/edit sheet
+    if (uiState.showCreateEditAccountSheet) {
+        val editingAccount = viewModel.getEditingAccount()
+        CreateEditAccountBottomSheet(
+            isEditMode = editingAccount != null,
+            account = editingAccount,
             baseCurrency = baseCurrency,
-            onSave = { value ->
-                viewModel.setTotalBalance(value)
-                showBalanceDialog = false
+            transactionCount = uiState.editingAccountTransactionCount,
+            onSave = { name, iconName, color, initialBalance, currency ->
+                if (editingAccount != null) {
+                    viewModel.updateAccount(name, iconName, color, initialBalance, currency)
+                } else {
+                    viewModel.createAccount(name, iconName, color, initialBalance, currency)
+                }
             },
-            onDismiss = { showBalanceDialog = false }
+            onDelete = if (editingAccount != null && !editingAccount.isDefault) {
+                { viewModel.deleteAccount(editingAccount.id) }
+            } else null,
+            onDismiss = { viewModel.dismissCreateEditAccountSheet() }
         )
     }
 

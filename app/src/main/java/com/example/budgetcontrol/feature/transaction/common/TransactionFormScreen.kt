@@ -40,6 +40,7 @@ fun TransactionFormScreen(
     transactionId: String? = null,
     initialDate: Long = System.currentTimeMillis(),
     preSelectedCategoryId: String? = null,
+    preSelectedAccountId: String? = null,
     onBackClick: () -> Unit,
     onSuccess: () -> Unit,
     viewModel: TransactionFormViewModel = hiltViewModel()
@@ -54,7 +55,8 @@ fun TransactionFormScreen(
             mode = mode,
             type = transactionType,
             transactionId = transactionId,
-            initialDate = initialDate
+            initialDate = initialDate,
+            accountId = preSelectedAccountId
         )
     }
 

@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.toTransaction
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
@@ -32,7 +34,8 @@ data class TransactionsByCategoryUiState(
     val transactionType: TransactionType = TransactionType.EXPENSE,
     val totalAmount: Double = 0.0,
     val isLoading: Boolean = true,
-    val showError: String? = null
+    val showError: String? = null,
+    val accountNames: Map<String, String> = emptyMap()
 )
 
 @HiltViewModel
@@ -41,6 +44,7 @@ class TransactionsByCategoryViewModel @Inject constructor(
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getIncomesUseCase: GetIncomesUseCase,
     private val categoryRepository: CategoryRepository,
+    private val accountRepository: AccountRepository,
     preferencesManager: PreferencesManager
 ) : ViewModel() {
 
@@ -56,7 +60,8 @@ class TransactionsByCategoryViewModel @Inject constructor(
         categoryId: String,
         transactionType: TransactionType,
         startDate: Long? = null,
-        endDate: Long? = null
+        endDate: Long? = null,
+        accountId: String? = null
     ) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
@@ -68,11 +73,15 @@ class TransactionsByCategoryViewModel @Inject constructor(
             try {
                 val category = categoryRepository.getCategoryById(categoryId)
 
+                // Load account names for display
+                val accounts = accountRepository.getAllAccountsList()
+                val accountNames = accounts.associate { it.id to it.name }
+
                 val flow = when (transactionType) {
                     TransactionType.EXPENSE -> getExpensesUseCase.getByCategory(categoryId)
-                        .mapTransactions(startDate, endDate) { it.toTransaction() }
+                        .mapTransactions(startDate, endDate, accountId) { it.toTransaction() }
                     TransactionType.INCOME -> getIncomesUseCase.getByCategory(categoryId)
-                        .mapTransactions(startDate, endDate) { it.toTransaction() }
+                        .mapTransactions(startDate, endDate, accountId) { it.toTransaction() }
                 }
 
                 flow.collect { transactions ->
@@ -82,7 +91,8 @@ class TransactionsByCategoryViewModel @Inject constructor(
                         transactionType = transactionType,
                         totalAmount = transactions.sumOf { it.amount },
                         isLoading = false,
-                        showError = if (category == null) context.getString(R.string.category_not_found) else null
+                        showError = if (category == null) context.getString(R.string.category_not_found) else null,
+                        accountNames = accountNames
                     )
                 }
             } catch (e: Exception) {
@@ -97,12 +107,22 @@ class TransactionsByCategoryViewModel @Inject constructor(
     private fun <T> Flow<List<T>>.mapTransactions(
         startDate: Long?,
         endDate: Long?,
+        accountId: String?,
         toTransaction: (T) -> Transaction
     ): Flow<List<Transaction>> = map { items ->
-        val filtered = if (startDate != null && endDate != null) {
-            items.map(toTransaction).filter { it.date in startDate..endDate }
-        } else {
-            items.map(toTransaction)
+        var filtered = items.map(toTransaction)
+        if (startDate != null && endDate != null) {
+            filtered = filtered.filter { it.date in startDate..endDate }
+        }
+        if (accountId != null) {
+            val accountIds = accountId.split(",").filter { it.isNotBlank() }.toSet()
+            filtered = filtered.filter { txn ->
+                val txnAccountId = when (txn) {
+                    is Transaction.ExpenseTransaction -> txn.accountId ?: Account.DEFAULT_ACCOUNT_ID
+                    is Transaction.IncomeTransaction -> txn.accountId ?: Account.DEFAULT_ACCOUNT_ID
+                }
+                txnAccountId in accountIds
+            }
         }
         filtered.sortedByDescending { it.date }
     }

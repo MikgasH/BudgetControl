@@ -101,6 +101,36 @@ class PreferencesManager @Inject constructor(
         }
     }
 
+    // Selected account on main screen (for pre-selecting in transaction forms)
+    val selectedAccountIdFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[SELECTED_ACCOUNT_ID_KEY]
+    }
+
+    suspend fun setSelectedAccountId(accountId: String?) {
+        dataStore.edit { preferences ->
+            if (accountId != null) {
+                preferences[SELECTED_ACCOUNT_ID_KEY] = accountId
+            } else {
+                preferences.remove(SELECTED_ACCOUNT_ID_KEY)
+            }
+        }
+    }
+
+    // Selected group on main screen
+    val selectedGroupIdFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[SELECTED_GROUP_ID_KEY]
+    }
+
+    suspend fun setSelectedGroupId(groupId: String?) {
+        dataStore.edit { preferences ->
+            if (groupId != null) {
+                preferences[SELECTED_GROUP_ID_KEY] = groupId
+            } else {
+                preferences.remove(SELECTED_GROUP_ID_KEY)
+            }
+        }
+    }
+
     // Cached exchange rates
     suspend fun saveLastRates(rates: Map<String, Double>, timestamp: Long) {
         val json = Gson().toJson(rates)
@@ -151,6 +181,8 @@ class PreferencesManager @Inject constructor(
         private val INITIAL_BALANCE_KEY = stringPreferencesKey("initial_balance")
         private val BASE_CURRENCY_KEY = stringPreferencesKey("base_currency")
         private val LAST_PAYMENT_METHOD_KEY = stringPreferencesKey("last_payment_method")
+        private val SELECTED_ACCOUNT_ID_KEY = stringPreferencesKey("selected_account_id")
+        private val SELECTED_GROUP_ID_KEY = stringPreferencesKey("selected_group_id")
         private val LAST_RATES_KEY = stringPreferencesKey("last_exchange_rates")
         private val LAST_RATES_TIMESTAMP_KEY = longPreferencesKey("last_exchange_rates_timestamp")
         private val AVAILABLE_CURRENCIES_KEY = stringPreferencesKey("available_currencies")

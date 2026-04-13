@@ -14,6 +14,7 @@ import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -97,9 +98,10 @@ object UseCaseModule {
     fun provideGetAccountsUseCase(
         accountRepository: AccountRepository,
         expenseRepository: ExpenseRepository,
-        incomeRepository: IncomeRepository
+        incomeRepository: IncomeRepository,
+        preferencesManager: PreferencesManager
     ): GetAccountsUseCase {
-        return GetAccountsUseCase(accountRepository, expenseRepository, incomeRepository)
+        return GetAccountsUseCase(accountRepository, expenseRepository, incomeRepository, preferencesManager)
     }
 
 }

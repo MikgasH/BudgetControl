@@ -28,14 +28,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.feature.settings.LookupState
+import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
+import androidx.core.graphics.toColorInt
 import kotlinx.coroutines.launch
 import java.util.Currency
 import java.util.Locale
 
-private const val PAGE_COUNT = 7
+private const val PAGE_COUNT = 8
 
 @Composable
 fun OnboardingScreen(
@@ -94,12 +97,23 @@ fun OnboardingScreen(
                         currency = uiState.selectedCurrency,
                         onBalanceChanged = viewModel::setInitialBalance
                     )
-                    6 -> ReadyPage(
+                    6 -> AccountsPage(
+                        accounts = uiState.onboardingAccounts,
+                        currency = uiState.selectedCurrency,
+                        availableCurrencies = uiState.currencies,
+                        favoriteCurrencies = uiState.favoriteCurrencies,
+                        isCurrenciesLoading = uiState.currenciesLoading,
+                        onAddAccount = viewModel::addOnboardingAccount,
+                        onUpdateAccount = viewModel::updateOnboardingAccount,
+                        onDeleteAccount = viewModel::removeOnboardingAccount
+                    )
+                    7 -> ReadyPage(
                         language = uiState.selectedLanguage,
                         theme = uiState.selectedTheme,
                         currency = uiState.selectedCurrency,
                         banksCount = banks.count { it.isFavorite },
-                        favoriteCurrenciesCount = uiState.favoriteCurrencies.size
+                        favoriteCurrenciesCount = uiState.favoriteCurrencies.size,
+                        accountsCount = uiState.onboardingAccounts.size
                     )
                 }
             }
@@ -159,8 +173,34 @@ fun OnboardingScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
+                } else if (pagerState.currentPage == PAGE_COUNT - 2) {
+                    // Accounts page: Back + Skip + Next
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.onboarding_back))
+                    }
+                    TextButton(
+                        onClick = {
+                            viewModel.skipAccountSetup()
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        }
+                    ) {
+                        Text(stringResource(R.string.onboarding_skip))
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.onboarding_next))
+                    }
                 } else if (pagerState.currentPage > 0) {
-                    // Pages 1-4: Back + Next
+                    // Pages 1-5: Back + Next
                     OutlinedButton(
                         onClick = {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
@@ -1039,7 +1079,8 @@ private fun ReadyPage(
     theme: String,
     currency: String,
     banksCount: Int,
-    favoriteCurrenciesCount: Int = 0
+    favoriteCurrenciesCount: Int = 0,
+    accountsCount: Int = 1
 ) {
     Column(
         modifier = Modifier
@@ -1118,6 +1159,11 @@ private fun ReadyPage(
                     label = stringResource(R.string.onboarding_currencies_summary),
                     value = stringResource(R.string.currencies_selected_summary, favoriteCurrenciesCount)
                 )
+                SummaryRow(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    label = stringResource(R.string.accounts_management),
+                    value = stringResource(R.string.accounts_count, accountsCount)
+                )
             }
         }
     }
@@ -1151,6 +1197,201 @@ private fun SummaryRow(
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Page 7: Accounts
+// ═══════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun AccountsPage(
+    accounts: List<Account>,
+    currency: String,
+    availableCurrencies: List<String> = emptyList(),
+    favoriteCurrencies: Set<String> = emptySet(),
+    isCurrenciesLoading: Boolean = false,
+    onAddAccount: (String, String, String, Double, String) -> Unit,
+    onUpdateAccount: (String, String, String, String, Double, String) -> Unit,
+    onDeleteAccount: (String) -> Unit
+) {
+    var showCreateSheet by remember { mutableStateOf(false) }
+    var editingAccount by remember { mutableStateOf<Account?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .padding(top = 48.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.onboarding_accounts_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.onboarding_accounts_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(accounts, key = { it.id }) { account ->
+                OnboardingAccountItem(
+                    account = account,
+                    currency = currency,
+                    onClick = { editingAccount = account }
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { showCreateSheet = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.new_account))
+                }
+            }
+        }
+    }
+
+    if (showCreateSheet) {
+        CreateEditAccountBottomSheet(
+            baseCurrency = currency,
+            availableCurrencies = availableCurrencies,
+            favoriteCurrencies = favoriteCurrencies,
+            isCurrenciesLoading = isCurrenciesLoading,
+            onSave = { name, iconName, color, initialBalance, cur ->
+                onAddAccount(name, iconName, color, initialBalance, cur)
+                showCreateSheet = false
+            },
+            onDismiss = { showCreateSheet = false }
+        )
+    }
+
+    editingAccount?.let { account ->
+        CreateEditAccountBottomSheet(
+            isEditMode = true,
+            account = account,
+            baseCurrency = currency,
+            availableCurrencies = availableCurrencies,
+            favoriteCurrencies = favoriteCurrencies,
+            isCurrenciesLoading = isCurrenciesLoading,
+            onSave = { name, iconName, color, initialBalance, cur ->
+                onUpdateAccount(account.id, name, iconName, color, initialBalance, cur)
+                editingAccount = null
+            },
+            onDelete = if (!account.isDefault) {
+                {
+                    onDeleteAccount(account.id)
+                    editingAccount = null
+                }
+            } else null,
+            onDismiss = { editingAccount = null }
+        )
+    }
+}
+
+@Composable
+private fun OnboardingAccountItem(
+    account: Account,
+    currency: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val iconColor = try {
+                Color(account.color.toColorInt())
+            } catch (_: Exception) {
+                MaterialTheme.colorScheme.primary
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(iconColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = resolveOnboardingAccountIcon(account.iconName),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = account.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                if (account.isDefault) {
+                    Text(
+                        text = stringResource(R.string.default_label),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            val displayCurrency = account.currency.ifBlank { currency }
+            Text(
+                text = "${formatAccountBalance(account.initialBalance)} $displayCurrency",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun resolveOnboardingAccountIcon(key: String): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (key) {
+        "account_balance" -> Icons.Default.AccountBalance
+        "credit_card" -> Icons.Default.CreditCard
+        "savings" -> Icons.Default.Savings
+        "payments" -> Icons.Default.Payments
+        "attach_money" -> Icons.Default.AttachMoney
+        "work" -> Icons.Default.Work
+        "home" -> Icons.Default.Home
+        "shopping_cart" -> Icons.Default.ShoppingCart
+        "flight" -> Icons.Default.Flight
+        "star" -> Icons.Default.Star
+        "favorite" -> Icons.Default.Favorite
+        "wallet" -> Icons.Default.AccountBalanceWallet
+        else -> Icons.Default.AccountBalance
+    }
+}
+
+private fun formatAccountBalance(value: Double): String {
+    return if (value == 0.0) "0"
+    else if (value == value.toLong().toDouble()) value.toLong().toString()
+    else value.toString()
 }
 
 // ═══════════════════════════════════════════════════════════════════════

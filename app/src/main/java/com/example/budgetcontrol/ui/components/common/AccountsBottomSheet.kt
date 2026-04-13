@@ -19,7 +19,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
@@ -35,18 +37,29 @@ fun AccountsBottomSheet(
     selectedGroupId: String? = null,
     totalBalance: Double,
     baseCurrency: String,
+    hasMixedCurrencies: Boolean = false,
     onAccountSelect: (String?) -> Unit,
     onGroupSelect: (String) -> Unit = {},
     onCreateAccount: () -> Unit,
     onEditAccount: (String) -> Unit,
     onCreateGroup: () -> Unit = {},
     onEditGroup: (String) -> Unit = {},
+    onAddAccountToGroup: (accountId: String, groupId: String) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf("") }
     var contextMenuAccountId by remember { mutableStateOf<String?>(null) }
-    var contextMenuGroupId by remember { mutableStateOf<String?>(null) }
+    var addToGroupAccountId by remember { mutableStateOf<String?>(null) }
+
+    val animatedDismiss: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) {
+                onDismiss()
+            }
+        }
+    }
 
     val filteredAccounts = remember(accounts, searchQuery) {
         if (searchQuery.isBlank()) accounts
@@ -58,8 +71,78 @@ fun AccountsBottomSheet(
         else groups.filter { it.group.name.contains(searchQuery, ignoreCase = true) }
     }
 
+    // "Add to group" dialog — shows existing groups to choose from
+    if (addToGroupAccountId != null) {
+        AlertDialog(
+            onDismissRequest = { addToGroupAccountId = null },
+            title = { Text(stringResource(R.string.add_to_existing_group)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (groups.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.no_accounts_found),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        groups.forEach { groupWithBalance ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .combinedClickable(
+                                        onClick = {
+                                            val accId = addToGroupAccountId ?: return@combinedClickable
+                                            onAddAccountToGroup(accId, groupWithBalance.group.id)
+                                            addToGroupAccountId = null
+                                        }
+                                    ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FolderOpen,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = groupWithBalance.group.name,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val accId = addToGroupAccountId
+                    addToGroupAccountId = null
+                    if (accId != null) {
+                        onCreateGroup()
+                    }
+                }) {
+                    Text(stringResource(R.string.create_new_group))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { addToGroupAccountId = null }) {
+                    Text(stringResource(R.string.cancel_upper))
+                }
+            }
+        )
+    }
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = animatedDismiss,
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
@@ -119,7 +202,7 @@ fun AccountsBottomSheet(
                                 .combinedClickable(
                                     onClick = {
                                         onAccountSelect(null)
-                                        onDismiss()
+                                        animatedDismiss()
                                     }
                                 ),
                             color = bgColor,
@@ -154,7 +237,7 @@ fun AccountsBottomSheet(
                                     )
                                 }
                                 Text(
-                                    text = formatAccountBalance(totalBalance, baseCurrency),
+                                    text = formatAccountBalance(totalBalance, baseCurrency, hasMixedCurrencies),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -190,86 +273,74 @@ fun AccountsBottomSheet(
                             label = "groupBg"
                         )
 
-                        Box {
-                            Surface(
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .combinedClickable(
+                                    onClick = {
+                                        onGroupSelect(group.id)
+                                        animatedDismiss()
+                                    },
+                                    onLongClick = {
+                                        onEditGroup(group.id)
+                                        animatedDismiss()
+                                    }
+                                ),
+                            color = bgColor,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .combinedClickable(
-                                        onClick = {
-                                            contextMenuGroupId = null
-                                            onGroupSelect(group.id)
-                                            onDismiss()
-                                        },
-                                        onLongClick = {
-                                            contextMenuGroupId = group.id
-                                        }
-                                    ),
-                                color = bgColor,
-                                shape = RoundedCornerShape(12.dp)
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.tertiary),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.tertiary),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.FolderOpen,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = group.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = stringResource(
-                                                R.string.group_member_count,
-                                                groupWithBalance.memberCount
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    Text(
-                                        text = formatAccountBalance(
-                                            groupWithBalance.combinedBalance,
-                                            baseCurrency
-                                        ),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (groupWithBalance.combinedBalance >= 0) {
-                                            MaterialTheme.colorScheme.onSurface
-                                        } else {
-                                            MaterialTheme.colorScheme.error
-                                        }
+                                    Icon(
+                                        imageVector = Icons.Default.FolderOpen,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
-                            }
-
-                            DropdownMenu(
-                                expanded = contextMenuGroupId == group.id,
-                                onDismissRequest = { contextMenuGroupId = null }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.edit_group)) },
-                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                                    onClick = {
-                                        contextMenuGroupId = null
-                                        onEditGroup(group.id)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = group.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = stringResource(
+                                            R.string.group_member_count,
+                                            groupWithBalance.memberCount
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                val groupHasMixed = accounts
+                                    .filter { it.account.id in group.memberAccountIds }
+                                    .any { it.account.currency != baseCurrency }
+                                Text(
+                                    text = formatAccountBalance(
+                                        groupWithBalance.combinedBalance,
+                                        baseCurrency,
+                                        groupHasMixed
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (groupWithBalance.combinedBalance >= 0) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.error
                                     }
                                 )
                             }
@@ -321,7 +392,7 @@ fun AccountsBottomSheet(
                                     onClick = {
                                         contextMenuAccountId = null
                                         onAccountSelect(account.id)
-                                        onDismiss()
+                                        animatedDismiss()
                                     },
                                     onLongClick = {
                                         contextMenuAccountId = account.id
@@ -383,7 +454,8 @@ fun AccountsBottomSheet(
 
                         DropdownMenu(
                             expanded = contextMenuAccountId == account.id,
-                            onDismissRequest = { contextMenuAccountId = null }
+                            onDismissRequest = { contextMenuAccountId = null },
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.edit_account)) },
@@ -398,7 +470,7 @@ fun AccountsBottomSheet(
                                 leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
                                 onClick = {
                                     contextMenuAccountId = null
-                                    onCreateGroup()
+                                    addToGroupAccountId = account.id
                                 }
                             )
                         }
@@ -432,35 +504,43 @@ fun AccountsBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.new_account),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 OutlinedButton(
                     onClick = onCreateGroup,
-                    modifier = Modifier.height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CreateNewFolder,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.new_group),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -468,10 +548,11 @@ fun AccountsBottomSheet(
     }
 }
 
-private fun formatAccountBalance(balance: Double, currency: String): String {
+private fun formatAccountBalance(balance: Double, currency: String, approximate: Boolean = false): String {
+    val prefix = if (approximate) "~" else ""
     return if (balance == balance.toLong().toDouble()) {
-        "${balance.toLong()} $currency"
+        "$prefix${balance.toLong()} $currency"
     } else {
-        String.format(Locale.US, "%.2f %s", balance, currency)
+        String.format(Locale.US, "%s%.2f %s", prefix, balance, currency)
     }
 }

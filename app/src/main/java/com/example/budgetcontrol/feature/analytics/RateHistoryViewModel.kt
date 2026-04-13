@@ -164,7 +164,7 @@ class RateHistoryViewModel @Inject constructor(
                                 "startDate=${raw.startDate}, endDate=${raw.endDate}, " +
                                 "first=${raw.points.firstOrNull()?.timestamp}, " +
                                 "last=${raw.points.lastOrNull()?.timestamp}")
-                        val data = filterPointsByDateRange(raw)
+                        val data = filterPointsByDateRange(raw, period)
                         Log.d(TAG, "loadTrends FILTERED: period=$period, " +
                                 "points=${data.points.size}, " +
                                 "first=${data.points.firstOrNull()?.timestamp}, " +
@@ -197,10 +197,22 @@ class RateHistoryViewModel @Inject constructor(
         loadTrends()
     }
 
-    // The API may return more points than the requested period covers (observed for 1D).
-    // Filter to only include points within the response's startDate-endDate range.
-    private fun filterPointsByDateRange(data: TrendsResponse): TrendsResponse {
+    // The API may return more points than the requested period covers.
+    // For 1D: the API returns startDate/endDate spanning the entire dataset,
+    // so we filter client-side to only points within the last 24 hours.
+    // For other periods: filter to the response's startDate-endDate range.
+    private fun filterPointsByDateRange(data: TrendsResponse, period: String): TrendsResponse {
         if (data.points.size <= 1) return data
+
+        if (period == "1D") {
+            val cutoff = Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000)
+            val filtered = data.points.filter { point ->
+                val ts = parseTimestamp(point.timestamp)
+                ts != null && !ts.before(cutoff)
+            }
+            Log.d(TAG, "filterPointsByDateRange 1D: ${data.points.size} → ${filtered.size} points (cutoff=$cutoff)")
+            return data.copy(points = filtered, dataPoints = filtered.size)
+        }
 
         val startDate = parseTimestamp(data.startDate)
         val endDate = parseTimestamp(data.endDate)

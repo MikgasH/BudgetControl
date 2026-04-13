@@ -134,6 +134,40 @@ class TransactionFormViewModel @Inject constructor(
     private var cachedRateCurrency: String? = null
 
     init {
+        // Load saved account first, then start collecting accounts to avoid race condition
+        viewModelScope.launch {
+            val savedAccountId = preferencesManager.selectedAccountIdFlow.firstOrNull()
+            if (savedAccountId != null) {
+                _uiState.value = _uiState.value.copy(selectedAccountId = savedAccountId)
+            }
+
+            // Now collect accounts — selectedAccountId is already set from prefs or navigation
+            var initialCurrencyApplied = false
+            getAccountsUseCase.getAccountsWithBalances()
+                .collect { accountsWithBalances ->
+                    val current = _uiState.value
+                    val resolvedId = if (accountsWithBalances.any { it.account.id == current.selectedAccountId }) {
+                        current.selectedAccountId
+                    } else {
+                        accountsWithBalances.firstOrNull { it.account.isDefault }?.account?.id
+                            ?: Account.DEFAULT_ACCOUNT_ID
+                    }
+                    _uiState.value = current.copy(
+                        accounts = accountsWithBalances,
+                        selectedAccountId = resolvedId
+                    )
+                    // On first load, pre-select the account's currency
+                    if (!initialCurrencyApplied) {
+                        initialCurrencyApplied = true
+                        val account = accountsWithBalances.find { it.account.id == resolvedId }?.account
+                        if (account != null && account.currency != _uiState.value.baseCurrency
+                            && _uiState.value.selectedCurrency == _uiState.value.baseCurrency) {
+                            selectCurrency(account.currency)
+                        }
+                    }
+                }
+        }
+
         combine(
             bankRepository.getFavoriteBanks(),
             preferencesManager.favoriteCurrenciesFlow,
@@ -149,20 +183,6 @@ class TransactionFormViewModel @Inject constructor(
                 selectedCurrency = if (current.selectedCurrency == current.baseCurrency) currency else current.selectedCurrency
             )
         }.launchIn(viewModelScope)
-
-        getAccountsUseCase.getAccountsWithBalances()
-            .onEach { accountsWithBalances ->
-                val current = _uiState.value
-                _uiState.value = current.copy(
-                    accounts = accountsWithBalances,
-                    selectedAccountId = if (accountsWithBalances.any { it.account.id == current.selectedAccountId }) {
-                        current.selectedAccountId
-                    } else {
-                        accountsWithBalances.firstOrNull { it.account.isDefault }?.account?.id
-                            ?: Account.DEFAULT_ACCOUNT_ID
-                    }
-                )
-            }.launchIn(viewModelScope)
     }
 
     private fun checkNetworkStatus() {
@@ -194,14 +214,16 @@ class TransactionFormViewModel @Inject constructor(
         mode: TransactionFormMode,
         type: TransactionType,
         transactionId: String? = null,
-        initialDate: Long = System.currentTimeMillis()
+        initialDate: Long = System.currentTimeMillis(),
+        accountId: String? = null
     ) {
         _uiState.value = _uiState.value.copy(
             mode = mode,
             transactionType = type,
             selectedDate = initialDate,
             isLoading = true,
-            canChangeType = mode == TransactionFormMode.EDIT
+            canChangeType = mode == TransactionFormMode.EDIT,
+            selectedAccountId = accountId ?: _uiState.value.selectedAccountId
         )
 
         loadCurrencies()
@@ -374,7 +396,13 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     fun selectAccount(accountId: String) {
-        _uiState.value = _uiState.value.copy(selectedAccountId = accountId)
+        val current = _uiState.value
+        _uiState.value = current.copy(selectedAccountId = accountId)
+        // Auto-select account's currency when switching accounts
+        val account = current.accounts.find { it.account.id == accountId }?.account
+        if (account != null && account.currency != current.selectedCurrency) {
+            selectCurrency(account.currency)
+        }
     }
 
     /**

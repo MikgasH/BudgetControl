@@ -8,6 +8,7 @@ import com.example.budgetcontrol.feature.transaction.common.TransactionFormScree
 @Composable
 fun AddIncomeScreen(
     selectedDate: Long = System.currentTimeMillis(),
+    preSelectedAccountId: String? = null,
     onBackClick: () -> Unit,
     onIncomeAdded: () -> Unit
 ) {
@@ -15,6 +16,7 @@ fun AddIncomeScreen(
         transactionType = TransactionType.INCOME,
         mode = TransactionFormMode.ADD,
         initialDate = selectedDate,
+        preSelectedAccountId = preSelectedAccountId,
         onBackClick = onBackClick,
         onSuccess = onIncomeAdded
     )

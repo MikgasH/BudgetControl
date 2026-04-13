@@ -18,6 +18,9 @@ class AccountRepositoryImpl @Inject constructor(
     override fun getAllAccounts(): Flow<List<Account>> =
         accountDao.getAllAccounts().map { it.toDomain() }
 
+    override suspend fun getAllAccountsList(): List<Account> =
+        accountDao.getAllAccountsList().toDomain()
+
     override fun searchAccounts(query: String): Flow<List<Account>> =
         accountDao.searchAccounts(query).map { it.toDomain() }
 

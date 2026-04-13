@@ -53,6 +53,7 @@ import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.activity.compose.BackHandler
 import com.example.budgetcontrol.ui.components.common.AccountsBottomSheet
 import com.example.budgetcontrol.ui.components.common.AccountGroupSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
@@ -60,10 +61,10 @@ import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomShe
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
-    onAddExpenseClick: (Long) -> Unit,
-    onAddIncomeClick: (Long) -> Unit,
-    onAddExpenseWithCategory: (Long, String) -> Unit = { date, _ -> onAddExpenseClick(date) },
-    onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean) -> Unit = { _, _, _, _, _ -> },
+    onAddExpenseClick: (Long, String?) -> Unit,
+    onAddIncomeClick: (Long, String?) -> Unit,
+    onAddExpenseWithCategory: (Long, String, String?) -> Unit = { date, _, accountId -> onAddExpenseClick(date, accountId) },
+    onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean, accountId: String?) -> Unit = { _, _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
     onRateHistoryClick: () -> Unit = {},
     viewModel: MainScreenViewModel = hiltViewModel()
@@ -71,6 +72,8 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     val balance by viewModel.balance.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
+    val displayCurrency by viewModel.displayCurrency.collectAsState()
+    val isApproximateBalance by viewModel.isApproximateBalance.collectAsState()
     val currentContext = LocalContext.current
     val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
         context = currentContext,
@@ -81,6 +84,7 @@ fun MainScreen(
         isAllTimePeriod = uiState.isAllTimePeriod
     )
     var showPeriodPicker by remember { mutableStateOf(false) }
+    var showGroupAccountPicker by remember { mutableStateOf(false) }
 
     if (showPeriodPicker) {
         PeriodRangePicker(
@@ -96,6 +100,87 @@ fun MainScreen(
         )
     }
 
+    // Account picker when FAB pressed with a group selected
+    if (showGroupAccountPicker) {
+        val memberAccounts = viewModel.getGroupMemberAccounts()
+        AlertDialog(
+            onDismissRequest = { showGroupAccountPicker = false },
+            title = { Text(stringResource(R.string.choose_account)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(R.string.choose_account_for_transaction),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    memberAccounts.forEach { accountWithBalance ->
+                        val account = accountWithBalance.account
+                        val accountColor = try {
+                            Color(account.color.toColorInt())
+                        } catch (_: Exception) {
+                            MaterialTheme.colorScheme.primary
+                        }
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    showGroupAccountPicker = false
+                                    val selectedDate = viewModel.getCurrentSelectedDate()
+                                    when (viewModel.getCurrentSelectedOperationType()) {
+                                        OperationType.EXPENSES -> onAddExpenseClick(selectedDate, account.id)
+                                        OperationType.INCOMES -> onAddIncomeClick(selectedDate, account.id)
+                                    }
+                                },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(accountColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = getCategoryIcon(account.iconName),
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = account.name,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showGroupAccountPicker = false }) {
+                    Text(stringResource(R.string.cancel_upper))
+                }
+            }
+        )
+    }
+
+    BackHandler(enabled = uiState.showCreateEditAccountSheet) {
+        viewModel.dismissCreateEditAccountSheet()
+    }
+    BackHandler(enabled = uiState.showCreateEditGroupSheet) {
+        viewModel.dismissCreateEditGroupSheet()
+    }
+
     if (uiState.showAccountsSheet) {
         AccountsBottomSheet(
             accounts = uiState.accounts,
@@ -104,11 +189,16 @@ fun MainScreen(
             selectedGroupId = uiState.selectedGroupId,
             totalBalance = viewModel.getTotalBalance(),
             baseCurrency = baseCurrency,
+            hasMixedCurrencies = viewModel.hasMixedCurrencies(),
             onAccountSelect = { accountId ->
-                viewModel.selectAccount(accountId)
+                if (accountId != uiState.selectedAccountId || uiState.selectedGroupId != null) {
+                    viewModel.selectAccount(accountId)
+                }
             },
             onGroupSelect = { groupId ->
-                viewModel.selectGroup(groupId)
+                if (groupId != uiState.selectedGroupId) {
+                    viewModel.selectGroup(groupId)
+                }
             },
             onCreateAccount = {
                 viewModel.dismissAccountsSheet()
@@ -126,6 +216,9 @@ fun MainScreen(
                 viewModel.dismissAccountsSheet()
                 viewModel.showEditGroupSheet(groupId)
             },
+            onAddAccountToGroup = { accountId, groupId ->
+                viewModel.addAccountToGroup(accountId, groupId)
+            },
             onDismiss = { viewModel.dismissAccountsSheet() }
         )
     }
@@ -137,6 +230,9 @@ fun MainScreen(
             account = editingAccount,
             baseCurrency = baseCurrency,
             transactionCount = uiState.editingAccountTransactionCount,
+            availableCurrencies = uiState.availableCurrencies,
+            favoriteCurrencies = uiState.favoriteCurrencies,
+            isCurrenciesLoading = uiState.isCurrenciesLoading,
             onSave = { name, iconName, color, initialBalance, currency ->
                 if (editingAccount != null) {
                     viewModel.updateAccount(name, iconName, color, initialBalance, currency)
@@ -209,12 +305,8 @@ fun MainScreen(
                             .clickable { viewModel.toggleAccountsSheet() },
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = viewModel.formatBalance(balance),
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
+                        AutoSizeBalanceText(
+                            text = viewModel.formatBalance(balance, displayCurrency, isApproximateBalance),
                             color = Color.White
                         )
                         val selectedName = viewModel.getSelectedAccountName()
@@ -254,10 +346,15 @@ fun MainScreen(
                         .clip(FloatingActionButtonDefaults.shape)
                         .combinedClickable(
                             onClick = {
-                                val selectedDate = viewModel.getCurrentSelectedDate()
-                                when (viewModel.getCurrentSelectedOperationType()) {
-                                    OperationType.EXPENSES -> onAddExpenseClick(selectedDate)
-                                    OperationType.INCOMES -> onAddIncomeClick(selectedDate)
+                                if (uiState.selectedGroupId != null) {
+                                    showGroupAccountPicker = true
+                                } else {
+                                    val selectedDate = viewModel.getCurrentSelectedDate()
+                                    val accountId = uiState.selectedAccountId
+                                    when (viewModel.getCurrentSelectedOperationType()) {
+                                        OperationType.EXPENSES -> onAddExpenseClick(selectedDate, accountId)
+                                        OperationType.INCOMES -> onAddIncomeClick(selectedDate, accountId)
+                                    }
                                 }
                             },
                             onLongClick = {
@@ -286,7 +383,8 @@ fun MainScreen(
 
                 DropdownMenu(
                     expanded = showQuickAdd,
-                    onDismissRequest = { showQuickAdd = false }
+                    onDismissRequest = { showQuickAdd = false },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     topCategories.forEach { category ->
                         DropdownMenuItem(
@@ -321,7 +419,7 @@ fun MainScreen(
                             onClick = {
                                 showQuickAdd = false
                                 val selectedDate = viewModel.getCurrentSelectedDate()
-                                onAddExpenseWithCategory(selectedDate, category.id)
+                                onAddExpenseWithCategory(selectedDate, category.id, uiState.selectedAccountId)
                             }
                         )
                     }
@@ -527,12 +625,20 @@ fun MainScreen(
                             baseCurrency = baseCurrency,
                             onClick = {
                                 val (startDate, endDate) = viewModel.getCurrentPeriodDateRange()
+                                val effectiveAccountId = when {
+                                    uiState.selectedGroupId != null -> {
+                                        viewModel.getSelectedGroupMemberIds().joinToString(",")
+                                            .takeIf { it.isNotBlank() }
+                                    }
+                                    else -> uiState.selectedAccountId
+                                }
                                 onCategoryClick(
                                     stat.category.id,
                                     uiState.selectedOperationType,
                                     startDate,
                                     endDate,
-                                    uiState.isAllTimePeriod
+                                    uiState.isAllTimePeriod,
+                                    effectiveAccountId
                                 )
                             }
                         )
@@ -641,6 +747,38 @@ private fun FixedPeriodTypeSelector(
     }
 }
 
+
+@Composable
+private fun AutoSizeBalanceText(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    maxFontSize: Float = 32f,
+    minFontSize: Float = 18f
+) {
+    // Keyed on text so that a new balance value starts auto-shrinking from maxFontSize again.
+    // The text is always drawn — brief fontSize adjustments via onTextLayout are imperceptible,
+    // whereas a drawWithContent guard can hide the text entirely after recomposition on return
+    // to the screen.
+    var fontSize by remember(text) { mutableFloatStateOf(maxFontSize) }
+
+    Text(
+        text = text,
+        color = color,
+        maxLines = 1,
+        softWrap = false,
+        style = MaterialTheme.typography.headlineLarge.copy(
+            fontSize = fontSize.sp,
+            fontWeight = FontWeight.Bold
+        ),
+        modifier = modifier,
+        onTextLayout = { result ->
+            if (result.didOverflowWidth && fontSize > minFontSize) {
+                fontSize = (fontSize - 2f).coerceAtLeast(minFontSize)
+            }
+        }
+    )
+}
 
 @Composable
 private fun CategoryStatisticItem(

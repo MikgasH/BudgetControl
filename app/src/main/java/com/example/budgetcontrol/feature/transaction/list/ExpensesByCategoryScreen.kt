@@ -32,6 +32,7 @@ fun ExpensesByCategoryScreen(
     categoryId: String,
     startDate: Long? = null,
     endDate: Long? = null,
+    accountId: String? = null,
     onBackClick: () -> Unit,
     onExpenseClick: (String) -> Unit,
     onAddExpenseClick: (Long) -> Unit,
@@ -40,8 +41,8 @@ fun ExpensesByCategoryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
-    LaunchedEffect(categoryId, startDate, endDate) {
-        viewModel.loadTransactions(categoryId, TransactionType.EXPENSE, startDate, endDate)
+    LaunchedEffect(categoryId, startDate, endDate, accountId) {
+        viewModel.loadTransactions(categoryId, TransactionType.EXPENSE, startDate, endDate, accountId)
     }
 
     Scaffold(
@@ -177,11 +178,14 @@ fun ExpensesByCategoryScreen(
                         }
 
                         items(transactions) { transaction ->
+                            val txAccountId = (transaction as? com.example.budgetcontrol.core.domain.model.Transaction.ExpenseTransaction)?.accountId
+                                ?: com.example.budgetcontrol.core.domain.model.Account.DEFAULT_ACCOUNT_ID
                             TransactionItemDetailed(
                                 transaction = transaction,
                                 category = uiState.category,
                                 baseCurrency = baseCurrency,
-                                onClick = { onExpenseClick(transaction.id) }
+                                onClick = { onExpenseClick(transaction.id) },
+                                accountName = uiState.accountNames[txAccountId]
                             )
                         }
                     }

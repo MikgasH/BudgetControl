@@ -31,9 +31,9 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Route variant that accepts a pre-selected date and optional categoryId via query params
+    // Route variant that accepts a pre-selected date, optional categoryId, and optional accountId
     composable(
-        route = "${Screen.AddExpense.route}?selectedDate={selectedDate}&categoryId={categoryId}",
+        route = "${Screen.AddExpense.route}?selectedDate={selectedDate}&categoryId={categoryId}&accountId={accountId}",
         enterTransition = { slideInFromBottom + fadeIn },
         exitTransition = { slideOutToBottom + fadeOut },
         popEnterTransition = { slideInFromBottom + fadeIn },
@@ -41,11 +41,13 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
     ) { backStackEntry ->
         val selectedDateString = backStackEntry.arguments?.getString("selectedDate")
         val selectedDate = selectedDateString?.toLongOrNull() ?: System.currentTimeMillis()
-        val categoryId = backStackEntry.arguments?.getString("categoryId")
+        val categoryId = backStackEntry.arguments?.getString("categoryId")?.takeIf { it != "{categoryId}" }
+        val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
 
         AddExpenseScreen(
             selectedDate = selectedDate,
             preSelectedCategoryId = categoryId,
+            preSelectedAccountId = accountId,
             onBackClick = {
                 navController.popBackStack()
             },
@@ -73,9 +75,9 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    // Route variant that accepts a pre-selected date via query param
+    // Route variant that accepts a pre-selected date and optional accountId
     composable(
-        route = "${Screen.AddIncome.route}?selectedDate={selectedDate}",
+        route = "${Screen.AddIncome.route}?selectedDate={selectedDate}&accountId={accountId}",
         enterTransition = { slideInFromBottom + fadeIn },
         exitTransition = { slideOutToBottom + fadeOut },
         popEnterTransition = { slideInFromBottom + fadeIn },
@@ -83,9 +85,11 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
     ) { backStackEntry ->
         val selectedDateString = backStackEntry.arguments?.getString("selectedDate")
         val selectedDate = selectedDateString?.toLongOrNull() ?: System.currentTimeMillis()
+        val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
 
         AddIncomeScreen(
             selectedDate = selectedDate,
+            preSelectedAccountId = accountId,
             onBackClick = {
                 navController.popBackStack()
             },
@@ -113,15 +117,17 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    composable("${Screen.ExpensesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}") { backStackEntry ->
+    composable("${Screen.ExpensesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}&accountId={accountId}") { backStackEntry ->
         val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
         val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
         val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
         val isAllTime = backStackEntry.arguments?.getString("isAllTime")?.toBooleanStrictOrNull() ?: false
+        val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
         ExpensesByCategoryScreen(
             categoryId = categoryId,
             startDate = if (isAllTime) null else startDate,
             endDate = if (isAllTime) null else endDate,
+            accountId = accountId,
             onBackClick = { navController.popBackStack() },
             onExpenseClick = { expenseId ->
                 navController.navigate("${Screen.ExpenseDetail.route}/$expenseId")
@@ -208,15 +214,17 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         )
     }
 
-    composable("${Screen.IncomesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}") { backStackEntry ->
+    composable("${Screen.IncomesByCategory.route}/{categoryId}?startDate={startDate}&endDate={endDate}&isAllTime={isAllTime}&accountId={accountId}") { backStackEntry ->
         val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
         val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
         val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
         val isAllTime = backStackEntry.arguments?.getString("isAllTime")?.toBooleanStrictOrNull() ?: false
+        val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
         IncomesByCategoryScreen(
             categoryId = categoryId,
             startDate = if (isAllTime) null else startDate,
             endDate = if (isAllTime) null else endDate,
+            accountId = accountId,
             onBackClick = { navController.popBackStack() },
             onIncomeClick = { incomeId ->
                 navController.navigate("${Screen.IncomeDetail.route}/$incomeId")

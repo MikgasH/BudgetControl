@@ -142,7 +142,7 @@
     <string name="account_group">Группа счетов</string>
     <string name="account_groups_header">Группы</string>
     <string name="accounts_header">Счета</string>
-    <string name="new_group">Новая ��руппа</string>
+    <string name="new_group">Новая группа</string>
     <string name="edit_group">Редактировать группу</string>
     <string name="delete_group">Удалить группу</string>
     <string name="delete_group_confirm">Удалить группу «%1$s»?</string>
@@ -151,6 +151,12 @@
     <string name="group_name_label">Название группы</string>
     <string name="group_name_required">Введите название группы</string>
     <string name="group_member_count">%1$d счетов</string>
+    <string name="add_to_existing_group">Добавить в группу</string>
+    <string name="create_new_group">Создать группу</string>
+    <string name="choose_account">Выберите счёт</string>
+    <string name="choose_account_for_transaction">Какой счёт использовать для операции?</string>
+    <string name="accounts_management">Счета</string>
+    <string name="accounts_count">%1$d счетов</string>
 
     <!-- BankSelector -->
     <string name="bank_payment_method">Банк / Способ оплаты</string>
@@ -404,6 +410,9 @@
     <string name="onboarding_currencies_subtitle">Эти валюты будут отображаться первыми в списках выбора для быстрого доступа.</string>
     <string name="onboarding_balance_title">Ваш текущий баланс</string>
     <string name="onboarding_balance_desc">Необязательно. Введите сколько у вас сейчас денег чтобы точно отслеживать состояние с первого дня.</string>
+    <string name="onboarding_accounts_title">Ваши счета</string>
+    <string name="onboarding_accounts_desc">Настройте свои счета. Вы всегда можете добавить ещё позже в настройках.</string>
+    <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_ready_title">Всё готово!</string>
     <string name="onboarding_ready_desc">Приложение настроено и готово к использованию</string>
     <string name="onboarding_start">Начать</string>
@@ -459,4 +468,8 @@
 
     <!-- Stale rate improved warning -->
     <string name="stale_rate_warning_improved">Курс может быть неактуальным (обновлён %1$s ч. назад). Вы можете продолжить — используйте \'Уточнить сумму\' для 100% точности.</string>
+
+    <!-- Account currency -->
+    <string name="account_currency_label">Валюта счёта</string>
+    <string name="currency_change_blocked">Нельзя изменить валюту, так как у счёта есть операции</string>
 </resources>

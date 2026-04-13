@@ -27,6 +27,9 @@ import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
+import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
+import com.example.budgetcontrol.core.di.ApplicationScope
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
@@ -35,6 +38,7 @@ import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
 import com.example.budgetcontrol.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,9 +47,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -72,7 +79,10 @@ data class MainScreenUiState(
     val accountGroups: List<AccountGroupWithBalance> = emptyList(),
     val selectedGroupId: String? = null,
     val showCreateEditGroupSheet: Boolean = false,
-    val editingGroupId: String? = null
+    val editingGroupId: String? = null,
+    val availableCurrencies: List<String> = emptyList(),
+    val favoriteCurrencies: Set<String> = emptySet(),
+    val isCurrenciesLoading: Boolean = false
 )
 
 enum class PeriodType(@StringRes val displayNameRes: Int) {
@@ -95,74 +105,135 @@ class MainScreenViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
-    private val accountGroupRepository: AccountGroupRepository
+    private val accountGroupRepository: AccountGroupRepository,
+    private val cerpsRepository: CerpsRepository,
+    @ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainScreenUiState())
     val uiState: StateFlow<MainScreenUiState> = _uiState.asStateFlow()
 
     private val _accountsWithBalances = MutableStateFlow<List<AccountWithBalance>>(emptyList())
-
-    val balance: StateFlow<Double> = combine(
-        _accountsWithBalances,
-        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }
-    ) { accounts, (selectedId, selectedGroupId) ->
-        when {
-            selectedGroupId != null -> {
-                val group = _uiState.value.accountGroups.find { it.group.id == selectedGroupId }
-                val memberIds = group?.group?.memberAccountIds ?: emptyList()
-                accounts.filter { it.account.id in memberIds }.sumOf { it.currentBalance }
-            }
-            selectedId != null -> {
-                accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
-            }
-            else -> accounts.sumOf { it.currentBalance }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    private val _groups = MutableStateFlow<List<AccountGroup>>(emptyList())
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
 
+    private val _cachedRates = MutableStateFlow<Map<String, Double>>(emptyMap())
+
+    /** Balance amount in the appropriate display currency. */
+    val balance: StateFlow<Double> = combine(
+        _accountsWithBalances,
+        _groups,
+        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
+        _cachedRates,
+        baseCurrency
+    ) { accounts, groups, (selectedId, selectedGroupId), rates, baseCur ->
+        when {
+            selectedGroupId != null -> {
+                val group = groups.find { it.id == selectedGroupId }
+                val memberIds = group?.memberAccountIds ?: emptyList()
+                accounts.filter { it.account.id in memberIds }
+                    .sumOf { convertToBaseCurrency(it, baseCur, rates) }
+            }
+            selectedId != null -> {
+                // Single account: balance stays in account's own currency
+                accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
+            }
+            else -> accounts.sumOf { convertToBaseCurrency(it, baseCur, rates) }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
+
+    /** Currency code to display alongside the balance. */
+    val displayCurrency: StateFlow<String> = combine(
+        _accountsWithBalances,
+        _uiState.map { it.selectedAccountId }.distinctUntilChanged(),
+        baseCurrency
+    ) { accounts, selectedId, baseCur ->
+        if (selectedId != null) {
+            accounts.find { it.account.id == selectedId }?.account?.currency ?: baseCur
+        } else baseCur
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_BASE_CURRENCY)
+
+    /** True when the total balance is approximate (mixed currencies among displayed accounts). */
+    val isApproximateBalance: StateFlow<Boolean> = combine(
+        _accountsWithBalances,
+        _groups,
+        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
+        baseCurrency
+    ) { accounts, groups, (selectedId, selectedGroupId), baseCur ->
+        when {
+            selectedId != null -> false   // single account — exact
+            selectedGroupId != null -> {
+                val group = groups.find { it.id == selectedGroupId }
+                val memberIds = group?.memberAccountIds ?: emptyList()
+                accounts.filter { it.account.id in memberIds }
+                    .any { it.account.currency != baseCur }
+            }
+            else -> accounts.any { it.account.currency != baseCur }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     private var loadDataJob: Job? = null
 
     init {
-        getAccountsUseCase.getAccountsWithBalances()
-            .onEach { accounts ->
-                _accountsWithBalances.value = accounts
-                _uiState.value = _uiState.value.copy(accounts = accounts)
-                updateGroupBalances()
-            }.launchIn(viewModelScope)
+        viewModelScope.launch {
+            val savedAccountId = preferencesManager.selectedAccountIdFlow.first()
+            val savedGroupId = preferencesManager.selectedGroupIdFlow.first()
+            _uiState.update {
+                it.copy(
+                    selectedAccountId = if (savedGroupId == null) savedAccountId else null,
+                    selectedGroupId = savedGroupId
+                )
+            }
 
-        accountGroupRepository.getAllGroups()
-            .onEach { groups ->
-                _groups.value = groups
-                updateGroupBalances()
-            }.launchIn(viewModelScope)
+            getAccountsUseCase.getAccountsWithBalances()
+                .onEach { accounts ->
+                    _accountsWithBalances.value = accounts
+                    _uiState.update { it.copy(accounts = accounts) }
+                    updateGroupBalances()
+                }.launchIn(viewModelScope)
 
-        loadData()
+            accountGroupRepository.getAllGroups()
+                .onEach { groups ->
+                    _groups.value = groups
+                    updateGroupBalances()
+                }.launchIn(viewModelScope)
+
+            preferencesManager.getLastRates()
+                .onEach { rates -> _cachedRates.value = rates }
+                .launchIn(viewModelScope)
+
+            preferencesManager.favoriteCurrenciesFlow
+                .onEach { favs -> _uiState.update { it.copy(favoriteCurrencies = favs) } }
+                .launchIn(viewModelScope)
+
+            loadCurrencies()
+            loadData()
+        }
     }
-
-    private val _groups = MutableStateFlow<List<AccountGroup>>(emptyList())
 
     private fun updateGroupBalances() {
         val accounts = _accountsWithBalances.value
         val groups = _groups.value
+        val baseCur = baseCurrency.value
+        val rates = _cachedRates.value
         val groupsWithBalance = groups.map { group ->
             val memberBalances = accounts
                 .filter { it.account.id in group.memberAccountIds }
             AccountGroupWithBalance(
                 group = group,
-                combinedBalance = memberBalances.sumOf { it.currentBalance },
+                combinedBalance = memberBalances.sumOf { convertToBaseCurrency(it, baseCur, rates) },
                 memberCount = group.memberAccountIds.size
             )
         }
-        _uiState.value = _uiState.value.copy(accountGroups = groupsWithBalance)
+        _uiState.update { it.copy(accountGroups = groupsWithBalance) }
     }
 
     private fun loadData() {
         // Cancel the previous combine collector — period/tab change starts a new one
         loadDataJob?.cancel()
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        _uiState.update { it.copy(isLoading = true, error = null) }
         loadDataJob = viewModelScope.launch {
             try {
                 val currentState = _uiState.value
@@ -248,24 +319,28 @@ class MainScreenViewModel @Inject constructor(
                         }
                     }
 
-                    currentState.copy(
-                        transactions = currentTransactions,
-                        categories = categories,
-                        categoryStatistics = categoryStats,
-                        totalAmount = totalAmount,
-                        isLoading = false,
-                        error = null
-                    )
-                }.collect { state ->
-                    _uiState.value = state
+                    Triple(currentTransactions, categories, Pair(totalAmount, categoryStats))
+                }.collect { (transactions, categories, totalAndStats) ->
+                    _uiState.update {
+                        it.copy(
+                            transactions = transactions,
+                            categories = categories,
+                            categoryStatistics = totalAndStats.second,
+                            totalAmount = totalAndStats.first,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Unknown error"
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Unknown error"
+                    )
+                }
             }
         }
     }
@@ -284,18 +359,20 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun selectPeriodType(periodType: PeriodType) {
-        _uiState.value = _uiState.value.copy(
-            selectedPeriodType = periodType,
-            currentPeriodIndex = 0,
-            customStartDate = null,
-            customEndDate = null,
-            isAllTimePeriod = false
-        )
+        _uiState.update {
+            it.copy(
+                selectedPeriodType = periodType,
+                currentPeriodIndex = 0,
+                customStartDate = null,
+                customEndDate = null,
+                isAllTimePeriod = false
+            )
+        }
         loadData()
     }
 
     fun selectOperationType(operationType: OperationType) {
-        _uiState.value = _uiState.value.copy(selectedOperationType = operationType)
+        _uiState.update { it.copy(selectedOperationType = operationType) }
         loadData()
     }
 
@@ -303,20 +380,22 @@ class MainScreenViewModel @Inject constructor(
         val currentIndex = _uiState.value.currentPeriodIndex
         val newIndex = currentIndex + direction
 
-        _uiState.value = _uiState.value.copy(currentPeriodIndex = newIndex)
+        _uiState.update { it.copy(currentPeriodIndex = newIndex) }
         loadData()
     }
 
     fun selectCustomPeriod(startDate: Long, endDate: Long) {
         val isAllTime = DateRangeHelper.isAllTimePeriod(startDate, endDate)
 
-        _uiState.value = _uiState.value.copy(
-            selectedPeriodType = PeriodType.PERIOD,
-            currentPeriodIndex = 0,
-            customStartDate = startDate,
-            customEndDate = endDate,
-            isAllTimePeriod = isAllTime
-        )
+        _uiState.update {
+            it.copy(
+                selectedPeriodType = PeriodType.PERIOD,
+                currentPeriodIndex = 0,
+                customStartDate = startDate,
+                customEndDate = endDate,
+                isAllTimePeriod = isAllTime
+            )
+        }
         loadData()
     }
 
@@ -344,13 +423,15 @@ class MainScreenViewModel @Inject constructor(
                 }.timeInMillis
             }
 
-            _uiState.value = _uiState.value.copy(
-                selectedPeriodType = PeriodType.PERIOD,
-                currentPeriodIndex = 0,
-                customStartDate = start,
-                customEndDate = end,
-                isAllTimePeriod = true
-            )
+            _uiState.update {
+                it.copy(
+                    selectedPeriodType = PeriodType.PERIOD,
+                    currentPeriodIndex = 0,
+                    customStartDate = start,
+                    customEndDate = end,
+                    isAllTimePeriod = true
+                )
+            }
             loadData()
         }
     }
@@ -410,52 +491,80 @@ class MainScreenViewModel @Inject constructor(
             .take(limit)
     }
 
+    private fun loadCurrencies() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCurrenciesLoading = true) }
+            when (val result = cerpsRepository.getCurrencies()) {
+                is CerpsResult.Success -> {
+                    _uiState.update {
+                        it.copy(availableCurrencies = result.data, isCurrenciesLoading = false)
+                    }
+                }
+                is CerpsResult.Error -> {
+                    _uiState.update { it.copy(isCurrenciesLoading = false) }
+                }
+            }
+        }
+    }
+
     // ── Account management ────────────────────────────────────────────
 
     fun selectAccount(accountId: String?) {
-        _uiState.value = _uiState.value.copy(
-            selectedAccountId = accountId,
-            selectedGroupId = null
-        )
+        _uiState.update {
+            it.copy(
+                selectedAccountId = accountId,
+                selectedGroupId = null
+            )
+        }
+        // Persist on applicationScope so the write survives ViewModel cancellation when
+        // the user exits the app right after tapping an account.
+        applicationScope.launch {
+            preferencesManager.setSelectedAccountId(accountId)
+            preferencesManager.setSelectedGroupId(null)
+        }
         loadData()
     }
 
     fun toggleAccountsSheet() {
-        _uiState.value = _uiState.value.copy(
-            showAccountsSheet = !_uiState.value.showAccountsSheet
-        )
+        _uiState.update { it.copy(showAccountsSheet = !it.showAccountsSheet) }
     }
 
     fun dismissAccountsSheet() {
-        _uiState.value = _uiState.value.copy(showAccountsSheet = false)
+        _uiState.update { it.copy(showAccountsSheet = false) }
     }
 
     fun showCreateAccountSheet() {
-        _uiState.value = _uiState.value.copy(
-            showCreateEditAccountSheet = true,
-            editingAccountId = null,
-            editingAccountTransactionCount = 0
-        )
+        _uiState.update {
+            it.copy(
+                showCreateEditAccountSheet = true,
+                editingAccountId = null,
+                editingAccountTransactionCount = 0
+            )
+        }
     }
 
     fun showEditAccountSheet(accountId: String) {
         viewModelScope.launch {
             val expenseCount = getExpensesUseCase.getExpenseCountByAccount(accountId)
             val incomeCount = getIncomesUseCase.getIncomeCountByAccount(accountId)
-            _uiState.value = _uiState.value.copy(
-                showCreateEditAccountSheet = true,
-                editingAccountId = accountId,
-                editingAccountTransactionCount = expenseCount + incomeCount
-            )
+            _uiState.update {
+                it.copy(
+                    showCreateEditAccountSheet = true,
+                    editingAccountId = accountId,
+                    editingAccountTransactionCount = expenseCount + incomeCount
+                )
+            }
         }
     }
 
     fun dismissCreateEditAccountSheet() {
-        _uiState.value = _uiState.value.copy(
-            showCreateEditAccountSheet = false,
-            editingAccountId = null,
-            editingAccountTransactionCount = 0
-        )
+        _uiState.update {
+            it.copy(
+                showCreateEditAccountSheet = false,
+                editingAccountId = null,
+                editingAccountTransactionCount = 0
+            )
+        }
     }
 
     fun createAccount(name: String, iconName: String, color: String, initialBalance: Double, currency: String) {
@@ -505,7 +614,8 @@ class MainScreenViewModel @Inject constructor(
 
             // If the deleted account was selected, reset to all accounts
             if (_uiState.value.selectedAccountId == accountId) {
-                _uiState.value = _uiState.value.copy(selectedAccountId = null)
+                _uiState.update { it.copy(selectedAccountId = null) }
+                applicationScope.launch { preferencesManager.setSelectedAccountId(null) }
                 loadData()
             }
             dismissCreateEditAccountSheet()
@@ -527,43 +637,69 @@ class MainScreenViewModel @Inject constructor(
     }
 
     fun getTotalBalance(): Double {
-        return _accountsWithBalances.value.sumOf { it.currentBalance }
+        val baseCur = baseCurrency.value
+        val rates = _cachedRates.value
+        return _accountsWithBalances.value.sumOf { convertToBaseCurrency(it, baseCur, rates) }
     }
 
-    fun formatBalance(amount: Double): String {
-        val symbol = getCurrencySymbol(baseCurrency.value)
-        return "${formatAmount(amount)} $symbol"
+    fun hasMixedCurrencies(): Boolean {
+        val baseCur = baseCurrency.value
+        return _accountsWithBalances.value.any { it.account.currency != baseCur }
+    }
+
+    fun formatBalance(amount: Double, currency: String, isApproximate: Boolean): String {
+        val symbol = getCurrencySymbol(currency)
+        val prefix = if (isApproximate) "~" else ""
+        return "$prefix${formatAmount(amount)} $symbol"
+    }
+
+    private fun convertToBaseCurrency(
+        accountWithBalance: AccountWithBalance,
+        baseCur: String,
+        rates: Map<String, Double>
+    ): Double {
+        val acctCurrency = accountWithBalance.account.currency
+        if (acctCurrency == baseCur) return accountWithBalance.currentBalance
+        // rates are EUR-based: rate[X] = how many X per 1 EUR
+        val acctRate = rates[acctCurrency] ?: return accountWithBalance.currentBalance
+        val baseRate = if (baseCur == "EUR") 1.0 else (rates[baseCur] ?: return accountWithBalance.currentBalance)
+        return accountWithBalance.currentBalance * baseRate / acctRate
     }
 
     // ── Group management ───────────────────────────────────────────────
 
     fun selectGroup(groupId: String) {
-        _uiState.value = _uiState.value.copy(
-            selectedGroupId = groupId,
-            selectedAccountId = null
-        )
+        _uiState.update {
+            it.copy(
+                selectedGroupId = groupId,
+                selectedAccountId = null
+            )
+        }
+        // Persist on applicationScope so the write survives ViewModel cancellation when
+        // the user exits the app right after tapping a group.
+        applicationScope.launch {
+            preferencesManager.setSelectedGroupId(groupId)
+            preferencesManager.setSelectedAccountId(null)
+        }
         loadData()
     }
 
     fun showCreateGroupSheet() {
-        _uiState.value = _uiState.value.copy(
-            showCreateEditGroupSheet = true,
-            editingGroupId = null
-        )
+        _uiState.update {
+            it.copy(showCreateEditGroupSheet = true, editingGroupId = null)
+        }
     }
 
     fun showEditGroupSheet(groupId: String) {
-        _uiState.value = _uiState.value.copy(
-            showCreateEditGroupSheet = true,
-            editingGroupId = groupId
-        )
+        _uiState.update {
+            it.copy(showCreateEditGroupSheet = true, editingGroupId = groupId)
+        }
     }
 
     fun dismissCreateEditGroupSheet() {
-        _uiState.value = _uiState.value.copy(
-            showCreateEditGroupSheet = false,
-            editingGroupId = null
-        )
+        _uiState.update {
+            it.copy(showCreateEditGroupSheet = false, editingGroupId = null)
+        }
     }
 
     fun createGroup(name: String, memberAccountIds: List<String>) {
@@ -598,7 +734,8 @@ class MainScreenViewModel @Inject constructor(
             accountGroupRepository.deleteGroup(group)
 
             if (_uiState.value.selectedGroupId == groupId) {
-                _uiState.value = _uiState.value.copy(selectedGroupId = null)
+                _uiState.update { it.copy(selectedGroupId = null) }
+                applicationScope.launch { preferencesManager.setSelectedGroupId(null) }
                 loadData()
             }
             dismissCreateEditGroupSheet()
@@ -608,5 +745,29 @@ class MainScreenViewModel @Inject constructor(
     fun getEditingGroup(): AccountGroup? {
         val id = _uiState.value.editingGroupId ?: return null
         return _uiState.value.accountGroups.find { it.group.id == id }?.group
+    }
+
+    fun addAccountToGroup(accountId: String, groupId: String) {
+        viewModelScope.launch {
+            val group = accountGroupRepository.getGroupById(groupId) ?: return@launch
+            if (accountId !in group.memberAccountIds) {
+                val updated = group.copy(
+                    memberAccountIds = group.memberAccountIds + accountId
+                )
+                accountGroupRepository.updateGroup(updated)
+            }
+        }
+    }
+
+    fun getSelectedGroupMemberIds(): List<String> {
+        val groupId = _uiState.value.selectedGroupId ?: return emptyList()
+        return _uiState.value.accountGroups
+            .find { it.group.id == groupId }
+            ?.group?.memberAccountIds ?: emptyList()
+    }
+
+    fun getGroupMemberAccounts(): List<AccountWithBalance> {
+        val memberIds = getSelectedGroupMemberIds()
+        return _uiState.value.accounts.filter { it.account.id in memberIds }
     }
 }

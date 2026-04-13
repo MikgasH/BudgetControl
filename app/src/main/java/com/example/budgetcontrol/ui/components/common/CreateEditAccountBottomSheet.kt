@@ -64,6 +64,9 @@ fun CreateEditAccountBottomSheet(
     account: Account? = null,
     baseCurrency: String = DEFAULT_BASE_CURRENCY,
     transactionCount: Int = 0,
+    availableCurrencies: List<String> = emptyList(),
+    favoriteCurrencies: Set<String> = emptySet(),
+    isCurrenciesLoading: Boolean = false,
     onSave: (name: String, iconName: String, color: String, initialBalance: Double, currency: String) -> Unit,
     onDelete: (() -> Unit)? = null,
     onDismiss: () -> Unit
@@ -75,7 +78,13 @@ fun CreateEditAccountBottomSheet(
     var selectedIcon by remember { mutableStateOf(account?.iconName ?: defaultIcon) }
     var selectedColor by remember { mutableStateOf(account?.color ?: defaultColor) }
     var initialBalance by remember { mutableStateOf(
-        if (account != null && account.initialBalance != 0.0) account.initialBalance.toString() else ""
+        if (account != null) {
+            if (account.initialBalance == account.initialBalance.toLong().toDouble()) {
+                account.initialBalance.toLong().toString()
+            } else {
+                account.initialBalance.toString()
+            }
+        } else ""
     ) }
     var currency by remember { mutableStateOf(account?.currency ?: baseCurrency) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -274,6 +283,30 @@ fun CreateEditAccountBottomSheet(
                         isSelected = selectedColor == hex,
                         onClick = { selectedColor = hex }
                     )
+                }
+            }
+
+            // Currency selector
+            val currencyChangeBlocked = isEditMode && transactionCount > 0
+            if (availableCurrencies.isNotEmpty()) {
+                Column {
+                    CurrencySelector(
+                        currencies = availableCurrencies,
+                        selectedCurrency = currency,
+                        onCurrencySelect = { if (!currencyChangeBlocked) currency = it },
+                        baseCurrency = baseCurrency,
+                        favoriteCurrencies = favoriteCurrencies,
+                        isLoading = isCurrenciesLoading,
+                        enabled = !currencyChangeBlocked
+                    )
+                    if (currencyChangeBlocked) {
+                        Text(
+                            text = stringResource(R.string.currency_change_blocked),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                        )
+                    }
                 }
             }
 

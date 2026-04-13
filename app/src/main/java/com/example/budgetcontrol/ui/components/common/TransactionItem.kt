@@ -198,6 +198,7 @@ fun TransactionItemDetailed(
     category: Category?,
     baseCurrency: String,
     onClick: () -> Unit,
+    accountName: String? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -246,14 +247,16 @@ fun TransactionItemDetailed(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                Text(
-                    text = stringResource(R.string.main_account),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Normal
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                if (accountName != null) {
+                    Text(
+                        text = accountName,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
 
                 transaction.description?.takeIf { it.isNotBlank() }?.let { description ->
                     Text(

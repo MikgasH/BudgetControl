@@ -293,6 +293,18 @@ abstract class AppDatabase : RoomDatabase() {
                             )
                         }
                     }
+
+                    // Ensure default "Main" account exists (fresh installs skip MIGRATION_13_14)
+                    val acctCursor = db.query("SELECT COUNT(*) FROM accounts WHERE isDefault = 1")
+                    val hasDefault = if (acctCursor.moveToFirst()) acctCursor.getInt(0) > 0 else false
+                    acctCursor.close()
+                    if (!hasDefault) {
+                        val now = System.currentTimeMillis()
+                        db.execSQL(
+                            "INSERT INTO accounts (id, name, iconName, color, initialBalance, currency, isDefault, createdAt, lastUsedAt, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            arrayOf(Account.DEFAULT_ACCOUNT_ID, "Main", "account_balance", "#4CAF50", 0.0, "EUR", 1, now, now, 0)
+                        )
+                    }
                 }
             }
         }

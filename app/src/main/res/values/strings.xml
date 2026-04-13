@@ -151,6 +151,12 @@
     <string name="group_name_label">Group name</string>
     <string name="group_name_required">Enter a group name</string>
     <string name="group_member_count">%1$d accounts</string>
+    <string name="add_to_existing_group">Add to group</string>
+    <string name="create_new_group">Create new group</string>
+    <string name="choose_account">Choose account</string>
+    <string name="choose_account_for_transaction">Which account should this transaction use?</string>
+    <string name="accounts_management">Accounts</string>
+    <string name="accounts_count">%1$d accounts</string>
 
     <!-- BankSelector -->
     <string name="bank_payment_method">Bank / Payment method</string>
@@ -404,6 +410,9 @@
     <string name="onboarding_currencies_subtitle">These currencies will appear at the top of selection lists for quick access.</string>
     <string name="onboarding_balance_title">Your current balance</string>
     <string name="onboarding_balance_desc">Optional. Enter how much money you have now to track your net worth accurately from day one.</string>
+    <string name="onboarding_accounts_title">Your accounts</string>
+    <string name="onboarding_accounts_desc">Set up your accounts. You can always add more later in settings.</string>
+    <string name="onboarding_skip">Skip</string>
     <string name="onboarding_ready_title">You\'re all set!</string>
     <string name="onboarding_ready_desc">Your app is configured and ready to use</string>
     <string name="onboarding_start">Start</string>
@@ -459,4 +468,8 @@
 
     <!-- Stale rate improved warning -->
     <string name="stale_rate_warning_improved">Rate may be outdated (updated %1$s h ago). You can still proceed — use \'Specify exact amount\' for 100% accuracy.</string>
+
+    <!-- Account currency -->
+    <string name="account_currency_label">Account currency</string>
+    <string name="currency_change_blocked">Currency cannot be changed because this account has transactions</string>
 </resources>
