@@ -372,6 +372,7 @@
     <string name="icon_group_entertainment">Entertainment</string>
     <string name="icon_group_other">Other</string>
     <string name="hex_color_label">HEX color</string>
+    <string name="recent_colors">Recent</string>
     <string name="discard_changes">Discard changes?</string>
     <string name="discard_changes_confirm">You have unsaved changes. Discard them?</string>
     <string name="close">Close</string>

@@ -155,6 +155,33 @@ class PreferencesManager @Inject constructor(
         preferences[LAST_RATES_TIMESTAMP_KEY] ?: 0L
     }
 
+    // Custom (recently-used) picker colors — ordered list, most recent first, max 12
+    val customColorsFlow: Flow<List<String>> = dataStore.data.map { preferences ->
+        val json = preferences[CUSTOM_COLORS_KEY] ?: return@map emptyList()
+        try {
+            val type = object : TypeToken<List<String>>() {}.type
+            Gson().fromJson(json, type)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addCustomColor(hex: String) {
+        dataStore.edit { preferences ->
+            val json = preferences[CUSTOM_COLORS_KEY] ?: "[]"
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val list: MutableList<String> = try {
+                Gson().fromJson(json, type)
+            } catch (_: Exception) {
+                mutableListOf()
+            }
+            list.remove(hex)
+            list.add(0, hex)
+            if (list.size > 12) list.removeAt(list.lastIndex)
+            preferences[CUSTOM_COLORS_KEY] = Gson().toJson(list)
+        }
+    }
+
     // Cached available currencies list (for offline mode)
     suspend fun saveAvailableCurrencies(currencies: List<String>) {
         val json = Gson().toJson(currencies)
@@ -186,6 +213,7 @@ class PreferencesManager @Inject constructor(
         private val LAST_RATES_KEY = stringPreferencesKey("last_exchange_rates")
         private val LAST_RATES_TIMESTAMP_KEY = longPreferencesKey("last_exchange_rates_timestamp")
         private val AVAILABLE_CURRENCIES_KEY = stringPreferencesKey("available_currencies")
+        private val CUSTOM_COLORS_KEY = stringPreferencesKey("custom_colors")
         val DEFAULT_FAVORITE_CURRENCIES = setOf("EUR", "USD", "GBP", "PLN", "BYN")
         val DEFAULT_AVAILABLE_CURRENCIES = listOf(
             "EUR", "USD", "GBP", "CHF", "JPY", "PLN", "CZK",

@@ -1,14 +1,10 @@
 package com.example.budgetcontrol.ui.components.common
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,11 +24,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
-import androidx.core.graphics.toColorInt
 
 private data class AccountIconEntry(val key: String, val icon: ImageVector)
 
@@ -51,12 +47,6 @@ private val accountIcons = listOf(
     AccountIconEntry("wallet", Icons.Default.AccountBalanceWallet)
 )
 
-private val accountPresetColors = listOf(
-    "#4CAF50", "#2196F3", "#F44336", "#E91E63",
-    "#9C27B0", "#3F51B5", "#00BCD4", "#FF9800",
-    "#8BC34A", "#FF5722", "#795548", "#607D8B"
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateEditAccountBottomSheet(
@@ -69,26 +59,30 @@ fun CreateEditAccountBottomSheet(
     isCurrenciesLoading: Boolean = false,
     onSave: (name: String, iconName: String, color: String, initialBalance: Double, currency: String) -> Unit,
     onDelete: (() -> Unit)? = null,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    colorPickerViewModel: ColorPickerViewModel = hiltViewModel()
 ) {
-    val defaultIcon = "account_balance"
-    val defaultColor = accountPresetColors[0]
+    val defaultColor = colorPickerPresets[6] // #4CAF50
 
     var name by remember { mutableStateOf(account?.name ?: "") }
-    var selectedIcon by remember { mutableStateOf(account?.iconName ?: defaultIcon) }
+    var selectedIcon by remember { mutableStateOf(account?.iconName ?: "account_balance") }
     var selectedColor by remember { mutableStateOf(account?.color ?: defaultColor) }
-    var initialBalance by remember { mutableStateOf(
-        if (account != null) {
-            if (account.initialBalance == account.initialBalance.toLong().toDouble()) {
-                account.initialBalance.toLong().toString()
-            } else {
-                account.initialBalance.toString()
-            }
-        } else ""
-    ) }
+    var initialBalance by remember {
+        mutableStateOf(
+            if (account != null) {
+                if (account.initialBalance == account.initialBalance.toLong().toDouble()) {
+                    account.initialBalance.toLong().toString()
+                } else {
+                    account.initialBalance.toString()
+                }
+            } else ""
+        )
+    }
     var currency by remember { mutableStateOf(account?.currency ?: baseCurrency) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var nameError by remember { mutableStateOf(false) }
+
+    val recentColors by colorPickerViewModel.customColors.collectAsState()
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -164,7 +158,7 @@ fun CreateEditAccountBottomSheet(
                 }
             }
 
-            // Preview
+            // Preview circle
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -261,30 +255,11 @@ fun CreateEditAccountBottomSheet(
                 fontWeight = FontWeight.Medium
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                accountPresetColors.take(6).forEach { hex ->
-                    AccountColorCircle(
-                        hex = hex,
-                        isSelected = selectedColor == hex,
-                        onClick = { selectedColor = hex }
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                accountPresetColors.drop(6).forEach { hex ->
-                    AccountColorCircle(
-                        hex = hex,
-                        isSelected = selectedColor == hex,
-                        onClick = { selectedColor = hex }
-                    )
-                }
-            }
+            CustomColorPicker(
+                selectedColor = selectedColor,
+                onColorSelected = { selectedColor = it },
+                recentColors = recentColors
+            )
 
             // Currency selector
             val currencyChangeBlocked = isEditMode && transactionCount > 0
@@ -314,7 +289,6 @@ fun CreateEditAccountBottomSheet(
             OutlinedTextField(
                 value = initialBalance,
                 onValueChange = { input ->
-                    // Allow digits, one dot/comma, optional leading minus
                     val filtered = input.replace(',', '.')
                     if (filtered.isEmpty() || filtered == "-" || filtered.toDoubleOrNull() != null
                         || (filtered.endsWith('.') && filtered.count { it == '.' } == 1)) {
@@ -341,8 +315,12 @@ fun CreateEditAccountBottomSheet(
                         nameError = true
                         return@Button
                     }
+                    val color = selectedColor.uppercase()
+                    if (color !in colorPickerPresets) {
+                        colorPickerViewModel.addCustomColor(color)
+                    }
                     val balanceValue = initialBalance.replace(',', '.').toDoubleOrNull() ?: 0.0
-                    onSave(name.trim(), selectedIcon, selectedColor, balanceValue, currency)
+                    onSave(name.trim(), selectedIcon, color, balanceValue, currency)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -381,36 +359,6 @@ fun CreateEditAccountBottomSheet(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AccountColorCircle(
-    hex: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val color = try { Color(hex.toColorInt()) } catch (_: Exception) { Color.Gray }
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(color)
-            .then(
-                if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                else Modifier
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        if (isSelected) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(18.dp)
-            )
         }
     }
 }

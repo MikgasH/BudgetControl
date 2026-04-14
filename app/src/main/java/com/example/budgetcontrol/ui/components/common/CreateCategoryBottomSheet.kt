@@ -2,7 +2,6 @@ package com.example.budgetcontrol.ui.components.common
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,7 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.core.domain.model.CategoryType
@@ -114,14 +113,6 @@ private val iconGroups = listOf(
     ))
 )
 
-// ── Preset colors ────────────────────────────────────────────────────
-
-private val presetColors = listOf(
-    "#F44336", "#E91E63", "#9C27B0", "#3F51B5",
-    "#2196F3", "#00BCD4", "#4CAF50", "#8BC34A",
-    "#FF9800", "#FF5722", "#795548", "#607D8B"
-)
-
 // ── Bottom sheet ─────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,23 +121,18 @@ fun CreateCategoryBottomSheet(
     categoryType: CategoryType,
     onDismiss: () -> Unit,
     onSave: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
-    initialName: String = ""
+    initialName: String = "",
+    colorPickerViewModel: ColorPickerViewModel = hiltViewModel()
 ) {
     val defaultIcon = "category"
-    val defaultColor = presetColors[4] // #2196F3
+    val defaultColor = colorPickerPresets[4] // #2196F3
 
     var name by remember { mutableStateOf(initialName) }
     var selectedIcon by remember { mutableStateOf(defaultIcon) }
     var selectedColor by remember { mutableStateOf(defaultColor) }
     var showMoreIcons by remember { mutableStateOf(false) }
-    var showCustomColor by remember { mutableStateOf(false) }
 
-    // RGB sliders state — decoupled from selectedColor to avoid loops
-    var red by remember { mutableIntStateOf(33) }
-    var green by remember { mutableIntStateOf(150) }
-    var blue by remember { mutableIntStateOf(243) }
-    // Local draft for HEX input — only applied when valid 6-char
-    var hexDraft by remember { mutableStateOf(selectedColor.removePrefix("#")) }
+    val recentColors by colorPickerViewModel.customColors.collectAsState()
 
     // Track unsaved changes
     val hasUnsavedChanges by remember {
@@ -155,18 +141,14 @@ fun CreateCategoryBottomSheet(
         }
     }
 
-    // Discard confirmation dialog
     var showDiscardDialog by remember { mutableStateOf(false) }
-    // Pending dismiss triggered by swipe while unsaved
-    var pendingDismiss by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = { newValue ->
             if (newValue == SheetValue.Hidden && hasUnsavedChanges) {
                 showDiscardDialog = true
-                pendingDismiss = true
-                false // block dismiss
+                false
             } else {
                 true
             }
@@ -175,26 +157,19 @@ fun CreateCategoryBottomSheet(
 
     if (showDiscardDialog) {
         AlertDialog(
-            onDismissRequest = {
-                showDiscardDialog = false
-                pendingDismiss = false
-            },
+            onDismissRequest = { showDiscardDialog = false },
             title = { Text(stringResource(R.string.discard_changes)) },
             text = { Text(stringResource(R.string.discard_changes_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDiscardDialog = false
-                    pendingDismiss = false
                     onDismiss()
                 }) {
                     Text(stringResource(R.string.yes_upper))
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showDiscardDialog = false
-                    pendingDismiss = false
-                }) {
+                TextButton(onClick = { showDiscardDialog = false }) {
                     Text(stringResource(R.string.no_upper))
                 }
             }
@@ -203,11 +178,7 @@ fun CreateCategoryBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = {
-            if (hasUnsavedChanges) {
-                showDiscardDialog = true
-            } else {
-                onDismiss()
-            }
+            if (hasUnsavedChanges) showDiscardDialog = true else onDismiss()
         },
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() }
@@ -220,7 +191,7 @@ fun CreateCategoryBottomSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header with title and close button
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -233,11 +204,7 @@ fun CreateCategoryBottomSheet(
                 )
                 IconButton(
                     onClick = {
-                        if (hasUnsavedChanges) {
-                            showDiscardDialog = true
-                        } else {
-                            onDismiss()
-                        }
+                        if (hasUnsavedChanges) showDiscardDialog = true else onDismiss()
                     }
                 ) {
                     Icon(
@@ -269,7 +236,6 @@ fun CreateCategoryBottomSheet(
                 fontWeight = FontWeight.Medium
             )
 
-            // Quick icons row
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp)
@@ -284,7 +250,6 @@ fun CreateCategoryBottomSheet(
                 }
             }
 
-            // "More icons" expandable
             Row(
                 modifier = Modifier
                     .clickable { showMoreIcons = !showMoreIcons }
@@ -343,74 +308,17 @@ fun CreateCategoryBottomSheet(
                 fontWeight = FontWeight.Medium
             )
 
-            // Preset color circles
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                presetColors.take(6).forEach { hex ->
-                    ColorCircle(
-                        hex = hex,
-                        isSelected = selectedColor == hex && !showCustomColor,
-                        onClick = {
-                            selectedColor = hex
-                            showCustomColor = false
-                            val (r, g, b) = parseHexColor(hex)
-                            red = r; green = g; blue = b
-                            hexDraft = hex.removePrefix("#")
-                        }
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                presetColors.drop(6).forEach { hex ->
-                    ColorCircle(
-                        hex = hex,
-                        isSelected = selectedColor == hex && !showCustomColor,
-                        onClick = {
-                            selectedColor = hex
-                            showCustomColor = false
-                            val (r, g, b) = parseHexColor(hex)
-                            red = r; green = g; blue = b
-                            hexDraft = hex.removePrefix("#")
-                        }
-                    )
-                }
-            }
-
-            // "Custom color" expandable
-            Row(
-                modifier = Modifier
-                    .clickable { showCustomColor = !showCustomColor }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    imageVector = if (showCustomColor) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = stringResource(R.string.custom_color),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            AnimatedVisibility(visible = showCustomColor) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Large color preview rectangle
+            CustomColorPicker(
+                selectedColor = selectedColor,
+                onColorSelected = { selectedColor = it },
+                recentColors = recentColors,
+                previewContent = { color ->
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(red, green, blue)),
+                            .background(color),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -420,78 +328,19 @@ fun CreateCategoryBottomSheet(
                             modifier = Modifier.size(28.dp)
                         )
                     }
-
-                    // HEX input — above sliders
-                    OutlinedTextField(
-                        value = hexDraft,
-                        onValueChange = { input ->
-                            val filtered = input.filter { it.isLetterOrDigit() }.take(6)
-                            hexDraft = filtered
-                            if (filtered.length == 6) {
-                                val (r, g, b) = parseHexColor("#$filtered")
-                                red = r; green = g; blue = b
-                                selectedColor = "#${filtered.uppercase()}"
-                            }
-                        },
-                        label = { Text(stringResource(R.string.hex_color_label)) },
-                        prefix = { Text("#") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-
-                    // R slider
-                    ColorSliderRow(
-                        label = "R",
-                        value = red,
-                        color = Color.Red,
-                        onValueChange = {
-                            red = it
-                            val hex = buildHex(red, green, blue)
-                            selectedColor = hex
-                            hexDraft = hex.removePrefix("#")
-                        }
-                    )
-
-                    // G slider
-                    ColorSliderRow(
-                        label = "G",
-                        value = green,
-                        color = Color(0xFF4CAF50),
-                        onValueChange = {
-                            green = it
-                            val hex = buildHex(red, green, blue)
-                            selectedColor = hex
-                            hexDraft = hex.removePrefix("#")
-                        }
-                    )
-
-                    // B slider
-                    ColorSliderRow(
-                        label = "B",
-                        value = blue,
-                        color = Color.Blue,
-                        onValueChange = {
-                            blue = it
-                            val hex = buildHex(red, green, blue)
-                            selectedColor = hex
-                            hexDraft = hex.removePrefix("#")
-                        }
-                    )
                 }
-            }
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // ── Save button ──────────────────────────────────────────
             Button(
                 onClick = {
-                    onSave(name.trim(), selectedIcon, selectedColor.uppercase(), categoryType)
+                    val color = selectedColor.uppercase()
+                    if (color !in colorPickerPresets) {
+                        colorPickerViewModel.addCustomColor(color)
+                    }
+                    onSave(name.trim(), selectedIcon, color, categoryType)
                     onDismiss()
                 },
                 enabled = name.isNotBlank(),
@@ -547,81 +396,7 @@ private fun IconCircle(
     }
 }
 
-@Composable
-private fun ColorCircle(
-    hex: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val color = try { Color(hex.toColorInt()) }
-    catch (_: Exception) { Color.Gray }
-
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(color)
-            .then(
-                if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                else Modifier
-            )
-            .clickable { onClick() }
-    )
-}
-
-@Composable
-private fun ColorSliderRow(
-    label: String,
-    value: Int,
-    color: Color,
-    onValueChange: (Int) -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(20.dp)
-        )
-        Slider(
-            value = value.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
-            valueRange = 0f..255f,
-            modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(
-                thumbColor = color,
-                activeTrackColor = color
-            )
-        )
-        Text(
-            text = value.toString(),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.width(30.dp),
-            fontSize = 12.sp
-        )
-    }
-}
-
 // ── Pure helpers ─────────────────────────────────────────────────────
-
-private fun parseHexColor(hex: String): Triple<Int, Int, Int> {
-    return try {
-        val c = hex.toColorInt()
-        Triple(
-            android.graphics.Color.red(c),
-            android.graphics.Color.green(c),
-            android.graphics.Color.blue(c)
-        )
-    } catch (_: Exception) {
-        Triple(33, 150, 243) // fallback to #2196F3
-    }
-}
-
-private fun buildHex(r: Int, g: Int, b: Int): String =
-    "#%02X%02X%02X".format(r.coerceIn(0, 255), g.coerceIn(0, 255), b.coerceIn(0, 255))
 
 private fun resolveIcon(key: String): ImageVector = when (key) {
     "shopping_cart" -> Icons.Default.ShoppingCart

@@ -372,6 +372,7 @@
     <string name="icon_group_entertainment">Развлечения</string>
     <string name="icon_group_other">Другое</string>
     <string name="hex_color_label">HEX цвет</string>
+    <string name="recent_colors">Недавние</string>
     <string name="discard_changes">Отменить изменения?</string>
     <string name="discard_changes_confirm">У вас есть несохранённые изменения. Отменить их?</string>
     <string name="close">Закрыть</string>
