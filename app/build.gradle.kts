@@ -66,6 +66,10 @@ android {
 
 kapt {
     correctErrorTypes = true
+    useBuildCache = true
+    javacOptions {
+        option("-J-Xss4m")
+    }
 }
 
 dependencies {

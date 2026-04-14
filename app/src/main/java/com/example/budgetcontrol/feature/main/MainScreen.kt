@@ -57,6 +57,7 @@ import androidx.activity.compose.BackHandler
 import com.example.budgetcontrol.ui.components.common.AccountsBottomSheet
 import com.example.budgetcontrol.ui.components.common.AccountGroupSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
+import com.example.budgetcontrol.ui.components.common.CurrencyChangeConfirmDialog
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -244,6 +245,14 @@ fun MainScreen(
                 { viewModel.deleteAccount(editingAccount.id) }
             } else null,
             onDismiss = { viewModel.dismissCreateEditAccountSheet() }
+        )
+    }
+
+    uiState.pendingCurrencyChange?.let { pending ->
+        CurrencyChangeConfirmDialog(
+            pending = pending,
+            onConfirm = { viewModel.confirmPendingCurrencyChange() },
+            onDismiss = { viewModel.cancelPendingCurrencyChange() }
         )
     }
 

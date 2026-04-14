@@ -15,6 +15,22 @@ sealed class ConvertCurrencyResult {
     data class Error(val message: String) : ConvertCurrencyResult()
 }
 
+// CERPS rates are EUR-based: rate[X] = how many X per 1 EUR. EUR itself is implicit 1.0.
+// Returns null when the required rate is missing so callers can distinguish
+// "unconvertible" from "converted to zero".
+fun crossConvert(
+    amount: Double,
+    fromCurrency: String,
+    toCurrency: String,
+    rates: Map<String, Double>
+): Double? {
+    if (fromCurrency == toCurrency) return amount
+    val fromRate = if (fromCurrency == "EUR") 1.0 else rates[fromCurrency]
+    val toRate = if (toCurrency == "EUR") 1.0 else rates[toCurrency]
+    if (fromRate == null || fromRate <= 0.0 || toRate == null || toRate <= 0.0) return null
+    return Math.round(amount * toRate / fromRate * 100) / 100.0
+}
+
 class ConvertCurrencyUseCase @Inject constructor(
     private val currencyRateProvider: CurrencyRateProvider
 ) {
@@ -32,27 +48,16 @@ class ConvertCurrencyUseCase @Inject constructor(
         return when (val result = currencyRateProvider.getRates()) {
             is CurrencyRateResult.Success -> {
                 val rates = result.rates
-                // CERPS always returns EUR-based rates — this invariant must hold.
-                // If CERPS base currency changes, this calculation must be updated.
-                // rate[X] = how many X per 1 EUR
-                val fromRate = rates[fromCurrency]
-                val toRate = rates[toCurrency]
-
-                // EUR itself is not in the rates map; its rate is implicitly 1.0
-                val effectiveToRate = if (toCurrency == "EUR") 1.0 else toRate
-                val effectiveFromRate = if (fromCurrency == "EUR") 1.0 else fromRate
-
-                if (effectiveFromRate != null && effectiveFromRate > 0 &&
-                    effectiveToRate != null && effectiveToRate > 0
-                ) {
-                    // Cross-rate: amount / fromRate gives EUR, * toRate gives target currency
-                    val convertedAmount = Math.round(amount * effectiveToRate / effectiveFromRate * 100) / 100.0
+                val converted = crossConvert(amount, fromCurrency, toCurrency, rates)
+                if (converted != null) {
+                    val fromRate = if (fromCurrency == "EUR") 1.0 else rates.getValue(fromCurrency)
+                    val toRate = if (toCurrency == "EUR") 1.0 else rates.getValue(toCurrency)
                     // Store rate as "how many FROM units per 1 TO unit" for the detail screen display
-                    val crossRate = effectiveFromRate / effectiveToRate
+                    val crossRate = fromRate / toRate
                     // null rateSource means live rate was used; "CACHED_RATE" warns the UI that the rate may be outdated
                     val rateSource = if (!currencyRateProvider.areRatesStale()) null else "CACHED_RATE"
                     ConvertCurrencyResult.Success(
-                        ConversionResult(convertedAmount, crossRate, rateSource)
+                        ConversionResult(converted, crossRate, rateSource)
                     )
                 } else {
                     ConvertCurrencyResult.Error("No rate available for $fromCurrency → $toCurrency")

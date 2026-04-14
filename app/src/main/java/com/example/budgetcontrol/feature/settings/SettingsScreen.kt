@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
+import com.example.budgetcontrol.ui.components.common.CurrencyChangeConfirmDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,6 +245,14 @@ fun SettingsScreen(
                 { viewModel.deleteAccount(editingAccount.id) }
             } else null,
             onDismiss = { viewModel.dismissCreateEditAccountSheet() }
+        )
+    }
+
+    uiState.pendingCurrencyChange?.let { pending ->
+        CurrencyChangeConfirmDialog(
+            pending = pending,
+            onConfirm = { viewModel.confirmPendingCurrencyChange() },
+            onDismiss = { viewModel.cancelPendingCurrencyChange() }
         )
     }
 

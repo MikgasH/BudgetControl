@@ -35,7 +35,7 @@ fun AccountsBottomSheet(
     groups: List<AccountGroupWithBalance> = emptyList(),
     selectedAccountId: String?,
     selectedGroupId: String? = null,
-    totalBalance: Double,
+    totalBalance: Double?,
     baseCurrency: String,
     hasMixedCurrencies: Boolean = false,
     onAccountSelect: (String?) -> Unit,
@@ -337,7 +337,7 @@ fun AccountsBottomSheet(
                                     ),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (groupWithBalance.combinedBalance >= 0) {
+                                    color = if ((groupWithBalance.combinedBalance ?: 0.0) >= 0) {
                                         MaterialTheme.colorScheme.onSurface
                                     } else {
                                         MaterialTheme.colorScheme.error
@@ -548,7 +548,8 @@ fun AccountsBottomSheet(
     }
 }
 
-private fun formatAccountBalance(balance: Double, currency: String, approximate: Boolean = false): String {
+private fun formatAccountBalance(balance: Double?, currency: String, approximate: Boolean = false): String {
+    if (balance == null) return "—"
     val prefix = if (approximate) "~" else ""
     return if (balance == balance.toLong().toDouble()) {
         "$prefix${balance.toLong()} $currency"

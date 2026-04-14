@@ -12,14 +12,17 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.PendingCurrencyChange
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
+import com.example.budgetcontrol.core.domain.usecase.ConvertCurrencyResult
 import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
+import com.example.budgetcontrol.core.domain.usecase.UpdateAccountUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,7 +47,9 @@ data class SettingsUiState(
     val accounts: List<AccountWithBalance> = emptyList(),
     val showCreateEditAccountSheet: Boolean = false,
     val editingAccountId: String? = null,
-    val editingAccountTransactionCount: Int = 0
+    val editingAccountTransactionCount: Int = 0,
+    val pendingCurrencyChange: PendingCurrencyChange? = null,
+    val currencyChangeError: String? = null
 )
 
 sealed class LookupState {
@@ -65,6 +70,7 @@ class SettingsViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
+    private val updateAccountUseCase: UpdateAccountUseCase,
     getExpensesUseCase: GetExpensesUseCase,
     getIncomesUseCase: GetIncomesUseCase
 ) : ViewModel() {
@@ -280,7 +286,9 @@ class SettingsViewModel @Inject constructor(
             it.copy(
                 showCreateEditAccountSheet = false,
                 editingAccountId = null,
-                editingAccountTransactionCount = 0
+                editingAccountTransactionCount = 0,
+                pendingCurrencyChange = null,
+                currencyChangeError = null
             )
         }
     }
@@ -308,15 +316,72 @@ class SettingsViewModel @Inject constructor(
         val accountId = _uiState.value.editingAccountId ?: return
         viewModelScope.launch {
             val existing = accountRepository.getAccountById(accountId) ?: return@launch
-            val updated = existing.copy(
-                name = name,
-                iconName = iconName,
-                color = color,
-                initialBalance = initialBalance,
-                currency = currency
+            if (existing.currency != currency) {
+                when (val preview = updateAccountUseCase.previewConversion(existing.currency, currency, initialBalance)) {
+                    is ConvertCurrencyResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                pendingCurrencyChange = PendingCurrencyChange(
+                                    accountId = accountId,
+                                    name = name,
+                                    iconName = iconName,
+                                    color = color,
+                                    fromCurrency = existing.currency,
+                                    toCurrency = currency,
+                                    oldInitialBalance = initialBalance,
+                                    newInitialBalance = preview.conversion.convertedAmount,
+                                    exchangeRate = preview.conversion.exchangeRate
+                                ),
+                                currencyChangeError = null
+                            )
+                        }
+                    }
+                    is ConvertCurrencyResult.Error -> {
+                        _uiState.update { it.copy(currencyChangeError = preview.message) }
+                    }
+                }
+                return@launch
+            }
+            commitAccountUpdate(existing, name, iconName, color, initialBalance, currency)
+        }
+    }
+
+    fun confirmPendingCurrencyChange() {
+        val pending = _uiState.value.pendingCurrencyChange ?: return
+        viewModelScope.launch {
+            val existing = accountRepository.getAccountById(pending.accountId) ?: return@launch
+            commitAccountUpdate(
+                existing = existing,
+                name = pending.name,
+                iconName = pending.iconName,
+                color = pending.color,
+                initialBalance = pending.oldInitialBalance,
+                currency = pending.toCurrency
             )
-            accountRepository.updateAccount(updated)
-            dismissCreateEditAccountSheet()
+            _uiState.update { it.copy(pendingCurrencyChange = null) }
+        }
+    }
+
+    fun cancelPendingCurrencyChange() {
+        _uiState.update { it.copy(pendingCurrencyChange = null) }
+    }
+
+    private suspend fun commitAccountUpdate(
+        existing: Account,
+        name: String,
+        iconName: String,
+        color: String,
+        initialBalance: Double,
+        currency: String
+    ) {
+        when (val result = updateAccountUseCase(existing, name, iconName, color, initialBalance, currency)) {
+            is UpdateAccountUseCase.Result.Success -> dismissCreateEditAccountSheet()
+            UpdateAccountUseCase.Result.CurrencyChangeBlocked -> {
+                _uiState.update { it.copy(currencyChangeError = "Currency change is blocked by existing transactions") }
+            }
+            is UpdateAccountUseCase.Result.ConversionFailed -> {
+                _uiState.update { it.copy(currencyChangeError = result.message) }
+            }
         }
     }
 

@@ -20,8 +20,12 @@ import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
 import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
+import com.example.budgetcontrol.core.domain.usecase.crossConvert
 import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.AccountGroup
+import com.example.budgetcontrol.core.domain.model.PendingCurrencyChange
+import com.example.budgetcontrol.core.domain.usecase.ConvertCurrencyResult
+import com.example.budgetcontrol.core.domain.usecase.UpdateAccountUseCase
 import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
@@ -82,7 +86,9 @@ data class MainScreenUiState(
     val editingGroupId: String? = null,
     val availableCurrencies: List<String> = emptyList(),
     val favoriteCurrencies: Set<String> = emptySet(),
-    val isCurrenciesLoading: Boolean = false
+    val isCurrenciesLoading: Boolean = false,
+    val pendingCurrencyChange: PendingCurrencyChange? = null,
+    val currencyChangeError: String? = null
 )
 
 enum class PeriodType(@StringRes val displayNameRes: Int) {
@@ -107,6 +113,7 @@ class MainScreenViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
     private val accountGroupRepository: AccountGroupRepository,
     private val cerpsRepository: CerpsRepository,
+    private val updateAccountUseCase: UpdateAccountUseCase,
     @ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
 
@@ -121,8 +128,12 @@ class MainScreenViewModel @Inject constructor(
 
     private val _cachedRates = MutableStateFlow<Map<String, Double>>(emptyMap())
 
-    /** Balance amount in the appropriate display currency. */
-    val balance: StateFlow<Double> = combine(
+    /**
+     * Balance amount in the appropriate display currency.
+     * null = at least one account's currency cannot be converted to base (rates unavailable);
+     * callers should render a placeholder rather than a misleading number.
+     */
+    val balance: StateFlow<Double?> = combine(
         _accountsWithBalances,
         _groups,
         _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
@@ -133,16 +144,15 @@ class MainScreenViewModel @Inject constructor(
             selectedGroupId != null -> {
                 val group = groups.find { it.id == selectedGroupId }
                 val memberIds = group?.memberAccountIds ?: emptyList()
-                accounts.filter { it.account.id in memberIds }
-                    .sumOf { convertToBaseCurrency(it, baseCur, rates) }
+                sumInBaseCurrency(accounts.filter { it.account.id in memberIds }, baseCur, rates)
             }
             selectedId != null -> {
                 // Single account: balance stays in account's own currency
                 accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
             }
-            else -> accounts.sumOf { convertToBaseCurrency(it, baseCur, rates) }
+            else -> sumInBaseCurrency(accounts, baseCur, rates)
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Currency code to display alongside the balance. */
     val displayCurrency: StateFlow<String> = combine(
@@ -155,22 +165,29 @@ class MainScreenViewModel @Inject constructor(
         } else baseCur
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_BASE_CURRENCY)
 
-    /** True when the total balance is approximate (mixed currencies among displayed accounts). */
+    /**
+     * True when the total balance is approximate — either because accounts hold mixed
+     * currencies (conversion applied) or because at least one required rate is missing
+     * (partial / unavailable conversion). Single-account view is always exact.
+     */
     val isApproximateBalance: StateFlow<Boolean> = combine(
         _accountsWithBalances,
         _groups,
         _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
+        _cachedRates,
         baseCurrency
-    ) { accounts, groups, (selectedId, selectedGroupId), baseCur ->
+    ) { accounts, groups, (selectedId, selectedGroupId), rates, baseCur ->
         when {
             selectedId != null -> false   // single account — exact
             selectedGroupId != null -> {
                 val group = groups.find { it.id == selectedGroupId }
                 val memberIds = group?.memberAccountIds ?: emptyList()
-                accounts.filter { it.account.id in memberIds }
-                    .any { it.account.currency != baseCur }
+                val members = accounts.filter { it.account.id in memberIds }
+                members.any { it.account.currency != baseCur } ||
+                    sumInBaseCurrency(members, baseCur, rates) == null
             }
-            else -> accounts.any { it.account.currency != baseCur }
+            else -> accounts.any { it.account.currency != baseCur } ||
+                sumInBaseCurrency(accounts, baseCur, rates) == null
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
@@ -201,12 +218,19 @@ class MainScreenViewModel @Inject constructor(
                 }.launchIn(viewModelScope)
 
             preferencesManager.getLastRates()
-                .onEach { rates -> _cachedRates.value = rates }
+                .onEach { rates ->
+                    _cachedRates.value = rates
+                    updateGroupBalances()
+                }
                 .launchIn(viewModelScope)
 
             preferencesManager.favoriteCurrenciesFlow
                 .onEach { favs -> _uiState.update { it.copy(favoriteCurrencies = favs) } }
                 .launchIn(viewModelScope)
+
+            // Trigger network fetch so the DataStore flow above emits fresh rates before
+            // the user sees a stale "—". Success path writes via saveLastRates → flow picks it up.
+            launch { cerpsRepository.ensureRatesLoaded() }
 
             loadCurrencies()
             loadData()
@@ -219,11 +243,10 @@ class MainScreenViewModel @Inject constructor(
         val baseCur = baseCurrency.value
         val rates = _cachedRates.value
         val groupsWithBalance = groups.map { group ->
-            val memberBalances = accounts
-                .filter { it.account.id in group.memberAccountIds }
+            val memberBalances = accounts.filter { it.account.id in group.memberAccountIds }
             AccountGroupWithBalance(
                 group = group,
-                combinedBalance = memberBalances.sumOf { convertToBaseCurrency(it, baseCur, rates) },
+                combinedBalance = sumInBaseCurrency(memberBalances, baseCur, rates),
                 memberCount = group.memberAccountIds.size
             )
         }
@@ -562,7 +585,9 @@ class MainScreenViewModel @Inject constructor(
             it.copy(
                 showCreateEditAccountSheet = false,
                 editingAccountId = null,
-                editingAccountTransactionCount = 0
+                editingAccountTransactionCount = 0,
+                pendingCurrencyChange = null,
+                currencyChangeError = null
             )
         }
     }
@@ -590,15 +615,74 @@ class MainScreenViewModel @Inject constructor(
         val accountId = _uiState.value.editingAccountId ?: return
         viewModelScope.launch {
             val existing = accountRepository.getAccountById(accountId) ?: return@launch
-            val updated = existing.copy(
-                name = name,
-                iconName = iconName,
-                color = color,
-                initialBalance = initialBalance,
-                currency = currency
+            if (existing.currency != currency) {
+                // Stage the change so the UI can confirm with conversion math before we commit.
+                when (val preview = updateAccountUseCase.previewConversion(existing.currency, currency, initialBalance)) {
+                    is ConvertCurrencyResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                pendingCurrencyChange = PendingCurrencyChange(
+                                    accountId = accountId,
+                                    name = name,
+                                    iconName = iconName,
+                                    color = color,
+                                    fromCurrency = existing.currency,
+                                    toCurrency = currency,
+                                    oldInitialBalance = initialBalance,
+                                    newInitialBalance = preview.conversion.convertedAmount,
+                                    exchangeRate = preview.conversion.exchangeRate
+                                ),
+                                currencyChangeError = null
+                            )
+                        }
+                    }
+                    is ConvertCurrencyResult.Error -> {
+                        _uiState.update { it.copy(currencyChangeError = preview.message) }
+                    }
+                }
+                return@launch
+            }
+            // No currency change — commit straight through the use case.
+            commitAccountUpdate(existing, name, iconName, color, initialBalance, currency)
+        }
+    }
+
+    fun confirmPendingCurrencyChange() {
+        val pending = _uiState.value.pendingCurrencyChange ?: return
+        viewModelScope.launch {
+            val existing = accountRepository.getAccountById(pending.accountId) ?: return@launch
+            commitAccountUpdate(
+                existing = existing,
+                name = pending.name,
+                iconName = pending.iconName,
+                color = pending.color,
+                initialBalance = pending.oldInitialBalance,
+                currency = pending.toCurrency
             )
-            accountRepository.updateAccount(updated)
-            dismissCreateEditAccountSheet()
+            _uiState.update { it.copy(pendingCurrencyChange = null) }
+        }
+    }
+
+    fun cancelPendingCurrencyChange() {
+        _uiState.update { it.copy(pendingCurrencyChange = null) }
+    }
+
+    private suspend fun commitAccountUpdate(
+        existing: Account,
+        name: String,
+        iconName: String,
+        color: String,
+        initialBalance: Double,
+        currency: String
+    ) {
+        when (val result = updateAccountUseCase(existing, name, iconName, color, initialBalance, currency)) {
+            is UpdateAccountUseCase.Result.Success -> dismissCreateEditAccountSheet()
+            UpdateAccountUseCase.Result.CurrencyChangeBlocked -> {
+                _uiState.update { it.copy(currencyChangeError = "Currency change is blocked by existing transactions") }
+            }
+            is UpdateAccountUseCase.Result.ConversionFailed -> {
+                _uiState.update { it.copy(currencyChangeError = result.message) }
+            }
         }
     }
 
@@ -636,10 +720,8 @@ class MainScreenViewModel @Inject constructor(
         return state.accounts.find { it.account.id == id }?.account?.name
     }
 
-    fun getTotalBalance(): Double {
-        val baseCur = baseCurrency.value
-        val rates = _cachedRates.value
-        return _accountsWithBalances.value.sumOf { convertToBaseCurrency(it, baseCur, rates) }
+    fun getTotalBalance(): Double? {
+        return sumInBaseCurrency(_accountsWithBalances.value, baseCurrency.value, _cachedRates.value)
     }
 
     fun hasMixedCurrencies(): Boolean {
@@ -647,24 +729,41 @@ class MainScreenViewModel @Inject constructor(
         return _accountsWithBalances.value.any { it.account.currency != baseCur }
     }
 
-    fun formatBalance(amount: Double, currency: String, isApproximate: Boolean): String {
+    fun formatBalance(amount: Double?, currency: String, isApproximate: Boolean): String {
+        if (amount == null) return "—"
         val symbol = getCurrencySymbol(currency)
         val prefix = if (isApproximate) "~" else ""
         return "$prefix${formatAmount(amount)} $symbol"
+    }
+
+    /**
+     * Sums a set of account balances in base currency.
+     * Returns null if any non-base account lacks a usable rate — callers must decide
+     * how to render the "unavailable" state (typically "—").
+     */
+    private fun sumInBaseCurrency(
+        accounts: List<AccountWithBalance>,
+        baseCur: String,
+        rates: Map<String, Double>
+    ): Double? {
+        var total = 0.0
+        for (acct in accounts) {
+            val converted = convertToBaseCurrency(acct, baseCur, rates) ?: return null
+            total += converted
+        }
+        return total
     }
 
     private fun convertToBaseCurrency(
         accountWithBalance: AccountWithBalance,
         baseCur: String,
         rates: Map<String, Double>
-    ): Double {
-        val acctCurrency = accountWithBalance.account.currency
-        if (acctCurrency == baseCur) return accountWithBalance.currentBalance
-        // rates are EUR-based: rate[X] = how many X per 1 EUR
-        val acctRate = rates[acctCurrency] ?: return accountWithBalance.currentBalance
-        val baseRate = if (baseCur == "EUR") 1.0 else (rates[baseCur] ?: return accountWithBalance.currentBalance)
-        return accountWithBalance.currentBalance * baseRate / acctRate
-    }
+    ): Double? = crossConvert(
+        amount = accountWithBalance.currentBalance,
+        fromCurrency = accountWithBalance.account.currency,
+        toCurrency = baseCur,
+        rates = rates
+    )
 
     // ── Group management ───────────────────────────────────────────────
 

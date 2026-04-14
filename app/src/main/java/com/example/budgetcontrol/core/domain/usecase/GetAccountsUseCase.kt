@@ -1,6 +1,5 @@
 package com.example.budgetcontrol.core.domain.usecase
 
-import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
@@ -17,15 +16,15 @@ data class AccountWithBalance(
 
 data class AccountGroupWithBalance(
     val group: AccountGroup,
-    val combinedBalance: Double,
+    // null when any member account's currency cannot be converted to base (missing rates)
+    val combinedBalance: Double?,
     val memberCount: Int
 )
 
 class GetAccountsUseCase @Inject constructor(
     private val accountRepository: AccountRepository,
     private val expenseRepository: ExpenseRepository,
-    private val incomeRepository: IncomeRepository,
-    private val preferencesManager: PreferencesManager
+    private val incomeRepository: IncomeRepository
 ) {
     operator fun invoke(): Flow<List<Account>> {
         return accountRepository.getAllAccounts()
@@ -35,9 +34,8 @@ class GetAccountsUseCase @Inject constructor(
         return combine(
             accountRepository.getAllAccounts(),
             expenseRepository.getAllExpenses(),
-            incomeRepository.getAllIncomes(),
-            preferencesManager.baseCurrencyFlow
-        ) { accounts, expenses, incomes, baseCurrency ->
+            incomeRepository.getAllIncomes()
+        ) { accounts, expenses, incomes ->
             val expensesByAccount = expenses.groupBy { it.accountId ?: Account.DEFAULT_ACCOUNT_ID }
             val incomesByAccount = incomes.groupBy { it.accountId ?: Account.DEFAULT_ACCOUNT_ID }
 
@@ -45,18 +43,15 @@ class GetAccountsUseCase @Inject constructor(
                 val accountExpenses = expensesByAccount[account.id] ?: emptyList()
                 val accountIncomes = incomesByAccount[account.id] ?: emptyList()
 
-                // For accounts in their own currency, sum originalAmount
-                // (the amount in the currency the transaction was recorded in).
-                // For base-currency accounts, sum amount (already in base currency).
-                val totalExpenses = if (account.currency != baseCurrency) {
-                    accountExpenses.sumOf { it.originalAmount }
-                } else {
-                    accountExpenses.sumOf { it.amount }
+                // Sum each transaction in its own originalCurrency when it matches the account;
+                // otherwise fall back to the base-currency `amount`. Keying off the account's
+                // current currency would misread transactions recorded under a different
+                // currency (e.g. after a prior currency change, or mixed-currency entries).
+                val totalExpenses = accountExpenses.sumOf { tx ->
+                    if (tx.originalCurrency == account.currency) tx.originalAmount else tx.amount
                 }
-                val totalIncomes = if (account.currency != baseCurrency) {
-                    accountIncomes.sumOf { it.originalAmount }
-                } else {
-                    accountIncomes.sumOf { it.amount }
+                val totalIncomes = accountIncomes.sumOf { tx ->
+                    if (tx.originalCurrency == account.currency) tx.originalAmount else tx.amount
                 }
 
                 AccountWithBalance(

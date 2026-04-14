@@ -472,4 +472,9 @@
     <!-- Account currency -->
     <string name="account_currency_label">Валюта счёта</string>
     <string name="currency_change_blocked">Нельзя изменить валюту, так как у счёта есть операции</string>
+    <string name="currency_change_confirm_title">Изменить валюту счёта?</string>
+    <string name="currency_change_confirm_message">Начальный баланс будет конвертирован из %1$s в %2$s.</string>
+    <string name="currency_change_conversion_line">%1$.2f %2$s → %3$.2f %4$s</string>
+    <string name="currency_change_rate_line">Курс: 1 %1$s = %2$.4f %3$s</string>
+    <string name="currency_change_confirm_button">Конвертировать и сохранить</string>
 </resources>
