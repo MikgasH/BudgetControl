@@ -31,14 +31,16 @@ import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.feature.settings.LookupState
+import com.example.budgetcontrol.ui.components.common.AccountGroupSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 import androidx.core.graphics.toColorInt
 import kotlinx.coroutines.launch
 import java.util.Currency
 import java.util.Locale
 
-private const val PAGE_COUNT = 8
+private const val PAGE_COUNT = 7
 
 @Composable
 fun OnboardingScreen(
@@ -92,12 +94,7 @@ fun OnboardingScreen(
                         isLoading = uiState.currenciesLoading,
                         onToggleCurrency = viewModel::toggleFavoriteCurrency
                     )
-                    5 -> BalancePage(
-                        balance = uiState.initialBalance,
-                        currency = uiState.selectedCurrency,
-                        onBalanceChanged = viewModel::setInitialBalance
-                    )
-                    6 -> AccountsPage(
+                    5 -> AccountsPage(
                         accounts = uiState.onboardingAccounts,
                         currency = uiState.selectedCurrency,
                         availableCurrencies = uiState.currencies,
@@ -105,9 +102,10 @@ fun OnboardingScreen(
                         isCurrenciesLoading = uiState.currenciesLoading,
                         onAddAccount = viewModel::addOnboardingAccount,
                         onUpdateAccount = viewModel::updateOnboardingAccount,
-                        onDeleteAccount = viewModel::removeOnboardingAccount
+                        onDeleteAccount = viewModel::removeOnboardingAccount,
+                        onAddGroup = viewModel::addOnboardingGroup
                     )
-                    7 -> ReadyPage(
+                    6 -> ReadyPage(
                         language = uiState.selectedLanguage,
                         theme = uiState.selectedTheme,
                         currency = uiState.selectedCurrency,
@@ -174,7 +172,7 @@ fun OnboardingScreen(
                         )
                     }
                 } else if (pagerState.currentPage == PAGE_COUNT - 2) {
-                    // Accounts page: Back + Skip + Next
+                    // Accounts page: Back + Next (Next disabled until at least one account)
                     OutlinedButton(
                         onClick = {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
@@ -183,18 +181,11 @@ fun OnboardingScreen(
                     ) {
                         Text(stringResource(R.string.onboarding_back))
                     }
-                    TextButton(
-                        onClick = {
-                            viewModel.skipAccountSetup()
-                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                        }
-                    ) {
-                        Text(stringResource(R.string.onboarding_skip))
-                    }
                     Button(
                         onClick = {
                             scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                         },
+                        enabled = uiState.onboardingAccounts.isNotEmpty(),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.onboarding_next))
@@ -1014,62 +1005,6 @@ private fun FavoriteCurrenciesPage(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Page 5: Balance
-// ═══════════════════════════════════════════════════════════════════════
-
-@Composable
-private fun BalancePage(
-    balance: String,
-    currency: String,
-    onBalanceChanged: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Savings,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = stringResource(R.string.onboarding_balance_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = stringResource(R.string.onboarding_balance_desc),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = balance,
-            onValueChange = onBalanceChanged,
-            label = { Text(stringResource(R.string.onboarding_balance_title)) },
-            suffix = { Text(currency) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(0.7f)
-        )
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
 // Page 5: Ready
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1200,7 +1135,7 @@ private fun SummaryRow(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Page 7: Accounts
+// Page 5: Accounts
 // ═══════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -1212,10 +1147,12 @@ private fun AccountsPage(
     isCurrenciesLoading: Boolean = false,
     onAddAccount: (String, String, String, Double, String) -> Unit,
     onUpdateAccount: (String, String, String, String, Double, String) -> Unit,
-    onDeleteAccount: (String) -> Unit
+    onDeleteAccount: (String) -> Unit,
+    onAddGroup: (String, List<String>) -> Unit = { _, _ -> }
 ) {
     var showCreateSheet by remember { mutableStateOf(false) }
     var editingAccount by remember { mutableStateOf<Account?>(null) }
+    var showGroupSheet by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1239,31 +1176,88 @@ private fun AccountsPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(accounts, key = { it.id }) { account ->
-                OnboardingAccountItem(
-                    account = account,
-                    currency = currency,
-                    onClick = { editingAccount = account }
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedButton(
-                    onClick = { showCreateSheet = true },
-                    modifier = Modifier.fillMaxWidth()
+        if (accounts.isEmpty()) {
+            // Empty state
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Default.AccountBalanceWallet,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.new_account))
+                    Text(
+                        text = stringResource(R.string.onboarding_accounts_empty_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(
+                        onClick = { showCreateSheet = true },
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.onboarding_accounts_empty_cta))
+                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(accounts, key = { it.id }) { account ->
+                    OnboardingAccountItem(
+                        account = account,
+                        currency = currency,
+                        onClick = { editingAccount = account }
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { showCreateSheet = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.new_account))
+                    }
+                }
+
+                if (accounts.size >= 2) {
+                    item {
+                        OutlinedButton(
+                            onClick = { showGroupSheet = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.onboarding_group_accounts_cta))
+                        }
+                    }
                 }
             }
         }
@@ -1275,8 +1269,8 @@ private fun AccountsPage(
             availableCurrencies = availableCurrencies,
             favoriteCurrencies = favoriteCurrencies,
             isCurrenciesLoading = isCurrenciesLoading,
-            onSave = { name, iconName, color, initialBalance, cur ->
-                onAddAccount(name, iconName, color, initialBalance, cur)
+            onSave = { name, iconName, color, initialBal, cur ->
+                onAddAccount(name, iconName, color, initialBal, cur)
                 showCreateSheet = false
             },
             onDismiss = { showCreateSheet = false }
@@ -1291,8 +1285,8 @@ private fun AccountsPage(
             availableCurrencies = availableCurrencies,
             favoriteCurrencies = favoriteCurrencies,
             isCurrenciesLoading = isCurrenciesLoading,
-            onSave = { name, iconName, color, initialBalance, cur ->
-                onUpdateAccount(account.id, name, iconName, color, initialBalance, cur)
+            onSave = { name, iconName, color, initialBal, cur ->
+                onUpdateAccount(account.id, name, iconName, color, initialBal, cur)
                 editingAccount = null
             },
             onDelete = if (!account.isDefault) {
@@ -1302,6 +1296,20 @@ private fun AccountsPage(
                 }
             } else null,
             onDismiss = { editingAccount = null }
+        )
+    }
+
+    if (showGroupSheet) {
+        val accountsWithBalance = remember(accounts) {
+            accounts.map { AccountWithBalance(account = it, currentBalance = it.initialBalance) }
+        }
+        AccountGroupSheet(
+            accounts = accountsWithBalance,
+            onSave = { name, memberAccountIds ->
+                onAddGroup(name, memberAccountIds)
+                showGroupSheet = false
+            },
+            onDismiss = { showGroupSheet = false }
         )
     }
 }

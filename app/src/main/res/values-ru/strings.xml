@@ -418,6 +418,10 @@
     <string name="onboarding_start">Начать</string>
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_add_custom_bank">Добавить свой банк</string>
+    <string name="onboarding_group_accounts_cta">Сгруппировать счета?</string>
+    <string name="onboarding_starting_balance">Начальный баланс</string>
+    <string name="onboarding_accounts_empty_cta">Добавить первый счёт</string>
+    <string name="onboarding_accounts_empty_hint">Нужен хотя бы один счёт для продолжения</string>
 
     <!-- Bank dialog -->
     <string name="bank_name_placeholder">напр. Revolut, N26, Monzo…</string>

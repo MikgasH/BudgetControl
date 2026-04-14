@@ -3,15 +3,12 @@ package com.example.budgetcontrol.core.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
-import com.example.budgetcontrol.feature.transaction.add.AddExpenseScreen
-import com.example.budgetcontrol.feature.transaction.add.AddIncomeScreen
-import com.example.budgetcontrol.feature.transaction.detail.ExpenseDetailScreen
-import com.example.budgetcontrol.feature.transaction.detail.IncomeDetailScreen
-import com.example.budgetcontrol.feature.transaction.edit.EditExpenseScreen
-import com.example.budgetcontrol.feature.transaction.edit.EditIncomeScreen
-import com.example.budgetcontrol.feature.transaction.list.ExpensesByCategoryScreen
+import com.example.budgetcontrol.core.domain.model.TransactionType
+import com.example.budgetcontrol.feature.transaction.common.TransactionDetailScreen
+import com.example.budgetcontrol.feature.transaction.common.TransactionFormMode
+import com.example.budgetcontrol.feature.transaction.common.TransactionFormScreen
+import com.example.budgetcontrol.feature.transaction.common.TransactionsByCategoryScreen
 import com.example.budgetcontrol.feature.transaction.list.ExpensesScreen
-import com.example.budgetcontrol.feature.transaction.list.IncomesByCategoryScreen
 
 fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
     composable(Screen.Expenses.route) {
@@ -44,16 +41,14 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         val categoryId = backStackEntry.arguments?.getString("categoryId")?.takeIf { it != "{categoryId}" }
         val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
 
-        AddExpenseScreen(
-            selectedDate = selectedDate,
+        TransactionFormScreen(
+            transactionType = TransactionType.EXPENSE,
+            mode = TransactionFormMode.ADD,
+            initialDate = selectedDate,
             preSelectedCategoryId = categoryId,
             preSelectedAccountId = accountId,
-            onBackClick = {
-                navController.popBackStack()
-            },
-            onExpenseAdded = {
-                navController.popBackStack()
-            }
+            onBackClick = { navController.popBackStack() },
+            onSuccess = { navController.popBackStack() }
         )
     }
 
@@ -64,14 +59,12 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         popEnterTransition = { slideInFromBottom + fadeIn },
         popExitTransition = { slideOutToBottom + fadeOut }
     ) {
-        AddExpenseScreen(
-            selectedDate = System.currentTimeMillis(),
-            onBackClick = {
-                navController.popBackStack()
-            },
-            onExpenseAdded = {
-                navController.popBackStack()
-            }
+        TransactionFormScreen(
+            transactionType = TransactionType.EXPENSE,
+            mode = TransactionFormMode.ADD,
+            initialDate = System.currentTimeMillis(),
+            onBackClick = { navController.popBackStack() },
+            onSuccess = { navController.popBackStack() }
         )
     }
 
@@ -87,15 +80,13 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         val selectedDate = selectedDateString?.toLongOrNull() ?: System.currentTimeMillis()
         val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
 
-        AddIncomeScreen(
-            selectedDate = selectedDate,
+        TransactionFormScreen(
+            transactionType = TransactionType.INCOME,
+            mode = TransactionFormMode.ADD,
+            initialDate = selectedDate,
             preSelectedAccountId = accountId,
-            onBackClick = {
-                navController.popBackStack()
-            },
-            onIncomeAdded = {
-                navController.popBackStack()
-            }
+            onBackClick = { navController.popBackStack() },
+            onSuccess = { navController.popBackStack() }
         )
     }
 
@@ -106,14 +97,12 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         popEnterTransition = { slideInFromBottom + fadeIn },
         popExitTransition = { slideOutToBottom + fadeOut }
     ) {
-        AddIncomeScreen(
-            selectedDate = System.currentTimeMillis(),
-            onBackClick = {
-                navController.popBackStack()
-            },
-            onIncomeAdded = {
-                navController.popBackStack()
-            }
+        TransactionFormScreen(
+            transactionType = TransactionType.INCOME,
+            mode = TransactionFormMode.ADD,
+            initialDate = System.currentTimeMillis(),
+            onBackClick = { navController.popBackStack() },
+            onSuccess = { navController.popBackStack() }
         )
     }
 
@@ -123,16 +112,17 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
         val isAllTime = backStackEntry.arguments?.getString("isAllTime")?.toBooleanStrictOrNull() ?: false
         val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
-        ExpensesByCategoryScreen(
+        TransactionsByCategoryScreen(
             categoryId = categoryId,
+            transactionType = TransactionType.EXPENSE,
             startDate = if (isAllTime) null else startDate,
             endDate = if (isAllTime) null else endDate,
             accountId = accountId,
             onBackClick = { navController.popBackStack() },
-            onExpenseClick = { expenseId ->
+            onTransactionClick = { expenseId ->
                 navController.navigate("${Screen.ExpenseDetail.route}/$expenseId")
             },
-            onAddExpenseClick = { selectedDate ->
+            onAddTransactionClick = { selectedDate ->
                 navController.navigate("${Screen.AddExpense.route}?selectedDate=$selectedDate")
             }
         )
@@ -146,11 +136,12 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         popExitTransition = { fadeOut }
     ) { backStackEntry ->
         val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
-        ExpenseDetailScreen(
-            expenseId = expenseId,
+        TransactionDetailScreen(
+            transactionId = expenseId,
+            transactionType = TransactionType.EXPENSE,
             onBackClick = { navController.popBackStack() },
-            onEditClick = { expenseId ->
-                navController.navigate("${Screen.EditExpense.route}/$expenseId")
+            onEditClick = { id ->
+                navController.navigate("${Screen.EditExpense.route}/$id")
             },
             onDeleteSuccess = {
                 navController.popBackStack(Screen.Main.route, false)
@@ -166,10 +157,12 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         popExitTransition = { slideOutToBottom + fadeOut }
     ) { backStackEntry ->
         val expenseId = backStackEntry.arguments?.getString("expenseId") ?: ""
-        EditExpenseScreen(
-            expenseId = expenseId,
+        TransactionFormScreen(
+            transactionType = TransactionType.EXPENSE,
+            mode = TransactionFormMode.EDIT,
+            transactionId = expenseId,
             onBackClick = { navController.popBackStack() },
-            onSaveSuccess = {
+            onSuccess = {
                 navController.popBackStack()
                 navController.popBackStack()
             }
@@ -184,11 +177,12 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         popExitTransition = { fadeOut }
     ) { backStackEntry ->
         val incomeId = backStackEntry.arguments?.getString("incomeId") ?: ""
-        IncomeDetailScreen(
-            incomeId = incomeId,
+        TransactionDetailScreen(
+            transactionId = incomeId,
+            transactionType = TransactionType.INCOME,
             onBackClick = { navController.popBackStack() },
-            onEditClick = { incomeId ->
-                navController.navigate("${Screen.EditIncome.route}/$incomeId")
+            onEditClick = { id ->
+                navController.navigate("${Screen.EditIncome.route}/$id")
             },
             onDeleteSuccess = {
                 navController.popBackStack(Screen.Main.route, false)
@@ -204,10 +198,12 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         popExitTransition = { slideOutToBottom + fadeOut }
     ) { backStackEntry ->
         val incomeId = backStackEntry.arguments?.getString("incomeId") ?: ""
-        EditIncomeScreen(
-            incomeId = incomeId,
+        TransactionFormScreen(
+            transactionType = TransactionType.INCOME,
+            mode = TransactionFormMode.EDIT,
+            transactionId = incomeId,
             onBackClick = { navController.popBackStack() },
-            onSaveSuccess = {
+            onSuccess = {
                 navController.popBackStack()
                 navController.popBackStack()
             }
@@ -220,16 +216,17 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
         val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
         val isAllTime = backStackEntry.arguments?.getString("isAllTime")?.toBooleanStrictOrNull() ?: false
         val accountId = backStackEntry.arguments?.getString("accountId")?.takeIf { it != "{accountId}" }
-        IncomesByCategoryScreen(
+        TransactionsByCategoryScreen(
             categoryId = categoryId,
+            transactionType = TransactionType.INCOME,
             startDate = if (isAllTime) null else startDate,
             endDate = if (isAllTime) null else endDate,
             accountId = accountId,
             onBackClick = { navController.popBackStack() },
-            onIncomeClick = { incomeId ->
+            onTransactionClick = { incomeId ->
                 navController.navigate("${Screen.IncomeDetail.route}/$incomeId")
             },
-            onAddIncomeClick = { selectedDate ->
+            onAddTransactionClick = { selectedDate ->
                 navController.navigate("${Screen.AddIncome.route}?selectedDate=$selectedDate")
             }
         )

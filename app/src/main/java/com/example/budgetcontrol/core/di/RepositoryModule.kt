@@ -8,6 +8,7 @@ import com.example.budgetcontrol.core.data.repository.CategoryRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.CurrencyExchangeRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.ExpenseRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.IncomeRepositoryImpl
+import com.example.budgetcontrol.core.data.repository.TransactionRepositoryImpl
 import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.BankRepository
@@ -16,6 +17,7 @@ import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeReposito
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
+import com.example.budgetcontrol.core.domain.repository.TransactionRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -73,4 +75,10 @@ abstract class RepositoryModule {
     abstract fun bindCurrencyRateProvider(
         cerpsRepository: CerpsRepository
     ): CurrencyRateProvider
+
+    @Binds
+    @Singleton
+    abstract fun bindTransactionRepository(
+        transactionRepositoryImpl: TransactionRepositoryImpl
+    ): TransactionRepository
 }

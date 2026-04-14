@@ -1,4 +1,4 @@
-package com.example.budgetcontrol.feature.transaction.list
+package com.example.budgetcontrol.feature.transaction.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,38 +11,46 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.budgetcontrol.core.domain.model.TransactionType
-import com.example.budgetcontrol.ui.components.common.TransactionItemDetailed
-import com.example.budgetcontrol.feature.transaction.common.TransactionsByCategoryViewModel
-import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.ui.util.displayName
+import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
+import com.example.budgetcontrol.ui.components.common.TransactionItemDetailed
+import com.example.budgetcontrol.ui.util.displayName
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IncomesByCategoryScreen(
+fun TransactionsByCategoryScreen(
     categoryId: String,
+    transactionType: TransactionType,
     startDate: Long? = null,
     endDate: Long? = null,
     accountId: String? = null,
     onBackClick: () -> Unit,
-    onIncomeClick: (String) -> Unit,
-    onAddIncomeClick: (Long) -> Unit,
+    onTransactionClick: (String) -> Unit,
+    onAddTransactionClick: (Long) -> Unit,
     viewModel: TransactionsByCategoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
-    LaunchedEffect(categoryId, startDate, endDate, accountId) {
-        viewModel.loadTransactions(categoryId, TransactionType.INCOME, startDate, endDate, accountId)
+    LaunchedEffect(categoryId, transactionType, startDate, endDate, accountId) {
+        viewModel.loadTransactions(categoryId, transactionType, startDate, endDate, accountId)
     }
+
+    val isIncome = transactionType == TransactionType.INCOME
+    val defaultTitleRes = if (isIncome) R.string.incomes_upper else R.string.expenses_upper
+    val addContentDescRes = if (isIncome) R.string.add_income else R.string.add_expense
+    val amountPrefix = if (isIncome) "+" else ""
 
     Scaffold(
         topBar = {
@@ -60,8 +68,8 @@ fun IncomesByCategoryScreen(
                         .padding(
                             start = 20.dp,
                             end = 20.dp,
-                            top = 60.dp, // Match main screen top bar
-                            bottom = 10.dp // Match main screen top bar
+                            top = 60.dp,
+                            bottom = 10.dp
                         )
                 ) {
                     IconButton(
@@ -81,14 +89,15 @@ fun IncomesByCategoryScreen(
                         modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text(
-                            text = uiState.category?.displayName()?.uppercase() ?: stringResource(R.string.incomes_upper),
+                            text = uiState.category?.displayName()?.uppercase()
+                                ?: stringResource(defaultTitleRes),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
                             color = Color.White
                         )
                         Text(
-                            text = "+${formatAmount(uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
+                            text = "$amountPrefix${formatAmount(uiState.totalAmount)} ${getCurrencySymbol(baseCurrency)}",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold
@@ -101,12 +110,12 @@ fun IncomesByCategoryScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onAddIncomeClick(System.currentTimeMillis()) },
+                onClick = { onAddTransactionClick(System.currentTimeMillis()) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.add_income),
+                    contentDescription = stringResource(addContentDescRes),
                     tint = Color.White
                 )
             }
@@ -177,13 +186,15 @@ fun IncomesByCategoryScreen(
                         }
 
                         items(transactions) { transaction ->
-                            val txAccountId = (transaction as? com.example.budgetcontrol.core.domain.model.Transaction.IncomeTransaction)?.accountId
-                                ?: com.example.budgetcontrol.core.domain.model.Account.DEFAULT_ACCOUNT_ID
+                            val txAccountId = when (transaction) {
+                                is com.example.budgetcontrol.core.domain.model.Transaction.ExpenseTransaction -> transaction.accountId
+                                is com.example.budgetcontrol.core.domain.model.Transaction.IncomeTransaction -> transaction.accountId
+                            } ?: Account.DEFAULT_ACCOUNT_ID
                             TransactionItemDetailed(
                                 transaction = transaction,
                                 category = uiState.category,
                                 baseCurrency = baseCurrency,
-                                onClick = { onIncomeClick(transaction.id) },
+                                onClick = { onTransactionClick(transaction.id) },
                                 accountName = uiState.accountNames[txAccountId]
                             )
                         }

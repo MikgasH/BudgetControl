@@ -20,10 +20,8 @@ import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
-import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
-import com.example.budgetcontrol.core.domain.usecase.AddExpenseResult
-import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
-import com.example.budgetcontrol.core.domain.usecase.AddIncomeResult
+import com.example.budgetcontrol.core.domain.usecase.AddTransactionUseCase
+import com.example.budgetcontrol.core.domain.usecase.AddTransactionResult
 import com.example.budgetcontrol.core.domain.usecase.AddTransactionError
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
@@ -107,8 +105,7 @@ enum class TransactionFormMode { ADD, EDIT }
 @HiltViewModel
 class TransactionFormViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val addExpenseUseCase: AddExpenseUseCase,
-    private val addIncomeUseCase: AddIncomeUseCase,
+    private val addTransactionUseCase: AddTransactionUseCase,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
     private val categoryRepository: CategoryRepository,
@@ -766,7 +763,8 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 return
             }
-            addExpenseUseCase.addWithExactBaseAmount(
+            addTransactionUseCase.addWithExactBaseAmount(
+                type = TransactionType.EXPENSE,
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
                 exactBaseAmount = exactBaseCash,
@@ -790,7 +788,8 @@ class TransactionFormViewModel @Inject constructor(
                 return
             }
             val baseAmount = amountDouble / cashRateValue
-            addExpenseUseCase.addWithExactBaseAmount(
+            addTransactionUseCase.addWithExactBaseAmount(
+                type = TransactionType.EXPENSE,
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
                 exactBaseAmount = String.format(java.util.Locale.US, "%.2f", baseAmount).toDouble(),
@@ -815,7 +814,8 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 return
             }
-            addExpenseUseCase.addWithExactBaseAmount(
+            addTransactionUseCase.addWithExactBaseAmount(
+                type = TransactionType.EXPENSE,
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
                 exactBaseAmount = exactBase,
@@ -827,7 +827,8 @@ class TransactionFormViewModel @Inject constructor(
                 accountId = state.selectedAccountId
             )
         } else {
-            addExpenseUseCase(
+            addTransactionUseCase(
+                type = TransactionType.EXPENSE,
                 amount = amountDouble,
                 currency = state.selectedCurrency,
                 categoryId = state.selectedCategory?.id ?: return,
@@ -841,7 +842,7 @@ class TransactionFormViewModel @Inject constructor(
         }
 
         when (result) {
-            is AddExpenseResult.Success -> {
+            is AddTransactionResult.Success -> {
                 accountRepository.updateLastUsedAt(state.selectedAccountId)
                 if (isCashMode && !state.isExactAmountEnabled) {
                     val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
@@ -861,7 +862,7 @@ class TransactionFormViewModel @Inject constructor(
                     isSuccess = true
                 )
             }
-            is AddExpenseResult.Error -> {
+            is AddTransactionResult.Error -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showError = mapExpenseError(result.error)
@@ -893,7 +894,8 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 return
             }
-            addIncomeUseCase.addWithExactBaseAmount(
+            addTransactionUseCase.addWithExactBaseAmount(
+                type = TransactionType.INCOME,
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
                 exactBaseAmount = exactBaseCash,
@@ -917,7 +919,8 @@ class TransactionFormViewModel @Inject constructor(
                 return
             }
             val baseAmount = amountDouble / cashRateValue
-            addIncomeUseCase.addWithExactBaseAmount(
+            addTransactionUseCase.addWithExactBaseAmount(
+                type = TransactionType.INCOME,
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
                 exactBaseAmount = String.format(java.util.Locale.US, "%.2f", baseAmount).toDouble(),
@@ -942,7 +945,8 @@ class TransactionFormViewModel @Inject constructor(
                 )
                 return
             }
-            addIncomeUseCase.addWithExactBaseAmount(
+            addTransactionUseCase.addWithExactBaseAmount(
+                type = TransactionType.INCOME,
                 originalAmount = amountDouble,
                 originalCurrency = state.selectedCurrency,
                 exactBaseAmount = exactBase,
@@ -954,7 +958,8 @@ class TransactionFormViewModel @Inject constructor(
                 accountId = state.selectedAccountId
             )
         } else {
-            addIncomeUseCase(
+            addTransactionUseCase(
+                type = TransactionType.INCOME,
                 amount = amountDouble,
                 currency = state.selectedCurrency,
                 categoryId = state.selectedCategory?.id ?: return,
@@ -968,7 +973,7 @@ class TransactionFormViewModel @Inject constructor(
         }
 
         when (result) {
-            is AddIncomeResult.Success -> {
+            is AddTransactionResult.Success -> {
                 accountRepository.updateLastUsedAt(state.selectedAccountId)
                 if (isCashMode && !state.isExactAmountEnabled) {
                     val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
@@ -988,7 +993,7 @@ class TransactionFormViewModel @Inject constructor(
                     isSuccess = true
                 )
             }
-            is AddIncomeResult.Error -> {
+            is AddTransactionResult.Error -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     showError = mapIncomeError(result.error)
@@ -1049,35 +1054,21 @@ class TransactionFormViewModel @Inject constructor(
         accountId: String = Account.DEFAULT_ACCOUNT_ID
     ) {
         val baseCurrency = _uiState.value.baseCurrency
+        addTransactionUseCase(
+            type = originalTransaction.type,
+            amount = amount,
+            currency = selectedCurrency,
+            categoryId = categoryId,
+            description = description,
+            date = date,
+            bankName = bankName,
+            bankCommission = bankCommission,
+            baseCurrency = baseCurrency,
+            accountId = accountId
+        )
         when (originalTransaction) {
-            is Transaction.ExpenseTransaction -> {
-                addExpenseUseCase(
-                    amount = amount,
-                    currency = selectedCurrency,
-                    categoryId = categoryId,
-                    description = description,
-                    date = date,
-                    bankName = bankName,
-                    bankCommission = bankCommission,
-                    baseCurrency = baseCurrency,
-                    accountId = accountId
-                )
-                expenseRepository.deleteExpenseById(originalTransaction.id)
-            }
-            is Transaction.IncomeTransaction -> {
-                addIncomeUseCase(
-                    amount = amount,
-                    currency = selectedCurrency,
-                    categoryId = categoryId,
-                    description = description,
-                    date = date,
-                    bankName = bankName,
-                    bankCommission = bankCommission,
-                    baseCurrency = baseCurrency,
-                    accountId = accountId
-                )
-                incomeRepository.deleteIncomeById(originalTransaction.id)
-            }
+            is Transaction.ExpenseTransaction -> expenseRepository.deleteExpenseById(originalTransaction.id)
+            is Transaction.IncomeTransaction -> incomeRepository.deleteIncomeById(originalTransaction.id)
         }
         accountRepository.updateLastUsedAt(accountId)
     }
@@ -1101,28 +1092,15 @@ class TransactionFormViewModel @Inject constructor(
         }
 
         val baseCurrency = _uiState.value.baseCurrency
-        when (newType) {
-            TransactionType.EXPENSE -> {
-                addExpenseUseCase.addInBaseCurrency(
-                    amount = amount,
-                    baseCurrency = baseCurrency,
-                    categoryId = categoryId,
-                    description = description,
-                    date = date,
-                    accountId = accountId
-                )
-            }
-            TransactionType.INCOME -> {
-                addIncomeUseCase.addInBaseCurrency(
-                    amount = amount,
-                    baseCurrency = baseCurrency,
-                    categoryId = categoryId,
-                    description = description,
-                    date = date,
-                    accountId = accountId
-                )
-            }
-        }
+        addTransactionUseCase.addInBaseCurrency(
+            type = newType,
+            amount = amount,
+            baseCurrency = baseCurrency,
+            categoryId = categoryId,
+            description = description,
+            date = date,
+            accountId = accountId
+        )
         accountRepository.updateLastUsedAt(accountId)
     }
 

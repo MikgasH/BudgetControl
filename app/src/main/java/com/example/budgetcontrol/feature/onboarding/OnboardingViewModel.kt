@@ -1,14 +1,14 @@
 package com.example.budgetcontrol.feature.onboarding
 
-import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
@@ -18,12 +18,10 @@ import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.feature.settings.LookupState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -35,21 +33,21 @@ data class OnboardingUiState(
     val selectedLanguage: String = "",
     val selectedTheme: String = "system",
     val selectedCurrency: String = DEFAULT_BASE_CURRENCY,
-    val initialBalance: String = "",
     val currencies: List<String> = emptyList(),
     val currenciesLoading: Boolean = false,
     val favoriteCurrencies: Set<String> = PreferencesManager.DEFAULT_FAVORITE_CURRENCIES,
-    val onboardingAccounts: List<Account> = emptyList()
+    val onboardingAccounts: List<Account> = emptyList(),
+    val onboardingGroups: List<AccountGroup> = emptyList()
 )
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,
     private val geminiRepository: GeminiRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val accountGroupRepository: AccountGroupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -66,18 +64,6 @@ class OnboardingViewModel @Inject constructor(
             .onEach { theme -> _uiState.value = _uiState.value.copy(selectedTheme = theme) }
             .launchIn(viewModelScope)
         loadCurrencies()
-        _uiState.value = _uiState.value.copy(
-            onboardingAccounts = listOf(
-                Account(
-                    id = Account.DEFAULT_ACCOUNT_ID,
-                    name = context.getString(R.string.main_account),
-                    iconName = "account_balance",
-                    color = "#4CAF50",
-                    isDefault = true,
-                    createdAt = System.currentTimeMillis()
-                )
-            )
-        )
     }
 
     fun setLanguage(tag: String) {
@@ -141,14 +127,6 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun setInitialBalance(amount: String) {
-        val balance = amount.toDoubleOrNull() ?: 0.0
-        val accounts = _uiState.value.onboardingAccounts.map { account ->
-            if (account.isDefault) account.copy(initialBalance = balance) else account
-        }
-        _uiState.value = _uiState.value.copy(initialBalance = amount, onboardingAccounts = accounts)
-    }
-
     fun toggleFavoriteCurrency(currency: String) {
         val current = _uiState.value.favoriteCurrencies
         val updated = if (current.contains(currency)) {
@@ -188,14 +166,15 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun addOnboardingAccount(name: String, iconName: String, color: String, initialBalance: Double, currency: String) {
+        val isFirst = _uiState.value.onboardingAccounts.isEmpty()
         val newAccount = Account(
-            id = UUID.randomUUID().toString(),
+            id = if (isFirst) Account.DEFAULT_ACCOUNT_ID else UUID.randomUUID().toString(),
             name = name,
             iconName = iconName,
             color = color,
             initialBalance = initialBalance,
             currency = currency,
-            isDefault = false,
+            isDefault = isFirst,
             createdAt = System.currentTimeMillis(),
             sortOrder = _uiState.value.onboardingAccounts.size
         )
@@ -212,13 +191,6 @@ class OnboardingViewModel @Inject constructor(
             ) else account
         }
         _uiState.value = _uiState.value.copy(onboardingAccounts = updated)
-        if (id == Account.DEFAULT_ACCOUNT_ID) {
-            val balanceStr = if (initialBalance > 0) {
-                if (initialBalance == initialBalance.toLong().toDouble()) initialBalance.toLong().toString()
-                else initialBalance.toString()
-            } else ""
-            _uiState.value = _uiState.value.copy(initialBalance = balanceStr)
-        }
     }
 
     fun removeOnboardingAccount(id: String) {
@@ -228,9 +200,15 @@ class OnboardingViewModel @Inject constructor(
         )
     }
 
-    fun skipAccountSetup() {
+    fun addOnboardingGroup(name: String, memberAccountIds: List<String>) {
+        val group = AccountGroup(
+            id = UUID.randomUUID().toString(),
+            name = name,
+            memberAccountIds = memberAccountIds,
+            createdAt = System.currentTimeMillis()
+        )
         _uiState.value = _uiState.value.copy(
-            onboardingAccounts = _uiState.value.onboardingAccounts.filter { it.isDefault }
+            onboardingGroups = _uiState.value.onboardingGroups + group
         )
     }
 
@@ -241,14 +219,12 @@ class OnboardingViewModel @Inject constructor(
             // Save selected favorite currencies, ensuring base currency is included
             val favorites = _uiState.value.favoriteCurrencies + selectedCurrency
             preferencesManager.setFavoriteCurrencies(favorites)
-            val balance = _uiState.value.initialBalance.toDoubleOrNull() ?: 0.0
-            if (balance > 0) {
-                preferencesManager.setInitialBalance(balance)
-            }
-            // Save all accounts — each already carries the correct currency
-            // (updated when the user changed base currency or set a custom one).
+            // Balance is stored on the default account — no separate pref needed
             for (account in _uiState.value.onboardingAccounts) {
                 accountRepository.insertAccount(account)
+            }
+            for (group in _uiState.value.onboardingGroups) {
+                accountGroupRepository.insertGroup(group)
             }
             preferencesManager.setOnboardingCompleted()
         }

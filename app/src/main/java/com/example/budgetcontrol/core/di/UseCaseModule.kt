@@ -5,8 +5,8 @@ import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
-import com.example.budgetcontrol.core.domain.usecase.AddExpenseUseCase
-import com.example.budgetcontrol.core.domain.usecase.AddIncomeUseCase
+import com.example.budgetcontrol.core.domain.repository.TransactionRepository
+import com.example.budgetcontrol.core.domain.usecase.AddTransactionUseCase
 import com.example.budgetcontrol.core.domain.usecase.ConvertCurrencyUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
@@ -35,12 +35,12 @@ object UseCaseModule {
 
     @Provides
     @Singleton
-    fun provideAddExpenseUseCase(
-        repository: ExpenseRepository,
+    fun provideAddTransactionUseCase(
+        transactionRepository: TransactionRepository,
         convertCurrencyUseCase: ConvertCurrencyUseCase,
         categoryRepository: CategoryRepository
-    ): AddExpenseUseCase {
-        return AddExpenseUseCase(repository, convertCurrencyUseCase, categoryRepository)
+    ): AddTransactionUseCase {
+        return AddTransactionUseCase(transactionRepository, convertCurrencyUseCase, categoryRepository)
     }
 
     @Provides
@@ -65,16 +65,6 @@ object UseCaseModule {
         repository: ExpenseRepository
     ): DeleteExpenseUseCase {
         return DeleteExpenseUseCase(repository)
-    }
-
-    @Provides
-    @Singleton
-    fun provideAddIncomeUseCase(
-        repository: IncomeRepository,
-        convertCurrencyUseCase: ConvertCurrencyUseCase,
-        categoryRepository: CategoryRepository
-    ): AddIncomeUseCase {
-        return AddIncomeUseCase(repository, convertCurrencyUseCase, categoryRepository)
     }
 
     @Provides

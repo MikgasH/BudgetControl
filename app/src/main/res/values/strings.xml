@@ -418,6 +418,10 @@
     <string name="onboarding_start">Start</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_add_custom_bank">Add custom bank</string>
+    <string name="onboarding_group_accounts_cta">Group your accounts?</string>
+    <string name="onboarding_starting_balance">Starting balance</string>
+    <string name="onboarding_accounts_empty_cta">Add your first account</string>
+    <string name="onboarding_accounts_empty_hint">You need at least one account to continue</string>
 
     <!-- Bank dialog -->
     <string name="bank_name_placeholder">e.g. Revolut, N26, Monzo…</string>

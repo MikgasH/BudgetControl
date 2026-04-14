@@ -1,4 +1,4 @@
-package com.example.budgetcontrol.feature.transaction.detail
+package com.example.budgetcontrol.feature.transaction.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,20 +9,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.components.common.TransactionDetailContent
-import com.example.budgetcontrol.feature.transaction.common.TransactionDetailViewModel
-import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.ui.util.displayName
-import com.example.budgetcontrol.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IncomeDetailScreen(
-    incomeId: String,
+fun TransactionDetailScreen(
+    transactionId: String,
+    transactionType: TransactionType,
     onBackClick: () -> Unit,
     onEditClick: (String) -> Unit,
     onDeleteSuccess: () -> Unit,
@@ -31,14 +31,20 @@ fun IncomeDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
 
-    LaunchedEffect(incomeId) {
-        viewModel.loadTransaction(incomeId, TransactionType.INCOME)
+    LaunchedEffect(transactionId) {
+        viewModel.loadTransaction(transactionId, transactionType)
     }
 
     LaunchedEffect(uiState.isDeleted) {
         if (uiState.isDeleted) {
             onDeleteSuccess()
         }
+    }
+
+    val title = when (transactionType) {
+        TransactionType.EXPENSE -> stringResource(R.string.operation_details)
+        TransactionType.INCOME -> uiState.category?.displayName()?.uppercase()
+            ?: stringResource(R.string.income_upper)
     }
 
     Scaffold(
@@ -74,7 +80,7 @@ fun IncomeDetailScreen(
                     }
 
                     Text(
-                        text = uiState.category?.displayName()?.uppercase() ?: stringResource(R.string.income_upper),
+                        text = title,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -83,7 +89,7 @@ fun IncomeDetailScreen(
                     )
 
                     IconButton(
-                        onClick = { onEditClick(incomeId) },
+                        onClick = { onEditClick(transactionId) },
                         modifier = Modifier.align(Alignment.CenterEnd)
                     ) {
                         Icon(
