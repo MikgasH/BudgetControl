@@ -5,8 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.findById
-import com.example.budgetcontrol.core.domain.model.Expense
-import com.example.budgetcontrol.core.domain.model.Income
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.toExpense
 import com.example.budgetcontrol.core.domain.model.toIncome

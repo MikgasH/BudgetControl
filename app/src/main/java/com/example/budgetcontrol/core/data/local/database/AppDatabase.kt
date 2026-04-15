@@ -282,9 +282,8 @@ abstract class AppDatabase : RoomDatabase() {
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
                 CoroutineScope(Dispatchers.IO).launch {
-                    val cursor = db.query("SELECT COUNT(*) FROM banks")
-                    val count = if (cursor.moveToFirst()) cursor.getInt(0) else 0
-                    cursor.close()
+                    val count = db.query("SELECT COUNT(*) FROM banks")
+                        .use { if (it.moveToFirst()) it.getInt(0) else 0 }
                     if (count == 0) {
                         DEFAULT_BANKS.forEach { bank ->
                             db.execSQL(
@@ -295,9 +294,8 @@ abstract class AppDatabase : RoomDatabase() {
                     }
 
                     // Ensure default "Main" account exists (fresh installs skip MIGRATION_13_14)
-                    val acctCursor = db.query("SELECT COUNT(*) FROM accounts WHERE isDefault = 1")
-                    val hasDefault = if (acctCursor.moveToFirst()) acctCursor.getInt(0) > 0 else false
-                    acctCursor.close()
+                    val hasDefault = db.query("SELECT COUNT(*) FROM accounts WHERE isDefault = 1")
+                        .use { if (it.moveToFirst()) it.getInt(0) > 0 else false }
                     if (!hasDefault) {
                         val now = System.currentTimeMillis()
                         db.execSQL(

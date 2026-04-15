@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -1152,7 +1153,7 @@ private val quickIcons = listOf(
 private val iconGroups = listOf(
     IconGroup(R.string.icon_group_finance, listOf(
         IconEntry("work", Icons.Default.Work),
-        IconEntry("trending_up", Icons.Default.TrendingUp),
+        IconEntry("trending_up", Icons.AutoMirrored.Filled.TrendingUp),
         IconEntry("account_balance", Icons.Default.AccountBalance),
         IconEntry("savings", Icons.Default.Savings),
         IconEntry("credit_card", Icons.Default.CreditCard),

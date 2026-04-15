@@ -469,10 +469,10 @@
     <string name="currencies_selected_summary">Выбрано: %1$d</string>
 
     <!-- Bank commission tooltip -->
-    <string name="commission_info_tooltip">Комиссия может отличаться в зависимости от плана, дня недели и суммы трат. Используйте кнопку \'Уточнить сумму\' для 100% точности.</string>
+    <string name="commission_info_tooltip">Комиссия может отличаться в зависимости от плана, дня недели и суммы трат. Используйте кнопку \'Уточнить сумму\' для 100%% точности.</string>
 
     <!-- Stale rate improved warning -->
-    <string name="stale_rate_warning_improved">Курс может быть неактуальным (обновлён %1$s ч. назад). Вы можете продолжить — используйте \'Уточнить сумму\' для 100% точности.</string>
+    <string name="stale_rate_warning_improved">Курс может быть неактуальным (обновлён %1$s ч. назад). Вы можете продолжить — используйте \'Уточнить сумму\' для 100%% точности.</string>
 
     <!-- Account currency -->
     <string name="account_currency_label">Валюта счёта</string>

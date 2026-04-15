@@ -3,8 +3,5 @@
     <!-- Room database -->
     <include domain="database" path="budget_control_db" />
     <!-- DataStore preferences -->
-    <include domain="file" path="datastore/" />
-    <!-- Exclude caches and temporary files -->
-    <exclude domain="cache" path="." />
-    <exclude domain="external" path="." />
+    <include domain="file" path="datastore" />
 </full-backup-content>
