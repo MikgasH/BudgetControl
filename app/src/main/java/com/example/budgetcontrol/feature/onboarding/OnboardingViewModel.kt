@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.feature.onboarding
 
+import android.content.Context
+import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
@@ -18,6 +20,8 @@ import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.feature.settings.LookupState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +46,7 @@ data class OnboardingUiState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,
@@ -57,6 +62,15 @@ class OnboardingViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        viewModelScope.launch {
+            val detectedLanguage = if (Locale.getDefault().language == "ru") "ru" else "en"
+            preferencesManager.setLanguage(detectedLanguage)
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(detectedLanguage))
+
+            val nightModeFlags = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            val detectedTheme = if (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) "dark" else "light"
+            preferencesManager.setTheme(detectedTheme)
+        }
         preferencesManager.languageFlow
             .onEach { tag -> _uiState.value = _uiState.value.copy(selectedLanguage = tag) }
             .launchIn(viewModelScope)
