@@ -26,6 +26,12 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
+data class ScrubState(
+    val rateStart: Double,
+    val rateEnd: Double,
+    val amount: Double
+)
+
 @HiltViewModel
 class RateHistoryViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -70,6 +76,21 @@ class RateHistoryViewModel @Inject constructor(
 
     private val _sameCurrencyWarning = MutableStateFlow(false)
     val sameCurrencyWarning: StateFlow<Boolean> = _sameCurrencyWarning.asStateFlow()
+
+    private val _scrubState = MutableStateFlow<ScrubState?>(null)
+    val scrubState: StateFlow<ScrubState?> = _scrubState.asStateFlow()
+
+    // Tracks the last amount entered by the user so it survives period/pair changes
+    private var _currentAmount = 100.0
+
+    fun onScrubUpdate(rateEnd: Double, amount: Double) {
+        val data = _trendsData.value ?: return
+        // Use the actual first data point as the anchor, falling back to server oldRate
+        val rateStart = data.points.firstOrNull()?.rate ?: data.oldRate
+        if (rateStart <= 0.0) return
+        _currentAmount = amount
+        _scrubState.value = ScrubState(rateStart = rateStart, rateEnd = rateEnd, amount = amount)
+    }
 
     private var trendsJob: Job? = null
 
@@ -129,6 +150,7 @@ class RateHistoryViewModel @Inject constructor(
 
     private fun loadTrends() {
         trendsJob?.cancel()
+        _scrubState.value = null
 
         val from = _selectedFrom.value
         val to = _selectedTo.value
@@ -170,6 +192,17 @@ class RateHistoryViewModel @Inject constructor(
                                 "first=${data.points.firstOrNull()?.timestamp}, " +
                                 "last=${data.points.lastOrNull()?.timestamp}")
                         _trendsData.value = data
+                        // Anchor to actual first/last data points, not server-provided
+                        // oldRate/newRate which can be 0 or mismatched after filtering
+                        val rateStart = data.points.firstOrNull()?.rate ?: data.oldRate
+                        val rateEnd = data.points.lastOrNull()?.rate ?: data.newRate
+                        if (rateStart > 0) {
+                            _scrubState.value = ScrubState(
+                                rateStart = rateStart,
+                                rateEnd = rateEnd,
+                                amount = _currentAmount
+                            )
+                        }
                         _error.value = null
                     }
                     is CerpsResult.Error -> {

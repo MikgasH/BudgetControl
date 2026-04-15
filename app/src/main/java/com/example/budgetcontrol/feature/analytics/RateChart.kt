@@ -38,18 +38,90 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 
-// Cap at 30 points to avoid YCharts rendering performance issues on dense datasets (e.g. 180-day period)
-private fun downsamplePoints(
-    points: List<RatePoint>,
-    maxPoints: Int = 30
-): List<RatePoint> {
-    if (points.size <= maxPoints) return points
-    val step = maxOf(1, points.size / maxPoints)
-    val sampled = points.filterIndexed { i, _ -> i % step == 0 }.toMutableList()
-    if (sampled.last() != points.last()) {
-        sampled.add(points.last())
+// LTTB (Largest-Triangle-Three-Buckets) downsampling.
+// Preserves visual shape far better than uniform stride sampling because it selects
+// the point in each bucket that forms the largest triangle with its neighbours,
+// retaining peaks/troughs that matter visually.
+// X and Y are normalised before area computation so the two axes have equal weight.
+private fun lttbDownsample(points: List<RatePoint>, threshold: Int): List<RatePoint> {
+    val n = points.size
+    if (n <= threshold || threshold < 3) return points
+
+    val yMin   = points.minOf { it.rate }
+    val yMax   = points.maxOf { it.rate }
+    val yScale = if (yMax > yMin) yMax - yMin else 1.0
+    val xScale = (n - 1).toDouble()
+
+    fun normX(i: Int)   = i / xScale
+    fun normY(r: Double) = (r - yMin) / yScale
+
+    val result = ArrayList<RatePoint>(threshold)
+    result.add(points.first())
+
+    val every = (n - 2).toDouble() / (threshold - 2)
+    var a = 0                               // index of last selected point
+
+    for (i in 0 until threshold - 2) {
+        // Averaged "next" bucket centroid
+        val nextStart = ((i + 1) * every + 1).toInt()
+        val nextEnd   = ((i + 2) * every + 1).toInt().coerceAtMost(n)
+        val nextLen   = nextEnd - nextStart
+        var avgNX = 0.0; var avgNY = 0.0
+        for (j in nextStart until nextEnd) { avgNX += normX(j); avgNY += normY(points[j].rate) }
+        avgNX /= nextLen; avgNY /= nextLen
+
+        // Current bucket: pick the point that maximises triangle area
+        val rangeStart = (i * every + 1).toInt()
+        val rangeEnd   = ((i + 1) * every + 1).toInt().coerceAtMost(n)
+        val aNX = normX(a); val aNY = normY(points[a].rate)
+        var maxArea = -1.0; var nextA = rangeStart
+        for (j in rangeStart until rangeEnd) {
+            val area = kotlin.math.abs(
+                (aNX - avgNX) * (normY(points[j].rate) - aNY) -
+                (aNX - normX(j)) * (avgNY - aNY)
+            ) * 0.5
+            if (area > maxArea) { maxArea = area; nextA = j }
+        }
+        result.add(points[nextA]); a = nextA
     }
-    return sampled
+    result.add(points.last())
+    return result
+}
+
+// Catmull-Rom spline interpolation.
+// YCharts' SmoothCurve places both cubic control points at the segment midpoint,
+// producing an S-step shape that is visually jagged with sparse data.
+// Pre-interpolating with Catmull-Rom gives ~100 densely-packed points so
+// each S-step spans only a few pixels and the line appears smooth.
+// `segments` = number of sub-segments per original pair (≥ 2).
+private fun catmullRomInterpolate(
+    points: List<RatePoint>,
+    segments: Int
+): List<RatePoint> {
+    if (points.size < 2 || segments <= 1) return points
+    val result = mutableListOf<RatePoint>()
+    for (i in 0 until points.size - 1) {
+        val r0 = if (i > 0) points[i - 1].rate else points[i].rate
+        val r1 = points[i].rate
+        val r2 = points[i + 1].rate
+        val r3 = if (i + 2 < points.size) points[i + 2].rate else points[i + 1].rate
+        result.add(points[i])
+        for (j in 1 until segments) {
+            val t  = j.toDouble() / segments
+            val t2 = t * t
+            val t3 = t2 * t
+            // Standard uniform Catmull-Rom basis (α = 0.5)
+            val rate = 0.5 * (
+                (-t3 + 2.0 * t2 - t)       * r0 +
+                (3.0 * t3 - 5.0 * t2 + 2.0) * r1 +
+                (-3.0 * t3 + 4.0 * t2 + t)  * r2 +
+                (t3 - t2)                    * r3
+            )
+            result.add(RatePoint(timestamp = points[i].timestamp, rate = rate))
+        }
+    }
+    result.add(points.last())
+    return result
 }
 
 // Chart layout constants (dp) — must match between axisStepSize, Canvas, and gesture
@@ -57,8 +129,8 @@ private val CHART_HEIGHT = 310.dp
 private val START_DRAW_PAD = 12.dp
 private val CONTAINER_PAD_END = 16.dp
 private val PLOT_TOP = 30.dp          // LineChartData.paddingTop default
-// XAxis height: labelHeight(0) + axisLineThickness(2) + indicatorLineWidth(5) + labelAndAxisLinePadding(4) + bottomPadding(10)
-private val X_AXIS_HEIGHT = 21.dp
+// XAxis height: labelHeight(0) + axisLineThickness(2) + indicatorLineWidth(0) + labelAndAxisLinePadding(4) + bottomPadding(10)
+private val X_AXIS_HEIGHT = 16.dp
 
 @Composable
 internal fun RateChart(
@@ -73,8 +145,11 @@ internal fun RateChart(
         return
     }
 
-    val points = downsamplePoints(allPoints)
-    Log.d("RateChart", "After downsample: ${points.size} points, " +
+    val points = lttbDownsample(allPoints, 100)
+    // Target ~100 display points so YCharts' S-curve segments span only a few pixels
+    val interpSegments = if (points.size > 1) maxOf(2, 100 / (points.size - 1)) else 1
+    val displayPoints = remember(points) { catmullRomInterpolate(points, interpSegments) }
+    Log.d("RateChart", "After LTTB: ${points.size} points → ${displayPoints.size} display points, " +
             "first=${points.first().timestamp}/${points.first().rate}, " +
             "last=${points.last().timestamp}/${points.last().rate}")
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
@@ -90,9 +165,18 @@ internal fun RateChart(
     val rates = points.map { it.rate.toFloat() }
     val minRate = rates.min()
     val maxRate = rates.max()
-    val rateRange = if (maxRate == minRate) 0.001f else (maxRate - minRate) * 0.1f
-    val yMin = minRate - rateRange
-    val yMax = maxRate + rateRange
+    val currentRate = rates.last()
+    // When the period-wide swing is < 0.1% of the current rate the chart line looks
+    // dramatically sloped due to floating-point noise. Pin the Y axis to ±0.5% around
+    // the current rate instead so the line renders flat/stable.
+    val relativeRange = if (currentRate > 0f) (maxRate - minRate) / currentRate else 0f
+    val (yMin, yMax) = if (relativeRange < 0.001f) {
+        val halfBand = currentRate * 0.005f
+        (currentRate - halfBand) to (currentRate + halfBand)
+    } else {
+        val rateRange = (maxRate - minRate) * 0.1f
+        (minRate - rateRange) to (maxRate + rateRange)
+    }
 
     // YCharts doesn't expose its computed Y-axis width, so we replicate the measurement
     // to correctly position the Canvas overlay and gesture detection on top of the chart
@@ -114,7 +198,9 @@ internal fun RateChart(
     val yAxisWidthDp = with(density) { maxLabelWidthPx.toDp() } + yAxisStartPad + yAxisLabelPadding
 
     val yRange = yMax - yMin
-    val pointsData = points.mapIndexed { index, ratePoint ->
+    // pointsData is built from displayPoints (Catmull-Rom interpolated) for smooth rendering;
+    // original `points` are kept separately for gesture snapping and date labels.
+    val pointsData = displayPoints.mapIndexed { index, ratePoint ->
         val normalizedY = if (yRange > 0f) {
             ((ratePoint.rate.toFloat() - yMin) / yRange) * ySteps
         } else {
@@ -158,22 +244,24 @@ internal fun RateChart(
     val firstLabel = formattedDates.first()
     val lastLabel = formattedDates.last()
 
-    // Calculate axisStepSize to fill available width exactly
+    // Calculate axisStepSize to fill available width exactly.
+    // Use displayPoints (interpolated) for the step count so YCharts fills the full width.
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
     val plotDataWidth = screenWidthDp - 32.dp - yAxisWidthDp - START_DRAW_PAD - CONTAINER_PAD_END
-    val steps = points.size - 1
-    val xAxisStepSize = if (steps > 0) maxOf(1.dp, plotDataWidth / steps) else plotDataWidth
+    val displaySteps = displayPoints.size - 1
+    val xAxisStepSize = if (displaySteps > 0) maxOf(1.dp, plotDataWidth / displaySteps) else plotDataWidth
 
     // YCharts clips long x-axis labels; we disable them here and render our own Row below the chart
     val xAxisData = AxisData.Builder()
         .axisStepSize(xAxisStepSize)
-        .steps(steps)
+        .steps(displaySteps)
         .labelData { "" }
         .labelAndAxisLinePadding(4.dp)
         .startDrawPadding(START_DRAW_PAD)
         .axisLabelColor(axisLabelColor)
         .axisLineColor(axisLineColor)
         .axisLabelFontSize(1.sp)
+        .indicatorLineWidth(0.dp)
         .build()
 
     val yAxisData = AxisData.Builder()
@@ -194,7 +282,7 @@ internal fun RateChart(
                 Line(
                     dataPoints = pointsData,
                     lineStyle = LineStyle(
-                        lineType = if (points.size >= 4) LineType.SmoothCurve(isDotted = false) else LineType.Straight(isDotted = false),
+                        lineType = LineType.SmoothCurve(isDotted = false),
                         color = lineColor,
                         width = 3f
                     ),
@@ -210,7 +298,7 @@ internal fun RateChart(
         ),
         xAxisData = xAxisData,
         yAxisData = yAxisData,
-        gridLines = GridLines(color = surfaceVariantColor),
+        gridLines = GridLines(color = surfaceVariantColor, enableVerticalLines = false),
         backgroundColor = chartBackgroundColor,
         isZoomAllowed = false,
         paddingRight = 0.dp,
@@ -248,8 +336,8 @@ internal fun RateChart(
                         val yBottom = size.height - xAxisHeightPx
                         val plotHeightPx = yBottom - plotTopPx
 
-                        // X: YCharts places point i at columnWidth + i * axisStepSize
-                        val xPx = yAxisWidthPx + currentSelectedIndex * xAxisStepSizePx
+                        // X: original point i lives at display index i*interpSegments
+                        val xPx = yAxisWidthPx + currentSelectedIndex.toFloat() * interpSegments * xAxisStepSizePx
 
                         // Y: YCharts maps [yMinData, yMaxData] to [yBottom, paddingTop]
                         val rate = points[currentSelectedIndex].rate.toFloat()
@@ -297,7 +385,11 @@ internal fun RateChart(
                         .pointerInput(points) {
                             fun selectPoint(x: Float) {
                                 if (xAxisStepSizePx <= 0f) return
-                                val idx = ((x - yAxisWidthPx) / xAxisStepSizePx)
+                                // Map touch X → display index, then scale back to original point index
+                                val displayIdx = ((x - yAxisWidthPx) / xAxisStepSizePx)
+                                    .roundToInt()
+                                    .coerceIn(0, displayPoints.size - 1)
+                                val idx = (displayIdx.toFloat() / interpSegments)
                                     .roundToInt()
                                     .coerceIn(0, points.size - 1)
                                 selectedIndex = idx

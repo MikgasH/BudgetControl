@@ -48,6 +48,9 @@ private fun getCurrencyDisplayName(code: String, locale: Locale): String =
     try { Currency.getInstance(code).getDisplayName(locale) }
     catch (_: IllegalArgumentException) { code }
 
+private fun formatChangePercent(value: Double): String =
+    String.format(Locale.US, "%.2f", value)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RateHistoryScreen(
@@ -154,8 +157,8 @@ fun RateHistoryScreen(
                 }
                 trendsData != null -> {
                     val data = trendsData ?: return@Column
+                    val scrubState by viewModel.scrubState.collectAsState()
                     var selectedDate by remember { mutableStateOf<String?>(null) }
-                    var selectedRate by remember { mutableStateOf<Double?>(null) }
                     var amountText by remember { mutableStateOf("100") }
 
                     Log.d("RateHistory", "Render: period=${data.period}, " +
@@ -166,17 +169,22 @@ fun RateHistoryScreen(
 
                     LaunchedEffect(trendsData) {
                         selectedDate = null
-                        selectedRate = null
                     }
 
                     StatsRow(
                         trendsData = data,
+                        scrubState = scrubState,
                         selectedDate = selectedDate,
-                        selectedRate = selectedRate,
                         selectedFrom = selectedFrom,
                         selectedTo = selectedTo,
                         amountText = amountText,
-                        onAmountChange = { amountText = it }
+                        onAmountChange = { newText ->
+                            amountText = newText
+                            viewModel.onScrubUpdate(
+                                rateEnd = scrubState?.rateEnd ?: data.newRate,
+                                amount = newText.toDoubleOrNull() ?: 0.0
+                            )
+                        }
                     )
 
                     // For periods with < 2 data points (e.g. 1D), synthesize a 2-point
@@ -200,7 +208,10 @@ fun RateHistoryScreen(
                             trendsData = chartData,
                             onPointSelected = { date, rate ->
                                 selectedDate = date
-                                selectedRate = rate
+                                viewModel.onScrubUpdate(
+                                    rateEnd = rate,
+                                    amount = amountText.toDoubleOrNull() ?: 0.0
+                                )
                             }
                         )
                     } else {
@@ -571,20 +582,27 @@ private fun PeriodSelector(
 @Composable
 private fun StatsRow(
     trendsData: TrendsResponse,
+    scrubState: ScrubState?,
     selectedDate: String?,
-    selectedRate: Double?,
     selectedFrom: String,
     selectedTo: String,
     amountText: String,
     onAmountChange: (String) -> Unit
 ) {
-    val changeColor = if (trendsData.changePercentage >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val changePrefix = if (trendsData.changePercentage >= 0) "+" else ""
+    val amount = amountText.toDoubleOrNull() ?: 0.0
+    val rateEnd = scrubState?.rateEnd ?: trendsData.newRate
+    val rateStart = scrubState?.rateStart ?: trendsData.oldRate
+    val nowAmount = amount * rateEnd
+
+    val deltaPercent = if (rateStart > 0) {
+        (rateEnd - rateStart) / rateStart * 100.0
+    } else {
+        trendsData.changePercentage
+    }
+    val changeColor = if (deltaPercent >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val changePrefix = if (deltaPercent >= 0) "+" else ""
 
     val rateLabel = selectedDate ?: stringResource(R.string.rate_history_current_rate)
-    val rateValue = selectedRate ?: trendsData.newRate
-    val amount = amountText.toDoubleOrNull() ?: 0.0
-    val convertedAmount = amount * rateValue
 
     Card(
         colors = CardDefaults.cardColors(
@@ -598,7 +616,7 @@ private fun StatsRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            // Change percentage
+            // Change percentage (dynamic — from period start to current scrub point)
             Column(
                 horizontalAlignment = Alignment.Start,
                 modifier = Modifier.weight(1f)
@@ -611,7 +629,7 @@ private fun StatsRow(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${changePrefix}${String.format(Locale.US, "%.2f", trendsData.changePercentage)}%",
+                    text = "$changePrefix${formatChangePercent(deltaPercent)}%",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = changeColor,
@@ -672,7 +690,7 @@ private fun StatsRow(
                 }
             }
 
-            // Converted rate
+            // Converted value: current amount in target currency
             Column(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier.weight(1f)
@@ -688,12 +706,11 @@ private fun StatsRow(
                 Text(
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(formatAmount(convertedAmount))
+                            append(formatAmount(nowAmount))
                         }
                         append(" $selectedTo")
                     },
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
