@@ -42,6 +42,13 @@
     <string name="time_period_this_year">This year</string>
     <string name="time_period_all_time">All time</string>
 
+    <!-- Opening balance -->
+    <string name="opening_balance">Opening: %1$s</string>
+
+    <!-- Statistics percent mode -->
+    <string name="percent_of_expenses">% of expenses</string>
+    <string name="percent_of_income">% of income</string>
+
     <!-- MainScreen -->
     <string name="previous_period">Previous period</string>
     <string name="next_period">Next period</string>

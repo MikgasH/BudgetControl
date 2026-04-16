@@ -75,6 +75,7 @@ fun MainScreen(
     val baseCurrency by viewModel.baseCurrency.collectAsState()
     val displayCurrency by viewModel.displayCurrency.collectAsState()
     val isApproximateBalance by viewModel.isApproximateBalance.collectAsState()
+    val openingBalance by viewModel.openingBalance.collectAsState()
     val currentContext = LocalContext.current
     val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
         context = currentContext,
@@ -588,6 +589,8 @@ fun MainScreen(
                     uiState = uiState,
                     periodDisplayText = periodDisplayText,
                     baseCurrency = baseCurrency,
+                    openingBalance = openingBalance,
+                    displayCurrency = displayCurrency,
                     onNavigate = viewModel::navigatePeriod,
                     collapseFraction = collapseFraction,
                     chartHeight = chartHeight,

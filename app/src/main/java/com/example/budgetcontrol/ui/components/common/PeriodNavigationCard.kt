@@ -44,6 +44,8 @@ internal fun PeriodNavigationCard(
     periodDisplayText: String,
     baseCurrency: String,
     onNavigate: (Int) -> Unit,
+    openingBalance: Double? = null,
+    displayCurrency: String = baseCurrency,
     collapseFraction: Float = 0f,
     chartHeight: Dp = 200.dp,
     barHeight: Dp = 44.dp
@@ -183,6 +185,20 @@ internal fun PeriodNavigationCard(
                         )
                     }
                 }
+            }
+
+            // Opening balance — visible only in expanded state
+            if (!isCollapsed && openingBalance != null) {
+                Text(
+                    text = stringResource(
+                        R.string.opening_balance,
+                        "${formatAmount(openingBalance)} ${getCurrencySymbol(displayCurrency)}"
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             // Animated spacer between nav row and chart area

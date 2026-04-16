@@ -42,6 +42,13 @@
     <string name="time_period_this_year">Этот год</string>
     <string name="time_period_all_time">Все время</string>
 
+    <!-- Opening balance -->
+    <string name="opening_balance">Начало: %1$s</string>
+
+    <!-- Statistics percent mode -->
+    <string name="percent_of_expenses">% от расходов</string>
+    <string name="percent_of_income">% от дохода</string>
+
     <!-- MainScreen -->
     <string name="previous_period">Предыдущий период</string>
     <string name="next_period">Следующий период</string>

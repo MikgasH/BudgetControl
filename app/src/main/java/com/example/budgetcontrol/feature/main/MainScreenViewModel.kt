@@ -64,6 +64,8 @@ data class MainScreenUiState(
     val categories: List<Category> = emptyList(),
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
     val totalAmount: Double = 0.0,
+    val periodExpensesTotal: Double = 0.0,
+    val periodIncomesTotal: Double = 0.0,
     val isLoading: Boolean = true,
     val error: String? = null,
     val selectedPeriodType: PeriodType = PeriodType.DAY,
@@ -96,6 +98,15 @@ enum class PeriodType(@StringRes val displayNameRes: Int) {
     YEAR(R.string.period_year),
     PERIOD(R.string.period_custom)
 }
+
+private data class PeriodLoadResult(
+    val transactions: List<Transaction>,
+    val categories: List<Category>,
+    val totalAmount: Double,
+    val categoryStats: List<CategoryStatistic>,
+    val periodExpensesTotal: Double,
+    val periodIncomesTotal: Double
+)
 
 @HiltViewModel
 class MainScreenViewModel @Inject constructor(
@@ -188,6 +199,19 @@ class MainScreenViewModel @Inject constructor(
                 sumInBaseCurrency(accounts, baseCur, rates) == null
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /**
+     * Balance at the start of the currently selected period.
+     * Computed as: current balance – period incomes + period expenses.
+     * null for the "all time" view or when the balance itself is unavailable.
+     */
+    val openingBalance: StateFlow<Double?> = combine(
+        balance,
+        _uiState.map { Triple(it.periodIncomesTotal, it.periodExpensesTotal, it.isAllTimePeriod) }
+            .distinctUntilChanged()
+    ) { bal, (incomesTotal, expensesTotal, isAllTime) ->
+        if (isAllTime || bal == null) null else bal - incomesTotal + expensesTotal
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private var loadDataJob: Job? = null
 
@@ -316,6 +340,9 @@ class MainScreenViewModel @Inject constructor(
                     incomesFlow,
                     getCategoriesUseCase()
                 ) { expenses, incomes, categories ->
+                    val periodExpensesTotal = expenses.sumOf { it.amount }
+                    val periodIncomesTotal = incomes.sumOf { it.amount }
+
                     val currentTransactions = when (currentState.selectedOperationType) {
                         OperationType.EXPENSES -> expenses.map { it.toTransaction() }
                         OperationType.INCOMES -> incomes.map { it.toTransaction() }
@@ -323,31 +350,38 @@ class MainScreenViewModel @Inject constructor(
 
                     val (totalAmount, categoryStats) = when (currentState.selectedOperationType) {
                         OperationType.EXPENSES -> {
-                            val total = expenses.sumOf { it.amount }
                             val stats = calculateCategoryStatistics(
                                 expenses, { it.amount }, { it.categoryId },
                                 categories.filter { it.type == CategoryType.EXPENSE }
                             )
-                            Pair(total, stats)
+                            Pair(periodExpensesTotal, stats)
                         }
                         OperationType.INCOMES -> {
-                            val total = incomes.sumOf { it.amount }
                             val stats = calculateCategoryStatistics(
                                 incomes, { it.amount }, { it.categoryId },
                                 categories.filter { it.type == CategoryType.INCOME }
                             )
-                            Pair(total, stats)
+                            Pair(periodIncomesTotal, stats)
                         }
                     }
 
-                    Triple(currentTransactions, categories, Pair(totalAmount, categoryStats))
-                }.collect { (transactions, categories, totalAndStats) ->
+                    PeriodLoadResult(
+                        transactions = currentTransactions,
+                        categories = categories,
+                        totalAmount = totalAmount,
+                        categoryStats = categoryStats,
+                        periodExpensesTotal = periodExpensesTotal,
+                        periodIncomesTotal = periodIncomesTotal
+                    )
+                }.collect { result ->
                     _uiState.update {
                         it.copy(
-                            transactions = transactions,
-                            categories = categories,
-                            categoryStatistics = totalAndStats.second,
-                            totalAmount = totalAndStats.first,
+                            transactions = result.transactions,
+                            categories = result.categories,
+                            categoryStatistics = result.categoryStats,
+                            totalAmount = result.totalAmount,
+                            periodExpensesTotal = result.periodExpensesTotal,
+                            periodIncomesTotal = result.periodIncomesTotal,
                             isLoading = false,
                             error = null
                         )

@@ -125,6 +125,37 @@ fun StatisticsScreen(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
 
+                        // Percent-mode toggle — only for Expenses tab when income data is available
+                        if (uiState.selectedTab == StatisticsTab.EXPENSES && uiState.totalIncome > 0) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                FilterChip(
+                                    selected = !uiState.showPercentOfIncome,
+                                    onClick = { if (uiState.showPercentOfIncome) viewModel.togglePercentOfIncomeMode() },
+                                    label = { Text(stringResource(R.string.percent_of_expenses)) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                FilterChip(
+                                    selected = uiState.showPercentOfIncome,
+                                    onClick = { if (!uiState.showPercentOfIncome) viewModel.togglePercentOfIncomeMode() },
+                                    label = { Text(stringResource(R.string.percent_of_income)) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                )
+                            }
+                        }
+
                         if (uiState.categoryStatistics.isNotEmpty()) {
                             PieChart(
                                 data = uiState.categoryStatistics,
@@ -144,8 +175,16 @@ fun StatisticsScreen(
                 }
             }
 
+            val showPercentOfIncome = uiState.showPercentOfIncome &&
+                uiState.selectedTab == StatisticsTab.EXPENSES &&
+                uiState.totalIncome > 0
             items(uiState.categoryStatistics) { stat ->
-                CategoryStatisticItem(statistic = stat, baseCurrency = baseCurrency)
+                CategoryStatisticItem(
+                    statistic = stat,
+                    baseCurrency = baseCurrency,
+                    showPercentOfIncome = showPercentOfIncome,
+                    totalIncome = uiState.totalIncome
+                )
             }
         }
     }
@@ -189,8 +228,16 @@ private fun PeriodSelector(
 private fun CategoryStatisticItem(
     statistic: CategoryStatistic,
     baseCurrency: String,
+    showPercentOfIncome: Boolean = false,
+    totalIncome: Double = 0.0,
     modifier: Modifier = Modifier
 ) {
+    val displayedPercentage = if (showPercentOfIncome && totalIncome > 0) {
+        (statistic.totalAmount / totalIncome * 100).toFloat()
+    } else {
+        statistic.percentage
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -241,7 +288,7 @@ private fun CategoryStatisticItem(
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${String.format(Locale.US, "%.0f", statistic.percentage)}%",
+                    text = "${String.format(Locale.US, "%.0f", displayedPercentage)}%",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

@@ -33,10 +33,12 @@ data class StatisticsUiState(
     val categories: List<Category> = emptyList(),
     val categoryStatistics: List<CategoryStatistic> = emptyList(),
     val totalAmount: Double = 0.0,
+    val totalIncome: Double = 0.0,
     val isLoading: Boolean = true,
     val error: String? = null,
     val selectedPeriod: TimePeriod = TimePeriod.THIS_MONTH,
-    val selectedTab: StatisticsTab = StatisticsTab.EXPENSES
+    val selectedTab: StatisticsTab = StatisticsTab.EXPENSES,
+    val showPercentOfIncome: Boolean = false
 )
 
 enum class TimePeriod(@StringRes val displayNameRes: Int) {
@@ -90,6 +92,8 @@ class StatisticsViewModel @Inject constructor(
                     incomesFlow,
                     getCategoriesUseCase()
                 ) { expenses, incomes, categories ->
+                    val totalIncome = incomes.sumOf { it.amount }
+
                     val (stats, total) = when (currentState.selectedTab) {
                         StatisticsTab.EXPENSES -> {
                             val totalAmount = expenses.sumOf { it.amount }
@@ -113,10 +117,12 @@ class StatisticsViewModel @Inject constructor(
                         categories = categories,
                         categoryStatistics = stats,
                         totalAmount = total,
+                        totalIncome = totalIncome,
                         isLoading = false,
                         error = null,
                         selectedPeriod = currentState.selectedPeriod,
-                        selectedTab = currentState.selectedTab
+                        selectedTab = currentState.selectedTab,
+                        showPercentOfIncome = currentState.showPercentOfIncome
                     )
                 }.collect { state ->
                     _uiState.value = state
@@ -177,5 +183,9 @@ class StatisticsViewModel @Inject constructor(
     fun selectTab(tab: StatisticsTab) {
         _uiState.value = _uiState.value.copy(selectedTab = tab)
         loadData()
+    }
+
+    fun togglePercentOfIncomeMode() {
+        _uiState.value = _uiState.value.copy(showPercentOfIncome = !_uiState.value.showPercentOfIncome)
     }
 }
