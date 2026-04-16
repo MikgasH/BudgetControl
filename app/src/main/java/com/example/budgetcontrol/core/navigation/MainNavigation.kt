@@ -37,6 +37,9 @@ fun NavGraphBuilder.mainNavigation(navController: NavHostController) {
             },
             onRateHistoryClick = {
                 navController.navigate(Screen.RateHistory.route)
+            },
+            onAllTransactionsClick = {
+                navController.navigate(Screen.AllTransactions.route)
             }
         )
     }

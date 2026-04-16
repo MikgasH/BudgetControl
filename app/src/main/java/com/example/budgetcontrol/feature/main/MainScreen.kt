@@ -68,6 +68,7 @@ fun MainScreen(
     onCategoryClick: (categoryId: String, operationType: OperationType, startDate: Long, endDate: Long, isAllTime: Boolean, accountId: String?) -> Unit = { _, _, _, _, _, _ -> },
     onSettingsClick: () -> Unit = {},
     onRateHistoryClick: () -> Unit = {},
+    onAllTransactionsClick: () -> Unit = {},
     viewModel: MainScreenViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -297,16 +298,26 @@ fun MainScreen(
                             bottom = 10.dp
                         )
                 ) {
-                    IconButton(
-                        onClick = onRateHistoryClick,
-                        modifier = Modifier.align(Alignment.CenterStart)
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                            contentDescription = stringResource(R.string.rate_history),
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
-                        )
+                        IconButton(onClick = onRateHistoryClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                                contentDescription = stringResource(R.string.rate_history),
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                        IconButton(onClick = onAllTransactionsClick) {
+                            Icon(
+                                imageVector = Icons.Default.FormatListBulleted,
+                                contentDescription = stringResource(R.string.all_transactions),
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
                     }
 
                     Column(

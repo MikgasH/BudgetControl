@@ -23,6 +23,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object CurrencyExchange : Screen("currency_exchange")
     object RateHistory : Screen("rate_history")
+    object AllTransactions : Screen("all_transactions")
 }
 
 const val ANIMATION_DURATION = 200

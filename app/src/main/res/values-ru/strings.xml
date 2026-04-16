@@ -210,6 +210,11 @@
     <string name="no_expenses_yet">У вас пока нет трат</string>
     <string name="add_first_expense">Нажмите кнопку + чтобы добавить первую трату</string>
 
+    <!-- UnifiedTransactionListScreen -->
+    <string name="all_transactions">Все операции</string>
+    <string name="search_transactions">Поиск по описанию</string>
+    <string name="no_transactions">Операций по выбранным фильтрам нет</string>
+
     <!-- TransactionItem -->
     <string name="delete_action">Удалить</string>
     <string name="main_account">Основной</string>

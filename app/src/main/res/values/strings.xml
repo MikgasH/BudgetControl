@@ -210,6 +210,11 @@
     <string name="no_expenses_yet">You have no expenses yet</string>
     <string name="add_first_expense">Press + to add your first expense</string>
 
+    <!-- UnifiedTransactionListScreen -->
+    <string name="all_transactions">All transactions</string>
+    <string name="search_transactions">Search by description</string>
+    <string name="no_transactions">No transactions for the selected filters</string>
+
     <!-- TransactionItem -->
     <string name="delete_action">Delete</string>
     <string name="main_account">Main</string>

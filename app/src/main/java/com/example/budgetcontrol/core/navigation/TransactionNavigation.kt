@@ -9,8 +9,21 @@ import com.example.budgetcontrol.feature.transaction.common.TransactionFormMode
 import com.example.budgetcontrol.feature.transaction.common.TransactionFormScreen
 import com.example.budgetcontrol.feature.transaction.common.TransactionsByCategoryScreen
 import com.example.budgetcontrol.feature.transaction.list.ExpensesScreen
+import com.example.budgetcontrol.feature.transaction.list.UnifiedTransactionListScreen
 
 fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
+    composable(Screen.AllTransactions.route) {
+        UnifiedTransactionListScreen(
+            onBackClick = { navController.popBackStack() },
+            onTransactionClick = { transaction ->
+                when (transaction.type) {
+                    TransactionType.EXPENSE -> navController.navigate("${Screen.ExpenseDetail.route}/${transaction.id}")
+                    TransactionType.INCOME -> navController.navigate("${Screen.IncomeDetail.route}/${transaction.id}")
+                }
+            }
+        )
+    }
+
     composable(Screen.Expenses.route) {
         ExpensesScreen(
             onAddExpenseClick = {
