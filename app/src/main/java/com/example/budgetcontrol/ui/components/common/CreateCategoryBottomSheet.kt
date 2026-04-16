@@ -123,14 +123,14 @@ fun CreateCategoryBottomSheet(
     onDismiss: () -> Unit,
     onSave: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
     initialName: String = "",
+    initialIconName: String = "category",
+    initialColor: String = colorPickerPresets[4],
+    isEditMode: Boolean = false,
     colorPickerViewModel: ColorPickerViewModel = hiltViewModel()
 ) {
-    val defaultIcon = "category"
-    val defaultColor = colorPickerPresets[4] // #2196F3
-
     var name by remember { mutableStateOf(initialName) }
-    var selectedIcon by remember { mutableStateOf(defaultIcon) }
-    var selectedColor by remember { mutableStateOf(defaultColor) }
+    var selectedIcon by remember { mutableStateOf(initialIconName) }
+    var selectedColor by remember { mutableStateOf(initialColor) }
     var showMoreIcons by remember { mutableStateOf(false) }
 
     val recentColors by colorPickerViewModel.customColors.collectAsState()
@@ -138,7 +138,7 @@ fun CreateCategoryBottomSheet(
     // Track unsaved changes
     val hasUnsavedChanges by remember {
         derivedStateOf {
-            (name.isNotBlank() && name != initialName) || selectedIcon != defaultIcon || selectedColor != defaultColor
+            (name.isNotBlank() && name != initialName) || selectedIcon != initialIconName || selectedColor != initialColor
         }
     }
 
@@ -199,7 +199,7 @@ fun CreateCategoryBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.create_category),
+                    text = stringResource(if (isEditMode) R.string.edit_category else R.string.create_category),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -352,7 +352,7 @@ fun CreateCategoryBottomSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text(
-                    text = stringResource(R.string.create_category),
+                    text = stringResource(if (isEditMode) R.string.save else R.string.create_category),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White

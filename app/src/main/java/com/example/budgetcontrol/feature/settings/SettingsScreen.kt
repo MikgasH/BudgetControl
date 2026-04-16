@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Bank
+import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.ui.components.common.CreateCategoryBottomSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 import com.example.budgetcontrol.ui.components.common.CurrencyChangeConfirmDialog
 
@@ -29,9 +31,12 @@ fun SettingsScreen(
     val banks by viewModel.banks.collectAsState()
     val favoriteCurrencies by viewModel.favoriteCurrencies.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
+    val categories by viewModel.categories.collectAsState()
 
     var showBanksSheet by remember { mutableStateOf(false) }
     var showCurrenciesSheet by remember { mutableStateOf(false) }
+    var showCategoriesSheet by remember { mutableStateOf(false) }
+    var pendingCategoryType by remember { mutableStateOf(CategoryType.EXPENSE) }
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingBank by remember { mutableStateOf<Bank?>(null) }
     var initialBankName by remember { mutableStateOf<String?>(null) }
@@ -87,6 +92,12 @@ fun SettingsScreen(
                 onAccountClick = { accountId -> viewModel.showEditAccountSheet(accountId) },
                 accounts = uiState.accounts,
                 baseCurrency = baseCurrency
+            )
+
+            CategoriesSection(
+                expenseCount = categories.count { it.type == CategoryType.EXPENSE },
+                incomeCount = categories.count { it.type == CategoryType.INCOME },
+                onManageClick = { showCategoriesSheet = true }
             )
 
             // Currency exchanges
@@ -160,6 +171,21 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // ── Categories bottom sheet ─────────────────────────────────────────
+    if (showCategoriesSheet) {
+        CategoriesBottomSheet(
+            categories = categories,
+            onDismiss = { showCategoriesSheet = false },
+            onCreate = { type ->
+                pendingCategoryType = type
+                viewModel.showCreateCategorySheet()
+            },
+            onEdit = { category -> viewModel.showEditCategorySheet(category.id) },
+            onDelete = viewModel::deleteCategory,
+            onResetDefaults = viewModel::resetCategoriesToDefaults
+        )
     }
 
     // ── Banks bottom sheet ──────────────────────────────────────────────
@@ -246,6 +272,33 @@ fun SettingsScreen(
             } else null,
             onDismiss = { viewModel.dismissCreateEditAccountSheet() }
         )
+    }
+
+    // ── Category create/edit sheet ──────────────────────────────────────
+    if (uiState.showCreateEditCategorySheet) {
+        val editingCategory = viewModel.getEditingCategory()
+        if (editingCategory != null) {
+            CreateCategoryBottomSheet(
+                categoryType = editingCategory.type,
+                initialName = editingCategory.name,
+                initialIconName = editingCategory.iconName,
+                initialColor = editingCategory.color,
+                isEditMode = true,
+                onSave = { name, iconName, color, _ ->
+                    viewModel.updateCategory(name, iconName, color)
+                },
+                onDismiss = { viewModel.dismissCategorySheet() }
+            )
+        } else {
+            CreateCategoryBottomSheet(
+                categoryType = pendingCategoryType,
+                isEditMode = false,
+                onSave = { name, iconName, color, type ->
+                    viewModel.createCategory(name, iconName, color, type)
+                },
+                onDismiss = { viewModel.dismissCategorySheet() }
+            )
+        }
     }
 
     uiState.pendingCurrencyChange?.let { pending ->

@@ -5,6 +5,8 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Bank
+import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
@@ -15,6 +17,7 @@ import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.PendingCurrencyChange
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.BankRepository
+import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
@@ -49,7 +52,9 @@ data class SettingsUiState(
     val editingAccountId: String? = null,
     val editingAccountTransactionCount: Int = 0,
     val pendingCurrencyChange: PendingCurrencyChange? = null,
-    val currencyChangeError: String? = null
+    val currencyChangeError: String? = null,
+    val showCreateEditCategorySheet: Boolean = false,
+    val editingCategoryId: String? = null
 )
 
 sealed class LookupState {
@@ -71,6 +76,7 @@ class SettingsViewModel @Inject constructor(
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
     private val updateAccountUseCase: UpdateAccountUseCase,
+    private val categoryRepository: CategoryRepository,
     getExpensesUseCase: GetExpensesUseCase,
     getIncomesUseCase: GetIncomesUseCase
 ) : ViewModel() {
@@ -102,6 +108,9 @@ class SettingsViewModel @Inject constructor(
     ) { initial, incomes, expenses ->
         initial + incomes - expenses
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val categories: StateFlow<List<Category>> = categoryRepository.getAllCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         preferencesManager.languageFlow
@@ -400,5 +409,67 @@ class SettingsViewModel @Inject constructor(
     fun getEditingAccount(): Account? {
         val id = _uiState.value.editingAccountId ?: return null
         return _uiState.value.accounts.find { it.account.id == id }?.account
+    }
+
+    // ── Category management ───────────────────────────────────────────
+
+    fun showCreateCategorySheet() {
+        _uiState.update {
+            it.copy(showCreateEditCategorySheet = true, editingCategoryId = null)
+        }
+    }
+
+    fun showEditCategorySheet(categoryId: String) {
+        _uiState.update {
+            it.copy(showCreateEditCategorySheet = true, editingCategoryId = categoryId)
+        }
+    }
+
+    fun dismissCategorySheet() {
+        _uiState.update {
+            it.copy(showCreateEditCategorySheet = false, editingCategoryId = null)
+        }
+    }
+
+    fun createCategory(name: String, iconName: String, color: String, type: CategoryType) {
+        viewModelScope.launch {
+            categoryRepository.insertCategory(
+                Category(
+                    id = UUID.randomUUID().toString(),
+                    name = name,
+                    iconName = iconName,
+                    color = color,
+                    type = type,
+                    isSystem = false,
+                    isDefault = false
+                )
+            )
+        }
+    }
+
+    fun updateCategory(name: String, iconName: String, color: String) {
+        val id = _uiState.value.editingCategoryId ?: return
+        viewModelScope.launch {
+            val existing = categoryRepository.getCategoryById(id) ?: return@launch
+            categoryRepository.updateCategory(existing.copy(name = name, iconName = iconName, color = color))
+        }
+    }
+
+    fun deleteCategory(category: Category) {
+        viewModelScope.launch {
+            categoryRepository.deleteCategoryById(category.id)
+        }
+    }
+
+    fun getEditingCategory(): Category? {
+        val id = _uiState.value.editingCategoryId ?: return null
+        return categories.value.find { it.id == id }
+    }
+
+    fun resetCategoriesToDefaults() {
+        viewModelScope.launch {
+            categories.value.forEach { categoryRepository.deleteCategory(it) }
+            categoryRepository.initializeDefaultCategories()
+        }
     }
 }
