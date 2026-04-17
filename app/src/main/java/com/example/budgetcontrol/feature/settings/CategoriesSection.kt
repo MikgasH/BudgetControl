@@ -1,10 +1,12 @@
 package com.example.budgetcontrol.feature.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -198,7 +200,7 @@ internal fun CategoriesBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 400.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (filtered.isEmpty() && searchQuery.isNotBlank()) {
                     item {
@@ -217,7 +219,7 @@ internal fun CategoriesBottomSheet(
                     }
                 } else {
                     items(filtered, key = { it.id }) { category ->
-                        CategoryRow(
+                        CategoryCard(
                             category = category,
                             onEdit = { onEdit(category) },
                             onDelete = { pendingDelete = category }
@@ -256,45 +258,56 @@ internal fun CategoriesBottomSheet(
 }
 
 @Composable
-private fun CategoryRow(
+private fun CategoryCard(
     category: Category,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Row(
+    val iconBgColor = remember(category.color) {
+        try { Color(category.color.toColorInt()) } catch (_: Exception) { Color.Gray }
+    }
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onEdit),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        val iconBgColor = remember(category.color) {
-            try { Color(category.color.toColorInt()) } catch (_: Exception) { Color.Gray }
-        }
-        Box(
+        Row(
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(iconBgColor),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = getCategoryIcon(category.iconName),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-        }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(iconBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = getCategoryIcon(category.iconName),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
-        Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
             Row(
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = category.displayName(),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
                 )
                 if (category.isSystem) {
                     Surface(
@@ -310,38 +323,20 @@ private fun CategoryRow(
                     }
                 }
             }
-            Text(
-                text = category.usageCount.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
 
-        IconButton(
-            onClick = onEdit,
-            modifier = Modifier.size(36.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = stringResource(R.string.edit_category),
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        if (!category.isSystem) {
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.delete_category),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp)
-                )
+            if (!category.isSystem) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete_category),
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
-        } else {
-            Spacer(modifier = Modifier.size(36.dp))
         }
     }
 }
