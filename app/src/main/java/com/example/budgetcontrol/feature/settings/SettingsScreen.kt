@@ -19,6 +19,7 @@ import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.ui.components.common.CreateCategoryBottomSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 import com.example.budgetcontrol.ui.components.common.CurrencyChangeConfirmDialog
+import com.example.budgetcontrol.ui.util.displayName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -280,7 +281,7 @@ fun SettingsScreen(
         if (editingCategory != null) {
             CreateCategoryBottomSheet(
                 categoryType = editingCategory.type,
-                initialName = editingCategory.name,
+                initialName = editingCategory.displayName(),
                 initialIconName = editingCategory.iconName,
                 initialColor = editingCategory.color,
                 isEditMode = true,
