@@ -4,9 +4,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,6 +50,7 @@ internal val colorPickerPresets = listOf(
  * @param previewContent Optional composable rendered inside the custom-colour panel,
  *                       receiving the live [Color] so callers can show an icon preview.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CustomColorPicker(
     selectedColor: String,
@@ -58,60 +66,16 @@ fun CustomColorPicker(
     var blue by remember { mutableIntStateOf(initB) }
     var hexDraft by remember { mutableStateOf(selectedColor.removePrefix("#")) }
 
-    // ── Recent row ───────────────────────────────────────────────────
-    if (recentColors.isNotEmpty()) {
-        Text(
-            text = stringResource(R.string.recent_colors),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp),
-            modifier = Modifier.padding(bottom = 4.dp)
-        ) {
-            items(recentColors) { hex ->
-                PickerColorCircle(
-                    hex = hex,
-                    isSelected = selectedColor == hex && !showCustom,
-                    onClick = {
-                        onColorSelected(hex)
-                        showCustom = false
-                        val (r, g, b) = parsePickerHex(hex)
-                        red = r; green = g; blue = b
-                        hexDraft = hex.removePrefix("#")
-                    }
-                )
-            }
-        }
+    // ── Unified colour grid (recent first, then presets) ─────────────
+    val allColors = remember(recentColors) {
+        (recentColors + colorPickerPresets).distinct()
     }
-
-    // ── Preset rows ──────────────────────────────────────────────────
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        colorPickerPresets.take(6).forEach { hex ->
-            PickerColorCircle(
-                hex = hex,
-                isSelected = selectedColor == hex && !showCustom,
-                onClick = {
-                    onColorSelected(hex)
-                    showCustom = false
-                    val (r, g, b) = parsePickerHex(hex)
-                    red = r; green = g; blue = b
-                    hexDraft = hex.removePrefix("#")
-                }
-            )
-        }
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        colorPickerPresets.drop(6).forEach { hex ->
+        allColors.forEach { hex ->
             PickerColorCircle(
                 hex = hex,
                 isSelected = selectedColor == hex && !showCustom,
