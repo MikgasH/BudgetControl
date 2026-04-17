@@ -144,7 +144,7 @@ internal fun RateChart(
 
     val points = lttbDownsample(allPoints, 100)
     // Target ~100 display points so YCharts' S-curve segments span only a few pixels
-    val interpSegments = if (points.size > 1) maxOf(2, 100 / (points.size - 1)) else 1
+    val interpSegments = if (points.size > 1) maxOf(10, 100 / (points.size - 1)) else 1
     val displayPoints = remember(points) { catmullRomInterpolate(points, interpSegments) }
     Log.d("RateChart", "After LTTB: ${points.size} points → ${displayPoints.size} display points, " +
             "first=${points.first().timestamp}/${points.first().rate}, " +
