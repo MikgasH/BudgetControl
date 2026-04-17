@@ -35,7 +35,7 @@ import javax.inject.Inject
 
 data class OnboardingUiState(
     val selectedLanguage: String = "",
-    val selectedTheme: String = "system",
+    val selectedTheme: String = "light",
     val selectedCurrency: String = DEFAULT_BASE_CURRENCY,
     val currencies: List<String> = emptyList(),
     val currenciesLoading: Boolean = false,

@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.feature.settings
 
+import android.content.Context
+import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
@@ -27,6 +29,7 @@ import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.domain.usecase.UpdateAccountUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,15 +38,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
 data class SettingsUiState(
     val currentLanguage: String = "",
-    val currentTheme: String = "system",
+    val currentTheme: String = "light",
     val allCurrencies: List<String> = emptyList(),
     val isCurrenciesLoading: Boolean = false,
     val currenciesError: String? = null,
@@ -67,6 +72,7 @@ sealed class LookupState {
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,
@@ -124,6 +130,20 @@ class SettingsViewModel @Inject constructor(
         getAccountsUseCase.getAccountsWithBalances()
             .onEach { accounts -> _uiState.update { it.copy(accounts = accounts) } }
             .launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            val storedTheme = preferencesManager.themeFlow.first()
+            if (storedTheme == "system") {
+                val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                preferencesManager.setTheme(if (nightMode == Configuration.UI_MODE_NIGHT_YES) "dark" else "light")
+            }
+            val storedLang = preferencesManager.languageFlow.first()
+            if (storedLang.isEmpty()) {
+                val detectedLang = if (Locale.getDefault().language == "ru") "ru" else "en"
+                preferencesManager.setLanguage(detectedLang)
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(detectedLang))
+            }
+        }
 
         loadCurrencies()
     }

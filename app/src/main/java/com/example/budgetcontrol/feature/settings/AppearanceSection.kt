@@ -32,13 +32,12 @@ internal fun AppearanceSection(
             )
 
             val themes = listOf(
-                "system" to stringResource(R.string.theme_system),
                 "light" to stringResource(R.string.theme_light),
                 "dark" to stringResource(R.string.theme_dark)
             )
 
             val currentThemeName = themes.firstOrNull { it.first == currentTheme }?.second
-                ?: stringResource(R.string.theme_system)
+                ?: stringResource(R.string.theme_light)
 
             var themeExpanded by remember { mutableStateOf(false) }
 
@@ -101,13 +100,12 @@ internal fun LanguageSection(
             )
 
             val languages = listOf(
-                "" to stringResource(R.string.language_system),
                 "en" to stringResource(R.string.language_english),
                 "ru" to stringResource(R.string.language_russian)
             )
 
             val currentName = languages.firstOrNull { it.first == currentLanguage }?.second
-                ?: stringResource(R.string.language_system)
+                ?: stringResource(R.string.language_english)
 
             var langExpanded by remember { mutableStateOf(false) }
 

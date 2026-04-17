@@ -385,7 +385,7 @@ private fun ThemePage(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ThemeCard(
                 icon = Icons.Default.LightMode,
@@ -399,13 +399,6 @@ private fun ThemePage(
                 label = stringResource(R.string.theme_dark),
                 isSelected = selectedTheme == "dark",
                 onClick = { onThemeSelected("dark") },
-                modifier = Modifier.weight(1f)
-            )
-            ThemeCard(
-                icon = Icons.Default.SettingsBrightness,
-                label = stringResource(R.string.theme_system),
-                isSelected = selectedTheme == "system",
-                onClick = { onThemeSelected("system") },
                 modifier = Modifier.weight(1f)
             )
         }
