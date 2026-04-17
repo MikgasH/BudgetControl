@@ -187,8 +187,8 @@ internal fun PeriodNavigationCard(
                 }
             }
 
-            // Opening balance — visible only in expanded state
-            if (!isCollapsed && openingBalance != null) {
+            // Opening balance — shown in both expanded and collapsed states
+            if (openingBalance != null) {
                 Text(
                     text = stringResource(
                         R.string.opening_balance,

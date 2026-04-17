@@ -312,7 +312,7 @@ fun MainScreen(
                         }
                         IconButton(onClick = onAllTransactionsClick) {
                             Icon(
-                                imageVector = Icons.Default.FormatListBulleted,
+                                imageVector = Icons.Default.History,
                                 contentDescription = stringResource(R.string.all_transactions),
                                 tint = Color.White,
                                 modifier = Modifier.size(26.dp)
