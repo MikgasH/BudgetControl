@@ -261,6 +261,9 @@ fun SettingsScreen(
             account = editingAccount,
             baseCurrency = baseCurrency,
             transactionCount = uiState.editingAccountTransactionCount,
+            availableCurrencies = uiState.allCurrencies,
+            favoriteCurrencies = favoriteCurrencies,
+            isCurrenciesLoading = uiState.isCurrenciesLoading,
             onSave = { name, iconName, color, initialBalance, currency ->
                 if (editingAccount != null) {
                     viewModel.updateAccount(name, iconName, color, initialBalance, currency)
