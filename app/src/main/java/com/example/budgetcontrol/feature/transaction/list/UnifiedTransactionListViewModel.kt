@@ -26,22 +26,26 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class TransactionTypeFilter { ALL, INCOME, EXPENSE }
+
 data class UnifiedTransactionListUiState(
     val transactions: List<Transaction> = emptyList(),
     val accounts: List<AccountWithBalance> = emptyList(),
     val categories: List<Category> = emptyList(),
     val selectedAccountId: String? = null,
+    val selectedCategoryId: String? = null,
+    val transactionTypeFilter: TransactionTypeFilter = TransactionTypeFilter.ALL,
     val startDate: Long? = null,
     val endDate: Long? = null,
-    val searchQuery: String = "",
     val isLoading: Boolean = true
 )
 
 private data class FilterParams(
     val accountId: String?,
+    val categoryId: String?,
+    val typeFilter: TransactionTypeFilter,
     val startDate: Long?,
-    val endDate: Long?,
-    val searchQuery: String
+    val endDate: Long?
 )
 
 @HiltViewModel
@@ -56,9 +60,10 @@ class UnifiedTransactionListViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _selectedAccountId = MutableStateFlow<String?>(null)
+    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+    private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     private val _startDate = MutableStateFlow<Long?>(null)
     private val _endDate = MutableStateFlow<Long?>(null)
-    private val _searchQuery = MutableStateFlow("")
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
@@ -71,8 +76,14 @@ class UnifiedTransactionListViewModel @Inject constructor(
         ) { expenses, incomes, categories ->
             Triple(expenses, incomes, categories)
         },
-        combine(_selectedAccountId, _startDate, _endDate, _searchQuery) { accountId, start, end, query ->
-            FilterParams(accountId, start, end, query)
+        combine(
+            _selectedAccountId,
+            _selectedCategoryId,
+            _transactionTypeFilter,
+            _startDate,
+            _endDate
+        ) { accountId, categoryId, typeFilter, start, end ->
+            FilterParams(accountId, categoryId, typeFilter, start, end)
         },
         getAccountsUseCase.getAccountsWithBalances()
     ) { (expenses, incomes, categories), filters, accounts ->
@@ -87,12 +98,16 @@ class UnifiedTransactionListViewModel @Inject constructor(
                     is Transaction.ExpenseTransaction -> tx.accountId == filters.accountId
                     is Transaction.IncomeTransaction -> tx.accountId == filters.accountId
                 }
+                val categoryMatch = filters.categoryId == null || tx.categoryId == filters.categoryId
                 val dateMatch = if (filters.startDate != null && filters.endDate != null) {
                     tx.date in filters.startDate..filters.endDate
                 } else true
-                val searchMatch = filters.searchQuery.isBlank() ||
-                    tx.description?.contains(filters.searchQuery, ignoreCase = true) == true
-                accountMatch && dateMatch && searchMatch
+                val typeMatch = when (filters.typeFilter) {
+                    TransactionTypeFilter.ALL -> true
+                    TransactionTypeFilter.INCOME -> tx is Transaction.IncomeTransaction
+                    TransactionTypeFilter.EXPENSE -> tx is Transaction.ExpenseTransaction
+                }
+                accountMatch && categoryMatch && dateMatch && typeMatch
             }
             .sortedByDescending { it.date }
 
@@ -101,9 +116,10 @@ class UnifiedTransactionListViewModel @Inject constructor(
             accounts = accounts,
             categories = categories,
             selectedAccountId = filters.accountId,
+            selectedCategoryId = filters.categoryId,
+            transactionTypeFilter = filters.typeFilter,
             startDate = filters.startDate,
             endDate = filters.endDate,
-            searchQuery = filters.searchQuery,
             isLoading = false
         )
     }.stateIn(
@@ -116,6 +132,14 @@ class UnifiedTransactionListViewModel @Inject constructor(
         _selectedAccountId.value = accountId
     }
 
+    fun setCategory(categoryId: String?) {
+        _selectedCategoryId.value = categoryId
+    }
+
+    fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
+        _transactionTypeFilter.value = filter
+    }
+
     fun setDateRange(startDate: Long, endDate: Long) {
         _startDate.value = startDate
         _endDate.value = endDate
@@ -124,10 +148,6 @@ class UnifiedTransactionListViewModel @Inject constructor(
     fun clearDateRange() {
         _startDate.value = null
         _endDate.value = null
-    }
-
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
     }
 
     fun deleteTransaction(transaction: Transaction) {
@@ -141,10 +161,5 @@ class UnifiedTransactionListViewModel @Inject constructor(
 
     fun getCategoryById(categoryId: String): Category? {
         return uiState.value.categories.findById(categoryId)
-    }
-
-    fun getSelectedAccountName(): String? {
-        val accountId = uiState.value.selectedAccountId ?: return null
-        return uiState.value.accounts.find { it.account.id == accountId }?.account?.name
     }
 }

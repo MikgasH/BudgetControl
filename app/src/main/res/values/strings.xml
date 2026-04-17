@@ -350,6 +350,7 @@
     <string name="categories_description">%1$d expense, %2$d income categories</string>
     <string name="expense_tab">Expenses</string>
     <string name="income_tab">Incomes</string>
+    <string name="filter_all_types">All</string>
     <string name="search_categories">Search categories</string>
     <string name="add_custom_category">Add category</string>
     <string name="category_name_label">Category name</string>

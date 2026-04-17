@@ -350,6 +350,7 @@
     <string name="categories_description">%1$d расходных, %2$d доходных категорий</string>
     <string name="expense_tab">Расходы</string>
     <string name="income_tab">Доходы</string>
+    <string name="filter_all_types">Все</string>
     <string name="search_categories">Поиск категорий</string>
     <string name="add_custom_category">Добавить категорию</string>
     <string name="category_name_label">Название категории</string>
