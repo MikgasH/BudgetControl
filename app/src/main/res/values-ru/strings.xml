@@ -214,6 +214,8 @@
     <string name="all_transactions">Все операции</string>
     <string name="search_transactions">Поиск по описанию</string>
     <string name="no_transactions">Операций по выбранным фильтрам нет</string>
+    <string name="filter_n_categories">%1$d категории</string>
+    <string name="done">Готово</string>
 
     <!-- TransactionItem -->
     <string name="delete_action">Удалить</string>

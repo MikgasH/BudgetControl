@@ -214,6 +214,8 @@
     <string name="all_transactions">All transactions</string>
     <string name="search_transactions">Search by description</string>
     <string name="no_transactions">No transactions for the selected filters</string>
+    <string name="filter_n_categories">%1$d categories</string>
+    <string name="done">Done</string>
 
     <!-- TransactionItem -->
     <string name="delete_action">Delete</string>

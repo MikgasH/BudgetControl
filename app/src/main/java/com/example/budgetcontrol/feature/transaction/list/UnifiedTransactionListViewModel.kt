@@ -33,7 +33,7 @@ data class UnifiedTransactionListUiState(
     val accounts: List<AccountWithBalance> = emptyList(),
     val categories: List<Category> = emptyList(),
     val selectedAccountId: String? = null,
-    val selectedCategoryId: String? = null,
+    val selectedCategoryIds: Set<String> = emptySet(),
     val transactionTypeFilter: TransactionTypeFilter = TransactionTypeFilter.ALL,
     val startDate: Long? = null,
     val endDate: Long? = null,
@@ -42,7 +42,7 @@ data class UnifiedTransactionListUiState(
 
 private data class FilterParams(
     val accountId: String?,
-    val categoryId: String?,
+    val categoryIds: Set<String>,
     val typeFilter: TransactionTypeFilter,
     val startDate: Long?,
     val endDate: Long?
@@ -60,7 +60,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _selectedAccountId = MutableStateFlow<String?>(null)
-    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+    private val _selectedCategoryIds = MutableStateFlow<Set<String>>(emptySet())
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     private val _startDate = MutableStateFlow<Long?>(null)
     private val _endDate = MutableStateFlow<Long?>(null)
@@ -78,12 +78,12 @@ class UnifiedTransactionListViewModel @Inject constructor(
         },
         combine(
             _selectedAccountId,
-            _selectedCategoryId,
+            _selectedCategoryIds,
             _transactionTypeFilter,
             _startDate,
             _endDate
-        ) { accountId, categoryId, typeFilter, start, end ->
-            FilterParams(accountId, categoryId, typeFilter, start, end)
+        ) { accountId, categoryIds, typeFilter, start, end ->
+            FilterParams(accountId, categoryIds, typeFilter, start, end)
         },
         getAccountsUseCase.getAccountsWithBalances()
     ) { (expenses, incomes, categories), filters, accounts ->
@@ -98,7 +98,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
                     is Transaction.ExpenseTransaction -> tx.accountId == filters.accountId
                     is Transaction.IncomeTransaction -> tx.accountId == filters.accountId
                 }
-                val categoryMatch = filters.categoryId == null || tx.categoryId == filters.categoryId
+                val categoryMatch = filters.categoryIds.isEmpty() || tx.categoryId in filters.categoryIds
                 val dateMatch = if (filters.startDate != null && filters.endDate != null) {
                     tx.date in filters.startDate..filters.endDate
                 } else true
@@ -116,7 +116,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
             accounts = accounts,
             categories = categories,
             selectedAccountId = filters.accountId,
-            selectedCategoryId = filters.categoryId,
+            selectedCategoryIds = filters.categoryIds,
             transactionTypeFilter = filters.typeFilter,
             startDate = filters.startDate,
             endDate = filters.endDate,
@@ -132,8 +132,13 @@ class UnifiedTransactionListViewModel @Inject constructor(
         _selectedAccountId.value = accountId
     }
 
-    fun setCategory(categoryId: String?) {
-        _selectedCategoryId.value = categoryId
+    fun toggleCategory(categoryId: String) {
+        val current = _selectedCategoryIds.value
+        _selectedCategoryIds.value = if (categoryId in current) current - categoryId else current + categoryId
+    }
+
+    fun clearCategories() {
+        _selectedCategoryIds.value = emptySet()
     }
 
     fun setTransactionTypeFilter(filter: TransactionTypeFilter) {

@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
@@ -81,11 +83,8 @@ fun UnifiedTransactionListScreen(
     if (showCategorySheet) {
         CategoryFilterBottomSheet(
             categories = uiState.categories,
-            selectedCategoryId = uiState.selectedCategoryId,
-            onCategorySelect = { id ->
-                viewModel.setCategory(id)
-                showCategorySheet = false
-            },
+            selectedCategoryIds = uiState.selectedCategoryIds,
+            onCategoryToggle = { id -> viewModel.toggleCategory(id) },
             onDismiss = { showCategorySheet = false }
         )
     }
@@ -167,19 +166,25 @@ fun UnifiedTransactionListScreen(
                     }
                 )
 
-                val selectedCategory = uiState.categories.find { it.id == uiState.selectedCategoryId }
+                val selectedCategories = uiState.categories.filter { it.id in uiState.selectedCategoryIds }
+                val categoryChipLabel = when {
+                    selectedCategories.isEmpty() -> stringResource(R.string.all_categories)
+                    selectedCategories.size == 1 -> selectedCategories.first().displayName()
+                    else -> stringResource(R.string.filter_n_categories, selectedCategories.size)
+                }
                 FilterChip(
-                    selected = uiState.selectedCategoryId != null,
+                    selected = uiState.selectedCategoryIds.isNotEmpty(),
                     onClick = { showCategorySheet = true },
-                    label = { Text(selectedCategory?.displayName() ?: stringResource(R.string.all_categories)) },
+                    label = { Text(categoryChipLabel) },
                     leadingIcon = {
-                        if (selectedCategory != null) {
+                        val firstSelected = selectedCategories.firstOrNull()
+                        if (firstSelected != null) {
                             Icon(
-                                imageVector = getCategoryIcon(selectedCategory.iconName),
+                                imageVector = getCategoryIcon(firstSelected.iconName),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
                                 tint = try {
-                                    Color(android.graphics.Color.parseColor(selectedCategory.color))
+                                    Color(android.graphics.Color.parseColor(firstSelected.color))
                                 } catch (_: Exception) {
                                     MaterialTheme.colorScheme.primary
                                 }
@@ -214,6 +219,47 @@ fun UnifiedTransactionListScreen(
                         )
                     }
                 )
+            }
+
+            if (uiState.selectedCategoryIds.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    uiState.categories
+                        .filter { it.id in uiState.selectedCategoryIds }
+                        .forEach { category ->
+                            val color = try {
+                                Color(android.graphics.Color.parseColor(category.color))
+                            } catch (_: Exception) {
+                                MaterialTheme.colorScheme.primary
+                            }
+                            InputChip(
+                                selected = true,
+                                onClick = { viewModel.toggleCategory(category.id) },
+                                label = { Text(category.displayName()) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = getCategoryIcon(category.iconName),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = color
+                                    )
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.delete_action),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
+                }
             }
 
             HorizontalDivider()
@@ -351,8 +397,8 @@ private fun AccountFilterBottomSheet(
 @Composable
 private fun CategoryFilterBottomSheet(
     categories: List<Category>,
-    selectedCategoryId: String?,
-    onCategorySelect: (String?) -> Unit,
+    selectedCategoryIds: Set<String>,
+    onCategoryToggle: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -360,11 +406,17 @@ private fun CategoryFilterBottomSheet(
 
     val displayNames = categories.associateBy({ it.id }, { it.displayName() })
 
-    val filtered = remember(categories, searchQuery, displayNames) {
-        if (searchQuery.isBlank()) categories
-        else categories.filter {
-            (displayNames[it.id] ?: it.name).contains(searchQuery, ignoreCase = true)
-        }
+    val (expenseCategories, incomeCategories) = remember(categories, searchQuery, displayNames) {
+        val filtered = if (searchQuery.isBlank()) categories
+            else categories.filter {
+                (displayNames[it.id] ?: it.name).contains(searchQuery, ignoreCase = true)
+            }
+        val expenses = filtered.filter { it.type == CategoryType.EXPENSE }
+        val expenseNames = expenses.mapTo(mutableSetOf()) { displayNames[it.id] ?: it.name }
+        val incomes = filtered
+            .filter { it.type == CategoryType.INCOME }
+            .filter { (displayNames[it.id] ?: it.name) !in expenseNames }
+        expenses to incomes
     }
 
     ModalBottomSheet(
@@ -415,31 +467,66 @@ private fun CategoryFilterBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
             ) {
-                if (searchQuery.isBlank()) {
-                    item(key = "all_categories") {
+                if (expenseCategories.isNotEmpty()) {
+                    item(key = "header_expense", span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = stringResource(R.string.expense_tab),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                        )
+                    }
+                    items(expenseCategories, key = { "expense_${it.id}" }) { category ->
+                        val color = try {
+                            Color(android.graphics.Color.parseColor(category.color))
+                        } catch (_: Exception) {
+                            MaterialTheme.colorScheme.primary
+                        }
                         CategoryFilterItem(
-                            name = stringResource(R.string.all_categories),
-                            icon = Icons.Default.Category,
-                            color = MaterialTheme.colorScheme.primary,
-                            isSelected = selectedCategoryId == null,
-                            onClick = { onCategorySelect(null) }
+                            name = displayNames[category.id] ?: category.name,
+                            icon = getCategoryIcon(category.iconName),
+                            color = color,
+                            isSelected = category.id in selectedCategoryIds,
+                            onClick = { onCategoryToggle(category.id) }
                         )
                     }
                 }
-                items(filtered, key = { it.id }) { category ->
-                    val color = try {
-                        Color(android.graphics.Color.parseColor(category.color))
-                    } catch (_: Exception) {
-                        MaterialTheme.colorScheme.primary
+
+                if (incomeCategories.isNotEmpty()) {
+                    item(key = "header_income", span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = stringResource(R.string.income_tab),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                        )
                     }
-                    CategoryFilterItem(
-                        name = displayNames[category.id] ?: category.name,
-                        icon = getCategoryIcon(category.iconName),
-                        color = color,
-                        isSelected = selectedCategoryId == category.id,
-                        onClick = { onCategorySelect(category.id) }
-                    )
+                    items(incomeCategories, key = { "income_${it.id}" }) { category ->
+                        val color = try {
+                            Color(android.graphics.Color.parseColor(category.color))
+                        } catch (_: Exception) {
+                            MaterialTheme.colorScheme.primary
+                        }
+                        CategoryFilterItem(
+                            name = displayNames[category.id] ?: category.name,
+                            icon = getCategoryIcon(category.iconName),
+                            color = color,
+                            isSelected = category.id in selectedCategoryIds,
+                            onClick = { onCategoryToggle(category.id) }
+                        )
+                    }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.done))
             }
         }
     }
