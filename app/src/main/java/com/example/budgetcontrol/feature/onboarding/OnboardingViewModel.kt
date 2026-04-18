@@ -226,6 +226,20 @@ class OnboardingViewModel @Inject constructor(
         )
     }
 
+    fun updateOnboardingGroup(groupId: String, name: String, memberAccountIds: List<String>) {
+        val updatedGroups = _uiState.value.onboardingGroups.map { group ->
+            if (group.id == groupId) group.copy(name = name, memberAccountIds = memberAccountIds)
+            else group
+        }
+        _uiState.value = _uiState.value.copy(onboardingGroups = updatedGroups)
+    }
+
+    fun removeOnboardingGroup(groupId: String) {
+        _uiState.value = _uiState.value.copy(
+            onboardingGroups = _uiState.value.onboardingGroups.filter { it.id != groupId }
+        )
+    }
+
     fun completeOnboarding() {
         viewModelScope.launch {
             val selectedCurrency = _uiState.value.selectedCurrency

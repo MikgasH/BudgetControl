@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
@@ -35,7 +36,7 @@ fun AccountsBottomSheet(
     groups: List<AccountGroupWithBalance> = emptyList(),
     selectedAccountId: String?,
     selectedGroupId: String? = null,
-    totalBalance: Double?,
+    totalBalance: Double,
     baseCurrency: String,
     hasMixedCurrencies: Boolean = false,
     onAccountSelect: (String?) -> Unit,
@@ -195,6 +196,9 @@ fun AccountsBottomSheet(
                             else Color.Transparent,
                             label = "allBg"
                         )
+                        val allCurrencies = accounts.map { it.account.currency }.distinct()
+                        val totalDisplayCurrency = if (allCurrencies.size == 1) allCurrencies.first() else baseCurrency
+                        val totalIsApprox = allCurrencies.size > 1
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -237,7 +241,7 @@ fun AccountsBottomSheet(
                                     )
                                 }
                                 Text(
-                                    text = formatAccountBalance(totalBalance, baseCurrency, hasMixedCurrencies),
+                                    text = formatAccountBalance(totalBalance, totalDisplayCurrency, totalIsApprox),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -326,18 +330,25 @@ fun AccountsBottomSheet(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                val groupHasMixed = accounts
-                                    .filter { it.account.id in group.memberAccountIds }
-                                    .any { it.account.currency != baseCurrency }
+                                val groupMembers = accounts.filter { it.account.id in group.memberAccountIds }
+                                val groupNativeCurrencies = groupMembers.map { it.account.currency }.distinct()
+                                val groupDisplayBalance: Double
+                                val groupDisplayCurrency: String
+                                val groupIsApprox: Boolean
+                                if (groupNativeCurrencies.size == 1) {
+                                    groupDisplayBalance = groupMembers.sumOf { it.currentBalance }
+                                    groupDisplayCurrency = groupNativeCurrencies.first()
+                                    groupIsApprox = false
+                                } else {
+                                    groupDisplayBalance = groupWithBalance.combinedBalance
+                                    groupDisplayCurrency = baseCurrency
+                                    groupIsApprox = true
+                                }
                                 Text(
-                                    text = formatAccountBalance(
-                                        groupWithBalance.combinedBalance,
-                                        baseCurrency,
-                                        groupHasMixed
-                                    ),
+                                    text = formatAccountBalance(groupDisplayBalance, groupDisplayCurrency, groupIsApprox),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if ((groupWithBalance.combinedBalance ?: 0.0) >= 0) {
+                                    color = if (groupDisplayBalance >= 0) {
                                         MaterialTheme.colorScheme.onSurface
                                     } else {
                                         MaterialTheme.colorScheme.error
@@ -503,7 +514,7 @@ fun AccountsBottomSheet(
                     onClick = onCreateAccount,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(52.dp),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
@@ -515,7 +526,7 @@ fun AccountsBottomSheet(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.new_account),
-                        style = MaterialTheme.typography.labelMedium,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -525,7 +536,7 @@ fun AccountsBottomSheet(
                     onClick = onCreateGroup,
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
+                        .height(52.dp),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
@@ -537,7 +548,7 @@ fun AccountsBottomSheet(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.new_group),
-                        style = MaterialTheme.typography.labelMedium,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

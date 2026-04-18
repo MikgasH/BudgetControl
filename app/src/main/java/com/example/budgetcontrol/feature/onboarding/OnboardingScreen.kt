@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
@@ -96,6 +97,7 @@ fun OnboardingScreen(
                     )
                     5 -> AccountsPage(
                         accounts = uiState.onboardingAccounts,
+                        groups = uiState.onboardingGroups,
                         currency = uiState.selectedCurrency,
                         availableCurrencies = uiState.currencies,
                         favoriteCurrencies = uiState.favoriteCurrencies,
@@ -103,7 +105,9 @@ fun OnboardingScreen(
                         onAddAccount = viewModel::addOnboardingAccount,
                         onUpdateAccount = viewModel::updateOnboardingAccount,
                         onDeleteAccount = viewModel::removeOnboardingAccount,
-                        onAddGroup = viewModel::addOnboardingGroup
+                        onAddGroup = viewModel::addOnboardingGroup,
+                        onUpdateGroup = viewModel::updateOnboardingGroup,
+                        onDeleteGroup = viewModel::removeOnboardingGroup
                     )
                     6 -> ReadyPage(
                         language = uiState.selectedLanguage,
@@ -1134,6 +1138,7 @@ private fun SummaryRow(
 @Composable
 private fun AccountsPage(
     accounts: List<Account>,
+    groups: List<AccountGroup> = emptyList(),
     currency: String,
     availableCurrencies: List<String> = emptyList(),
     favoriteCurrencies: Set<String> = emptySet(),
@@ -1141,11 +1146,14 @@ private fun AccountsPage(
     onAddAccount: (String, String, String, Double, String) -> Unit,
     onUpdateAccount: (String, String, String, String, Double, String) -> Unit,
     onDeleteAccount: (String) -> Unit,
-    onAddGroup: (String, List<String>) -> Unit = { _, _ -> }
+    onAddGroup: (String, List<String>) -> Unit = { _, _ -> },
+    onUpdateGroup: (groupId: String, name: String, memberAccountIds: List<String>) -> Unit = { _, _, _ -> },
+    onDeleteGroup: (groupId: String) -> Unit = {}
 ) {
     var showCreateSheet by remember { mutableStateOf(false) }
     var editingAccount by remember { mutableStateOf<Account?>(null) }
     var showGroupSheet by remember { mutableStateOf(false) }
+    var editingGroup by remember { mutableStateOf<AccountGroup?>(null) }
 
     Column(
         modifier = Modifier
@@ -1170,7 +1178,6 @@ private fun AccountsPage(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (accounts.isEmpty()) {
-            // Empty state
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -1212,6 +1219,7 @@ private fun AccountsPage(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // ── All accounts as a flat list ──
                 items(accounts, key = { it.id }) { account ->
                     OnboardingAccountItem(
                         account = account,
@@ -1220,19 +1228,29 @@ private fun AccountsPage(
                     )
                 }
 
+                // ── Action buttons ──
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedButton(
+                    Button(
                         onClick = { showCreateSheet = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.new_account))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(R.string.new_account),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
                     }
                 }
 
@@ -1240,16 +1258,46 @@ private fun AccountsPage(
                     item {
                         OutlinedButton(
                             onClick = { showGroupSheet = true },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.FolderOpen,
+                                imageVector = Icons.Default.CreateNewFolder,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.onboarding_group_accounts_cta))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.onboarding_group_accounts_cta),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
+                            )
                         }
+                    }
+                }
+
+                // ── Groups section at bottom ──
+                if (groups.isNotEmpty()) {
+                    item(key = "groups_section_header") {
+                        Text(
+                            text = stringResource(R.string.account_groups_header),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                        )
+                    }
+
+                    items(groups, key = { "group_${it.id}" }) { group ->
+                        OnboardingGroupCard(
+                            group = group,
+                            accounts = accounts,
+                            currency = currency,
+                            onClick = { editingGroup = group }
+                        )
                     }
                 }
             }
@@ -1303,6 +1351,26 @@ private fun AccountsPage(
                 showGroupSheet = false
             },
             onDismiss = { showGroupSheet = false }
+        )
+    }
+
+    editingGroup?.let { group ->
+        val accountsWithBalance = remember(accounts) {
+            accounts.map { AccountWithBalance(account = it, currentBalance = it.initialBalance) }
+        }
+        AccountGroupSheet(
+            isEditMode = true,
+            group = group,
+            accounts = accountsWithBalance,
+            onSave = { name, memberAccountIds ->
+                onUpdateGroup(group.id, name, memberAccountIds)
+                editingGroup = null
+            },
+            onDelete = {
+                onDeleteGroup(group.id)
+                editingGroup = null
+            },
+            onDismiss = { editingGroup = null }
         )
     }
 }
@@ -1359,13 +1427,84 @@ private fun OnboardingAccountItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (account.currency.isNotBlank() && account.currency != currency) {
+                    Text(
+                        text = account.currency,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            val displayCurrency = account.currency.ifBlank { currency }
             Text(
-                text = "${formatAccountBalance(account.initialBalance)} $displayCurrency",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = formatOnboardingBalance(account.initialBalance, account.currency),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (account.initialBalance >= 0) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnboardingGroupCard(
+    group: AccountGroup,
+    accounts: List<Account>,
+    currency: String,
+    onClick: () -> Unit
+) {
+    val memberAccounts = accounts.filter { it.id in group.memberAccountIds }
+    val uniqueCurrencies = memberAccounts.map { it.currency }.distinct()
+    val isMixed = uniqueCurrencies.size > 1
+    val groupBalance: Double? = if (isMixed) null else memberAccounts.sumOf { it.initialBalance }
+    val groupCurrency = if (isMixed) currency else uniqueCurrencies.firstOrNull() ?: currency
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.tertiary),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = group.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = stringResource(R.string.group_member_count, group.memberAccountIds.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = formatOnboardingBalance(groupBalance, groupCurrency, isMixed),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if ((groupBalance ?: 0.0) >= 0) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.error
             )
         }
     }
@@ -1389,10 +1528,14 @@ private fun resolveOnboardingAccountIcon(key: String): androidx.compose.ui.graph
     }
 }
 
-private fun formatAccountBalance(value: Double): String {
-    return if (value == 0.0) "0"
-    else if (value == value.toLong().toDouble()) value.toLong().toString()
-    else value.toString()
+private fun formatOnboardingBalance(balance: Double?, currency: String, approximate: Boolean = false): String {
+    if (balance == null) return "—"
+    val prefix = if (approximate) "~" else ""
+    return if (balance == balance.toLong().toDouble()) {
+        "$prefix${balance.toLong()} $currency"
+    } else {
+        String.format(Locale.US, "%s%.2f %s", prefix, balance, currency)
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
