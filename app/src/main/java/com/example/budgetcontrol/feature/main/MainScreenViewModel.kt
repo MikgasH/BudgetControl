@@ -18,7 +18,6 @@ import com.example.budgetcontrol.core.domain.usecase.GetAccountsUseCase
 import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
-import com.example.budgetcontrol.core.domain.usecase.crossConvert
 import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.PendingCurrencyChange
@@ -139,64 +138,77 @@ class MainScreenViewModel @Inject constructor(
 
     /**
      * Balance amount in the appropriate display currency.
-     * null = at least one account's currency cannot be converted to base (rates unavailable);
-     * callers should render a placeholder rather than a misleading number.
+     * null only during the initial emission before accounts have loaded.
+     * Mixed-currency totals lean on `AccountWithBalance.baseCurrencyBalance`, which is
+     * always defined (falls back to the native initial balance when a rate is missing).
      */
     val balance: StateFlow<Double?> = combine(
         _accountsWithBalances,
         _groups,
-        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
-        _cachedRates,
-        baseCurrency
-    ) { accounts, groups, (selectedId, selectedGroupId), rates, baseCur ->
+        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged()
+    ) { accounts, groups, (selectedId, selectedGroupId) ->
         when {
             selectedGroupId != null -> {
                 val group = groups.find { it.id == selectedGroupId }
                 val memberIds = group?.memberAccountIds ?: emptyList()
-                sumInBaseCurrency(accounts.filter { it.account.id in memberIds }, baseCur, rates)
+                val members = accounts.filter { it.account.id in memberIds }
+                val currencies = members.map { it.account.currency }.distinct()
+                if (currencies.size == 1) members.sumOf { it.currentBalance }
+                else sumInBaseCurrency(members)
             }
             selectedId != null -> {
-                // Single account: balance stays in account's own currency
                 accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
             }
-            else -> sumInBaseCurrency(accounts, baseCur, rates)
+            else -> {
+                val currencies = accounts.map { it.account.currency }.distinct()
+                if (currencies.size == 1) accounts.sumOf { it.currentBalance }
+                else sumInBaseCurrency(accounts)
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Currency code to display alongside the balance. */
     val displayCurrency: StateFlow<String> = combine(
         _accountsWithBalances,
-        _uiState.map { it.selectedAccountId }.distinctUntilChanged(),
+        _groups,
+        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
         baseCurrency
-    ) { accounts, selectedId, baseCur ->
-        if (selectedId != null) {
-            accounts.find { it.account.id == selectedId }?.account?.currency ?: baseCur
-        } else baseCur
+    ) { accounts, groups, (selectedId, selectedGroupId), baseCur ->
+        when {
+            selectedId != null ->
+                accounts.find { it.account.id == selectedId }?.account?.currency ?: baseCur
+            selectedGroupId != null -> {
+                val group = groups.find { it.id == selectedGroupId }
+                val memberIds = group?.memberAccountIds ?: emptyList()
+                val currencies = accounts.filter { it.account.id in memberIds }
+                    .map { it.account.currency }.distinct()
+                if (currencies.size == 1) currencies.first() else baseCur
+            }
+            else -> {
+                val currencies = accounts.map { it.account.currency }.distinct()
+                if (currencies.size == 1) currencies.first() else baseCur
+            }
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_BASE_CURRENCY)
 
     /**
-     * True when the total balance is approximate — either because accounts hold mixed
-     * currencies (conversion applied) or because at least one required rate is missing
-     * (partial / unavailable conversion). Single-account view is always exact.
+     * True when the displayed balance required currency conversion (mixed currencies).
+     * Single-account and single-currency group/total views are always exact.
      */
     val isApproximateBalance: StateFlow<Boolean> = combine(
         _accountsWithBalances,
         _groups,
-        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged(),
-        _cachedRates,
-        baseCurrency
-    ) { accounts, groups, (selectedId, selectedGroupId), rates, baseCur ->
+        _uiState.map { Pair(it.selectedAccountId, it.selectedGroupId) }.distinctUntilChanged()
+    ) { accounts, groups, (selectedId, selectedGroupId) ->
         when {
-            selectedId != null -> false   // single account — exact
+            selectedId != null -> false
             selectedGroupId != null -> {
                 val group = groups.find { it.id == selectedGroupId }
                 val memberIds = group?.memberAccountIds ?: emptyList()
-                val members = accounts.filter { it.account.id in memberIds }
-                members.any { it.account.currency != baseCur } ||
-                    sumInBaseCurrency(members, baseCur, rates) == null
+                accounts.filter { it.account.id in memberIds }
+                    .map { it.account.currency }.distinct().size > 1
             }
-            else -> accounts.any { it.account.currency != baseCur } ||
-                sumInBaseCurrency(accounts, baseCur, rates) == null
+            else -> accounts.map { it.account.currency }.distinct().size > 1
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
@@ -226,7 +238,10 @@ class MainScreenViewModel @Inject constructor(
                 )
             }
 
-            getAccountsUseCase.getAccountsWithBalances()
+            getAccountsUseCase.getAccountsWithBalances(
+                baseCurrencyFlow = baseCurrency,
+                ratesFlow = _cachedRates
+            )
                 .onEach { accounts ->
                     _accountsWithBalances.value = accounts
                     _uiState.update { it.copy(accounts = accounts) }
@@ -250,8 +265,6 @@ class MainScreenViewModel @Inject constructor(
                 .onEach { favs -> _uiState.update { it.copy(favoriteCurrencies = favs) } }
                 .launchIn(viewModelScope)
 
-            // Trigger network fetch so the DataStore flow above emits fresh rates before
-            // the user sees a stale "—". Success path writes via saveLastRates → flow picks it up.
             launch { cerpsRepository.ensureRatesLoaded() }
 
             loadCurrencies()
@@ -262,13 +275,11 @@ class MainScreenViewModel @Inject constructor(
     private fun updateGroupBalances() {
         val accounts = _accountsWithBalances.value
         val groups = _groups.value
-        val baseCur = baseCurrency.value
-        val rates = _cachedRates.value
         val groupsWithBalance = groups.map { group ->
             val memberBalances = accounts.filter { it.account.id in group.memberAccountIds }
             AccountGroupWithBalance(
                 group = group,
-                combinedBalance = sumInBaseCurrency(memberBalances, baseCur, rates),
+                combinedBalance = sumInBaseCurrency(memberBalances),
                 memberCount = group.memberAccountIds.size
             )
         }
@@ -752,8 +763,11 @@ class MainScreenViewModel @Inject constructor(
         return state.accounts.find { it.account.id == id }?.account?.name
     }
 
-    fun getTotalBalance(): Double? {
-        return sumInBaseCurrency(_accountsWithBalances.value, baseCurrency.value, _cachedRates.value)
+    fun getTotalBalance(): Double {
+        val accounts = _accountsWithBalances.value
+        val currencies = accounts.map { it.account.currency }.distinct()
+        return if (currencies.size == 1) accounts.sumOf { it.currentBalance }
+        else sumInBaseCurrency(accounts)
     }
 
     fun hasMixedCurrencies(): Boolean {
@@ -769,33 +783,15 @@ class MainScreenViewModel @Inject constructor(
     }
 
     /**
-     * Sums a set of account balances in base currency.
-     * Returns null if any non-base account lacks a usable rate — callers must decide
-     * how to render the "unavailable" state (typically "—").
+     * Sums a set of account balances in base currency using each account's
+     * pre-computed `baseCurrencyBalance` — this uses per-transaction `amount`
+     * (already in base currency) and only relies on live rates for the initial
+     * balance, so it stays useful even when CERPS lacks a rate for one of the
+     * group's currencies (otherwise the whole group showed "—").
      */
-    private fun sumInBaseCurrency(
-        accounts: List<AccountWithBalance>,
-        baseCur: String,
-        rates: Map<String, Double>
-    ): Double? {
-        var total = 0.0
-        for (acct in accounts) {
-            val converted = convertToBaseCurrency(acct, baseCur, rates) ?: return null
-            total += converted
-        }
-        return total
+    private fun sumInBaseCurrency(accounts: List<AccountWithBalance>): Double {
+        return accounts.sumOf { it.baseCurrencyBalance }
     }
-
-    private fun convertToBaseCurrency(
-        accountWithBalance: AccountWithBalance,
-        baseCur: String,
-        rates: Map<String, Double>
-    ): Double? = crossConvert(
-        amount = accountWithBalance.currentBalance,
-        fromCurrency = accountWithBalance.account.currency,
-        toCurrency = baseCur,
-        rates = rates
-    )
 
     // ── Group management ───────────────────────────────────────────────
 
