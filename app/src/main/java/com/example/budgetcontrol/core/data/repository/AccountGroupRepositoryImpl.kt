@@ -1,7 +1,6 @@
 package com.example.budgetcontrol.core.data.repository
 
 import com.example.budgetcontrol.core.data.local.database.dao.AccountGroupDao
-import com.example.budgetcontrol.core.data.local.database.entities.AccountGroupMemberEntity
 import com.example.budgetcontrol.core.data.mapper.toDomain
 import com.example.budgetcontrol.core.data.mapper.toEntity
 import com.example.budgetcontrol.core.domain.model.AccountGroup
@@ -37,18 +36,11 @@ class AccountGroupRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertGroup(group: AccountGroup) {
-        accountGroupDao.insertGroup(group.toEntity())
-        group.memberAccountIds.forEach { accountId ->
-            accountGroupDao.addMember(AccountGroupMemberEntity(group.id, accountId))
-        }
+        accountGroupDao.insertGroupWithMembers(group.toEntity(), group.memberAccountIds)
     }
 
     override suspend fun updateGroup(group: AccountGroup) {
-        accountGroupDao.updateGroup(group.toEntity())
-        accountGroupDao.removeAllMembers(group.id)
-        group.memberAccountIds.forEach { accountId ->
-            accountGroupDao.addMember(AccountGroupMemberEntity(group.id, accountId))
-        }
+        accountGroupDao.updateGroupWithMembers(group.toEntity(), group.memberAccountIds)
     }
 
     override suspend fun deleteGroup(group: AccountGroup) {

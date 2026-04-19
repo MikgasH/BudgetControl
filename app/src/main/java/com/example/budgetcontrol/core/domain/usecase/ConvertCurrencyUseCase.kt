@@ -28,7 +28,7 @@ fun crossConvert(
     val fromRate = if (fromCurrency == "EUR") 1.0 else rates[fromCurrency]
     val toRate = if (toCurrency == "EUR") 1.0 else rates[toCurrency]
     if (fromRate == null || fromRate <= 0.0 || toRate == null || toRate <= 0.0) return null
-    return Math.round(amount * toRate / fromRate * 100) / 100.0
+    return amount * toRate / fromRate
 }
 
 class ConvertCurrencyUseCase @Inject constructor(

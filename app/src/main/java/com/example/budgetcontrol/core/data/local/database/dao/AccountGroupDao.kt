@@ -40,4 +40,21 @@ interface AccountGroupDao {
 
     @Query("DELETE FROM account_group_members WHERE groupId = :groupId")
     suspend fun removeAllMembers(groupId: String)
+
+    @Transaction
+    suspend fun insertGroupWithMembers(group: AccountGroupEntity, accountIds: List<String>) {
+        insertGroup(group)
+        accountIds.forEach { accountId ->
+            addMember(AccountGroupMemberEntity(group.id, accountId))
+        }
+    }
+
+    @Transaction
+    suspend fun updateGroupWithMembers(group: AccountGroupEntity, accountIds: List<String>) {
+        updateGroup(group)
+        removeAllMembers(group.id)
+        accountIds.forEach { accountId ->
+            addMember(AccountGroupMemberEntity(group.id, accountId))
+        }
+    }
 }

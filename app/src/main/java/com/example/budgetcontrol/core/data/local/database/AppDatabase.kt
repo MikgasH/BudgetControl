@@ -22,6 +22,7 @@ import com.example.budgetcontrol.core.data.local.database.entities.AccountGroupM
 import com.example.budgetcontrol.core.domain.model.Account
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @Database(
@@ -282,13 +283,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val prepopulateScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
         val PREPOPULATE_CALLBACK = object : RoomDatabase.Callback() {
             // Only use onOpen (not onCreate) to avoid a race condition:
             // Room fires both callbacks on first creation, and each launches an async coroutine —
             // onOpen's count check can see 0 before onCreate's inserts complete, duplicating banks.
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
-                CoroutineScope(Dispatchers.IO).launch {
+                prepopulateScope.launch {
                     val count = db.query("SELECT COUNT(*) FROM banks")
                         .use { if (it.moveToFirst()) it.getInt(0) else 0 }
                     if (count == 0) {

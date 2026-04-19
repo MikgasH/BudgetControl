@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -70,7 +71,7 @@ class StatisticsViewModel @Inject constructor(
 
     private fun loadData() {
         loadDataJob?.cancel()
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        _uiState.update { it.copy(isLoading = true, error = null) }
         loadDataJob = viewModelScope.launch {
             try {
                 val currentState = _uiState.value
@@ -92,6 +93,8 @@ class StatisticsViewModel @Inject constructor(
                     incomesFlow,
                     getCategoriesUseCase()
                 ) { expenses, incomes, categories ->
+                    Triple(expenses, incomes, categories)
+                }.collect { (expenses, incomes, categories) ->
                     val totalIncome = incomes.sumOf { it.amount }
 
                     val (stats, total) = when (currentState.selectedTab) {
@@ -111,29 +114,28 @@ class StatisticsViewModel @Inject constructor(
                         }
                     }
 
-                    StatisticsUiState(
-                        expenses = expenses,
-                        incomes = incomes,
-                        categories = categories,
-                        categoryStatistics = stats,
-                        totalAmount = total,
-                        totalIncome = totalIncome,
-                        isLoading = false,
-                        error = null,
-                        selectedPeriod = currentState.selectedPeriod,
-                        selectedTab = currentState.selectedTab,
-                        showPercentOfIncome = currentState.showPercentOfIncome
-                    )
-                }.collect { state ->
-                    _uiState.value = state
+                    _uiState.update {
+                        it.copy(
+                            expenses = expenses,
+                            incomes = incomes,
+                            categories = categories,
+                            categoryStatistics = stats,
+                            totalAmount = total,
+                            totalIncome = totalIncome,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Unknown error"
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Unknown error"
+                    )
+                }
             }
         }
     }
@@ -176,16 +178,16 @@ class StatisticsViewModel @Inject constructor(
     }
 
     fun selectPeriod(period: TimePeriod) {
-        _uiState.value = _uiState.value.copy(selectedPeriod = period)
+        _uiState.update { it.copy(selectedPeriod = period) }
         loadData()
     }
 
     fun selectTab(tab: StatisticsTab) {
-        _uiState.value = _uiState.value.copy(selectedTab = tab)
+        _uiState.update { it.copy(selectedTab = tab) }
         loadData()
     }
 
     fun togglePercentOfIncomeMode() {
-        _uiState.value = _uiState.value.copy(showPercentOfIncome = !_uiState.value.showPercentOfIncome)
+        _uiState.update { it.copy(showPercentOfIncome = !it.showPercentOfIncome) }
     }
 }
