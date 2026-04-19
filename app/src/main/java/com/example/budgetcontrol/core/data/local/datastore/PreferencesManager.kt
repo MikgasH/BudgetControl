@@ -25,6 +25,7 @@ class PreferencesManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val dataStore = context.dataStore
+    private val gson = Gson()
 
     val languageFlow: Flow<String> = dataStore.data.map { preferences ->
         preferences[LANGUAGE_KEY] ?: ""
@@ -133,7 +134,7 @@ class PreferencesManager @Inject constructor(
 
     // Cached exchange rates
     suspend fun saveLastRates(rates: Map<String, Double>, timestamp: Long) {
-        val json = Gson().toJson(rates)
+        val json = gson.toJson(rates)
         dataStore.edit { preferences ->
             preferences[LAST_RATES_KEY] = json
             preferences[LAST_RATES_TIMESTAMP_KEY] = timestamp
@@ -145,7 +146,7 @@ class PreferencesManager @Inject constructor(
         try {
             // Anonymous TypeToken subclass captures the generic type at runtime (Gson's type erasure workaround)
             val type = object : TypeToken<Map<String, Double>>() {}.type
-            Gson().fromJson(json, type)
+            gson.fromJson(json, type)
         } catch (_: Exception) {
             emptyMap()
         }
@@ -160,7 +161,7 @@ class PreferencesManager @Inject constructor(
         val json = preferences[CUSTOM_COLORS_KEY] ?: return@map emptyList()
         try {
             val type = object : TypeToken<List<String>>() {}.type
-            Gson().fromJson(json, type)
+            gson.fromJson(json, type)
         } catch (_: Exception) {
             emptyList()
         }
@@ -171,20 +172,20 @@ class PreferencesManager @Inject constructor(
             val json = preferences[CUSTOM_COLORS_KEY] ?: "[]"
             val type = object : TypeToken<MutableList<String>>() {}.type
             val list: MutableList<String> = try {
-                Gson().fromJson(json, type)
+                gson.fromJson(json, type)
             } catch (_: Exception) {
                 mutableListOf()
             }
             list.remove(hex)
             list.add(0, hex)
             if (list.size > 12) list.removeAt(list.lastIndex)
-            preferences[CUSTOM_COLORS_KEY] = Gson().toJson(list)
+            preferences[CUSTOM_COLORS_KEY] = gson.toJson(list)
         }
     }
 
     // Cached available currencies list (for offline mode)
     suspend fun saveAvailableCurrencies(currencies: List<String>) {
-        val json = Gson().toJson(currencies)
+        val json = gson.toJson(currencies)
         dataStore.edit { preferences ->
             preferences[AVAILABLE_CURRENCIES_KEY] = json
         }
@@ -194,7 +195,7 @@ class PreferencesManager @Inject constructor(
         val json = preferences[AVAILABLE_CURRENCIES_KEY] ?: return@map DEFAULT_AVAILABLE_CURRENCIES
         try {
             val type = object : TypeToken<List<String>>() {}.type
-            Gson().fromJson(json, type)
+            gson.fromJson(json, type)
         } catch (_: Exception) {
             DEFAULT_AVAILABLE_CURRENCIES
         }

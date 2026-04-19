@@ -18,10 +18,13 @@ import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,9 +46,7 @@ data class UnifiedTransactionListUiState(
 private data class FilterParams(
     val accountId: String?,
     val categoryIds: Set<String>,
-    val typeFilter: TransactionTypeFilter,
-    val startDate: Long?,
-    val endDate: Long?
+    val typeFilter: TransactionTypeFilter
 )
 
 @HiltViewModel
@@ -68,60 +69,69 @@ class UnifiedTransactionListViewModel @Inject constructor(
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UnifiedTransactionListUiState> = combine(
-        combine(
-            getExpensesUseCase(),
-            getIncomesUseCase(),
-            getCategoriesUseCase()
-        ) { expenses, incomes, categories ->
-            Triple(expenses, incomes, categories)
-        },
-        combine(
-            _selectedAccountId,
-            _selectedCategoryIds,
-            _transactionTypeFilter,
-            _startDate,
-            _endDate
-        ) { accountId, categoryIds, typeFilter, start, end ->
-            FilterParams(accountId, categoryIds, typeFilter, start, end)
-        },
-        getAccountsUseCase.getAccountsWithBalances()
-    ) { (expenses, incomes, categories), filters, accounts ->
-        val allTransactions = buildList {
-            addAll(expenses.map { it.toTransaction() })
-            addAll(incomes.map { it.toTransaction() })
+        _startDate,
+        _endDate
+    ) { start, end ->
+        if (start != null && end != null) start to end else null
+    }.distinctUntilChanged().flatMapLatest { dateRange ->
+        val expensesFlow = if (dateRange != null) {
+            getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
+        } else {
+            getExpensesUseCase()
         }
-
-        val filtered = allTransactions
-            .filter { tx ->
-                val accountMatch = filters.accountId == null || when (tx) {
-                    is Transaction.ExpenseTransaction -> tx.accountId == filters.accountId
-                    is Transaction.IncomeTransaction -> tx.accountId == filters.accountId
-                }
-                val categoryMatch = filters.categoryIds.isEmpty() || tx.categoryId in filters.categoryIds
-                val dateMatch = if (filters.startDate != null && filters.endDate != null) {
-                    tx.date in filters.startDate..filters.endDate
-                } else true
-                val typeMatch = when (filters.typeFilter) {
-                    TransactionTypeFilter.ALL -> true
-                    TransactionTypeFilter.INCOME -> tx is Transaction.IncomeTransaction
-                    TransactionTypeFilter.EXPENSE -> tx is Transaction.ExpenseTransaction
-                }
-                accountMatch && categoryMatch && dateMatch && typeMatch
+        val incomesFlow = if (dateRange != null) {
+            getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
+        } else {
+            getIncomesUseCase()
+        }
+        combine(
+            combine(expensesFlow, incomesFlow, getCategoriesUseCase()) { expenses, incomes, categories ->
+                Triple(expenses, incomes, categories)
+            },
+            combine(
+                _selectedAccountId,
+                _selectedCategoryIds,
+                _transactionTypeFilter
+            ) { accountId, categoryIds, typeFilter ->
+                FilterParams(accountId, categoryIds, typeFilter)
+            },
+            getAccountsUseCase.getAccountsWithBalances()
+        ) { (expenses, incomes, categories), filters, accounts ->
+            val allTransactions = buildList {
+                addAll(expenses.map { it.toTransaction() })
+                addAll(incomes.map { it.toTransaction() })
             }
-            .sortedByDescending { it.date }
 
-        UnifiedTransactionListUiState(
-            transactions = filtered,
-            accounts = accounts,
-            categories = categories,
-            selectedAccountId = filters.accountId,
-            selectedCategoryIds = filters.categoryIds,
-            transactionTypeFilter = filters.typeFilter,
-            startDate = filters.startDate,
-            endDate = filters.endDate,
-            isLoading = false
-        )
+            val filtered = allTransactions
+                .filter { tx ->
+                    val accountMatch = filters.accountId == null || when (tx) {
+                        is Transaction.ExpenseTransaction -> tx.accountId == filters.accountId
+                        is Transaction.IncomeTransaction -> tx.accountId == filters.accountId
+                    }
+                    val categoryMatch = filters.categoryIds.isEmpty() || tx.categoryId in filters.categoryIds
+                    val typeMatch = when (filters.typeFilter) {
+                        TransactionTypeFilter.ALL -> true
+                        TransactionTypeFilter.INCOME -> tx is Transaction.IncomeTransaction
+                        TransactionTypeFilter.EXPENSE -> tx is Transaction.ExpenseTransaction
+                    }
+                    accountMatch && categoryMatch && typeMatch
+                }
+                .sortedByDescending { it.date }
+
+            UnifiedTransactionListUiState(
+                transactions = filtered,
+                accounts = accounts,
+                categories = categories,
+                selectedAccountId = filters.accountId,
+                selectedCategoryIds = filters.categoryIds,
+                transactionTypeFilter = filters.typeFilter,
+                startDate = dateRange?.first,
+                endDate = dateRange?.second,
+                isLoading = false
+            )
+        }
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),

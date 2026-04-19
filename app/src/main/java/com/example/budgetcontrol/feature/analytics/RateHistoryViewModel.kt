@@ -97,6 +97,8 @@ class RateHistoryViewModel @Inject constructor(
     companion object {
         private const val TAG = "RateHistoryVM"
         val PERIODS = listOf("1D", "7D", "30D", "90D", "180D")
+        private val ISO_DATETIME_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        private val ISO_DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     }
 
     init {
@@ -267,10 +269,10 @@ class RateHistoryViewModel @Inject constructor(
     private fun parseTimestamp(ts: String): Date? {
         val clean = ts.trimEnd('Z')
         return try {
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).parse(clean)
+            ISO_DATETIME_FORMAT.parse(clean)
         } catch (_: Exception) {
             try {
-                SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(clean)
+                ISO_DATE_FORMAT.parse(clean)
             } catch (_: Exception) {
                 null
             }

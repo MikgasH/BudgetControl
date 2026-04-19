@@ -165,7 +165,7 @@ class MainScreenViewModel @Inject constructor(
                 else sumInBaseCurrency(accounts)
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Currency code to display alongside the balance. */
     val displayCurrency: StateFlow<String> = combine(
@@ -189,7 +189,7 @@ class MainScreenViewModel @Inject constructor(
                 if (currencies.size == 1) currencies.first() else baseCur
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_BASE_CURRENCY)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_BASE_CURRENCY)
 
     /**
      * True when the displayed balance required currency conversion (mixed currencies).
@@ -210,7 +210,7 @@ class MainScreenViewModel @Inject constructor(
             }
             else -> accounts.map { it.account.currency }.distinct().size > 1
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /**
      * Balance at the start of the currently selected period.

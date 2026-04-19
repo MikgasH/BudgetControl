@@ -36,6 +36,8 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private const val LTTB_THRESHOLD = 100
+
 // LTTB (Largest-Triangle-Three-Buckets) downsampling.
 // Preserves visual shape far better than uniform stride sampling because it selects
 // the point in each bucket that forms the largest triangle with its neighbours,
@@ -148,7 +150,7 @@ internal fun RateChart(
     val allSame = allPoints.isNotEmpty() &&
             allPoints.all { it.rate == allPoints.first().rate }
 
-    val points = lttbDownsample(allPoints, 100)
+    val points = remember(allPoints) { lttbDownsample(allPoints, LTTB_THRESHOLD) }
     // Target ~100 display points so YCharts' S-curve segments span only a few pixels
     val interpSegments = if (points.size > 1) maxOf(10, 100 / (points.size - 1)) else 1
     val displayPoints = remember(points) { catmullRomInterpolate(points, interpSegments) }
