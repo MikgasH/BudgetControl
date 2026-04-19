@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class, AccountEntity::class, AccountGroupEntity::class, AccountGroupMemberEntity::class],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -272,6 +272,13 @@ abstract class AppDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_account_group_members_accountId` ON `account_group_members` (`accountId`)")
+            }
+        }
+
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_expenses_accountId` ON `expenses` (`accountId`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_incomes_accountId` ON `incomes` (`accountId`)")
             }
         }
 

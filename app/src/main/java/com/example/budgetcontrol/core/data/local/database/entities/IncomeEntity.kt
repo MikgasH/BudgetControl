@@ -16,7 +16,7 @@ import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["categoryId"]), Index(value = ["date"])]
+    indices = [Index(value = ["categoryId"]), Index(value = ["date"]), Index(value = ["accountId"])]
 )
 data class IncomeEntity(
     @PrimaryKey val id: String,

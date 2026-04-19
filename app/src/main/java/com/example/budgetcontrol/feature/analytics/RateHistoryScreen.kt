@@ -599,8 +599,12 @@ private fun StatsRow(
     } else {
         trendsData.changePercentage
     }
-    val changeColor = if (deltaPercent >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val changePrefix = if (deltaPercent >= 0) "+" else ""
+    val changeColor = when {
+        deltaPercent > 0 -> Color(0xFF4CAF50)
+        deltaPercent < 0 -> Color(0xFFF44336)
+        else -> Color.Gray
+    }
+    val changePrefix = if (deltaPercent > 0) "+" else ""
 
     val rateLabel = selectedDate ?: stringResource(R.string.rate_history_current_rate)
 

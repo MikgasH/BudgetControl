@@ -23,6 +23,7 @@ import co.yml.charts.axis.AxisData
 import co.yml.charts.common.model.Point
 import co.yml.charts.ui.linechart.LineChart
 import co.yml.charts.ui.linechart.model.GridLines
+import co.yml.charts.ui.linechart.model.IntersectionPoint
 import co.yml.charts.ui.linechart.model.Line
 import co.yml.charts.ui.linechart.model.LineChartData
 import co.yml.charts.ui.linechart.model.LinePlotData
@@ -141,6 +142,11 @@ internal fun RateChart(
         Log.d("RateChart", "Early return: < 2 points")
         return
     }
+    // YCharts' SmoothCurve collapses to invisible degenerate bezier paths when all
+    // Y values are identical (flat/weekend rate data). Fall back to a straight line
+    // and render a visible yellow overlay so the chart doesn't appear blank.
+    val allSame = allPoints.isNotEmpty() &&
+            allPoints.all { it.rate == allPoints.first().rate }
 
     val points = lttbDownsample(allPoints, 100)
     // Target ~100 display points so YCharts' S-curve segments span only a few pixels
@@ -153,7 +159,11 @@ internal fun RateChart(
 
     LaunchedEffect(points) { selectedIndex = null }
 
-    val lineColor = if (trendsData.changePercentage >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val lineColor = when {
+        allSame -> Color(0xFFFFD700)
+        trendsData.changePercentage >= 0 -> Color(0xFF4CAF50)
+        else -> Color(0xFFF44336)
+    }
     val axisLabelColor = MaterialTheme.colorScheme.onSurface
     val axisLineColor = MaterialTheme.colorScheme.outline
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
@@ -279,11 +289,16 @@ internal fun RateChart(
                 Line(
                     dataPoints = pointsData,
                     lineStyle = LineStyle(
-                        lineType = LineType.SmoothCurve(isDotted = false),
+                        lineType = if (allSame) LineType.Straight(isDotted = false)
+                                   else LineType.SmoothCurve(isDotted = false),
                         color = lineColor,
                         width = 3f
                     ),
-                    intersectionPoint = null,
+                    // Hide YCharts' default intersection dot on flat data — our Canvas
+                    // overlay renders the visible yellow dot instead.
+                    intersectionPoint = if (allSame) {
+                        IntersectionPoint(radius = 0.dp, color = Color.Transparent)
+                    } else null,
                     shadowUnderLine = ShadowUnderLine(
                         alpha = 0.3f,
                         brush = androidx.compose.ui.graphics.Brush.verticalGradient(
@@ -324,6 +339,24 @@ internal fun RateChart(
                     modifier = Modifier.fillMaxSize(),
                     lineChartData = lineChartData
                 )
+
+                // Layer 1b: Visible overlay when all rates identical — YCharts renders
+                // nothing usable for flat data, so draw our own horizontal yellow line.
+                // No center dot: the scrub dot is the only interactive dot on the line.
+                if (allSame) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val yBottom = size.height - xAxisHeightPx
+                        val centerY = plotTopPx + (yBottom - plotTopPx) / 2f
+                        val plotStartX = yAxisWidthPx
+                        val plotEndX = size.width
+                        drawLine(
+                            color = Color(0xFFFFD700),
+                            start = Offset(plotStartX, centerY),
+                            end = Offset(plotEndX, centerY),
+                            strokeWidth = 6f
+                        )
+                    }
+                }
 
                 // Layer 2: Canvas overlay — vertical guide line + dot
                 val currentSelectedIndex = selectedIndex
@@ -366,9 +399,9 @@ internal fun RateChart(
                             center = Offset(xPx, yPx)
                         )
 
-                        // Inner colored circle
+                        // Inner colored circle — match flat-line yellow when rates are identical
                         drawCircle(
-                            color = lineColor,
+                            color = if (allSame) Color(0xFFFFD700) else lineColor,
                             radius = 5.dp.toPx(),
                             center = Offset(xPx, yPx)
                         )
