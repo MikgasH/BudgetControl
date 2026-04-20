@@ -37,7 +37,6 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
-import android.util.Log
 import com.example.budgetcontrol.core.data.remote.cerps.dto.RatePoint
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import com.example.budgetcontrol.core.util.formatAmount
@@ -161,12 +160,6 @@ fun RateHistoryScreen(
                     var selectedDate by remember { mutableStateOf<String?>(null) }
                     var amountText by remember { mutableStateOf("100") }
 
-                    Log.d("RateHistory", "Render: period=${data.period}, " +
-                            "points=${data.points.size}, dataPoints=${data.dataPoints}, " +
-                            "oldRate=${data.oldRate}, newRate=${data.newRate}, " +
-                            "change=${data.changePercentage}%, " +
-                            "startDate=${data.startDate}, endDate=${data.endDate}")
-
                     LaunchedEffect(trendsData) {
                         selectedDate = null
                     }
@@ -190,8 +183,6 @@ fun RateHistoryScreen(
                     // For periods with < 2 data points (e.g. 1D), synthesize a 2-point
                     // line from oldRate→newRate so the chart can still render
                     val chartData = if (data.points.size < 2 && data.oldRate > 0 && data.newRate > 0) {
-                        Log.d("RateHistory", "Synthesizing chart: ${data.points.size} points → " +
-                                "2 synthetic (${data.oldRate}→${data.newRate})")
                         data.copy(
                             points = listOf(
                                 RatePoint(timestamp = data.startDate, rate = data.oldRate),
@@ -203,7 +194,6 @@ fun RateHistoryScreen(
                     }
 
                     if (chartData.points.size >= 2) {
-                        Log.d("RateHistory", "RateChart: rendering ${chartData.points.size} points")
                         RateChart(
                             trendsData = chartData,
                             onPointSelected = { date, rate ->
@@ -215,7 +205,6 @@ fun RateHistoryScreen(
                             }
                         )
                     } else {
-                        Log.d("RateHistory", "InsufficientData: no valid rates to synthesize")
                         InsufficientDataCard(
                             trendsData = data,
                             selectedFrom = selectedFrom,

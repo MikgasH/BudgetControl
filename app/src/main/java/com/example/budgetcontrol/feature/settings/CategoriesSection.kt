@@ -19,12 +19,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 @Composable
 internal fun CategoriesSection(
@@ -263,9 +263,7 @@ private fun CategoryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val iconBgColor = remember(category.color) {
-        try { Color(category.color.toColorInt()) } catch (_: Exception) { Color.Gray }
-    }
+    val iconBgColor = remember(category.color) { category.color.toSafeColor() }
     Card(
         modifier = Modifier
             .fillMaxWidth()

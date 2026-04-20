@@ -28,8 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
-import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 // ── Icon data ────────────────────────────────────────────────────────
 
@@ -373,8 +373,7 @@ private fun IconCircle(
     size: Int = 44
 ) {
     val bgColor = if (isSelected) {
-        try { Color(selectedColor.toColorInt()) }
-        catch (_: Exception) { MaterialTheme.colorScheme.primary }
+        selectedColor.toSafeColor(MaterialTheme.colorScheme.primary)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }

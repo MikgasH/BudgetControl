@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 // Shared preset palette used by both category and account colour pickers.
 // A colour not in this list is considered "custom" and eligible for the Recent row.
@@ -185,7 +186,7 @@ internal fun PickerColorCircle(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val color = try { Color(hex.toColorInt()) } catch (_: Exception) { Color.Gray }
+    val color = hex.toSafeColor()
     Box(
         modifier = Modifier
             .size(36.dp)

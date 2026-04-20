@@ -45,6 +45,7 @@ import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 private const val GRID_COLUMNS = 4
 private const val COMPACT_COUNT = 7
@@ -221,8 +222,7 @@ private fun CompactCategoryItem(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
-        try { Color(category.color.toColorInt()) }
-        catch (_: Exception) { MaterialTheme.colorScheme.primary }
+        category.color.toSafeColor(MaterialTheme.colorScheme.primary)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
@@ -573,8 +573,7 @@ private fun SystemCategorySettings(
                 .size(80.dp)
                 .clip(CircleShape)
                 .background(
-                    try { Color(selectedColor.toColorInt()) }
-                    catch (_: Exception) { MaterialTheme.colorScheme.primary }
+                    selectedColor.toSafeColor(MaterialTheme.colorScheme.primary)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -714,8 +713,7 @@ private fun CustomCategorySettings(
                 .size(80.dp)
                 .clip(CircleShape)
                 .background(
-                    try { Color(selectedColor.toColorInt()) }
-                    catch (_: Exception) { MaterialTheme.colorScheme.primary }
+                    selectedColor.toSafeColor(MaterialTheme.colorScheme.primary)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -1032,8 +1030,7 @@ private fun SettingsColorCircle(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val color = try { Color(hex.toColorInt()) }
-    catch (_: Exception) { Color.Gray }
+    val color = hex.toSafeColor()
 
     Box(
         modifier = Modifier
@@ -1057,8 +1054,7 @@ private fun SettingsIconCircle(
     size: Int = 44
 ) {
     val bgColor = if (isSelected) {
-        try { Color(selectedColor.toColorInt()) }
-        catch (_: Exception) { MaterialTheme.colorScheme.primary }
+        selectedColor.toSafeColor(MaterialTheme.colorScheme.primary)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }

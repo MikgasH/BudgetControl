@@ -13,10 +13,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 @Composable
 fun PieChart(
@@ -57,11 +57,7 @@ private fun DrawScope.drawPieChart(data: List<CategoryStatistic>) {
 
     data.forEach { stat ->
         val sweepAngle = (stat.percentage / 100f) * 360f
-        val color = try {
-            Color(stat.category.color.toColorInt())
-        } catch (_: Exception) {
-            Color.Gray
-        }
+        val color = stat.category.color.toSafeColor()
 
         drawArc(
             color = color,

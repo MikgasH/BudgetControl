@@ -48,6 +48,7 @@ import com.example.budgetcontrol.ui.util.displayName
 import androidx.core.graphics.toColorInt
 import java.util.Locale
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
@@ -418,10 +419,7 @@ fun MainScreen(
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(CircleShape)
-                                            .background(
-                                                try { Color(category.color.toColorInt()) }
-                                                catch (_: Exception) { Color.Gray }
-                                            ),
+                                            .background(category.color.toSafeColor()),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
