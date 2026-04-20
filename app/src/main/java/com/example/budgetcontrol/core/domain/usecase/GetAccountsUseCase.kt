@@ -18,7 +18,11 @@ data class AccountWithBalance(
     // (already in base currency at entry time) plus the initial balance converted via rates.
     // Approximate when the initial balance cannot be converted (rate missing) — in that
     // case we keep `initialBalance` as-is rather than poisoning the sum with null.
-    val baseCurrencyBalance: Double = currentBalance
+    val baseCurrencyBalance: Double = currentBalance,
+    // False when this account is in a non-base currency and CERPS has no rate for it —
+    // callers combining across currencies use this to distinguish "accurate cross-currency
+    // sum" from "best-effort sum with missing rates".
+    val baseConversionAvailable: Boolean = true
 )
 
 data class AccountGroupWithBalance(
@@ -27,7 +31,10 @@ data class AccountGroupWithBalance(
     // per-account base balance is an approximation when rates are missing for the account's
     // initial balance, which should be surfaced to the user via an "~" prefix.
     val combinedBalance: Double,
-    val memberCount: Int
+    val memberCount: Int,
+    // True when this is a mixed-currency group and at least one member lacks an exchange
+    // rate to base currency. UI should render "—" rather than a silently-wrong sum.
+    val ratesUnavailable: Boolean = false
 )
 
 class GetAccountsUseCase @Inject constructor(
@@ -76,20 +83,20 @@ class GetAccountsUseCase @Inject constructor(
                 // base amounts and still produce a meaningful group total.
                 val totalExpensesBase = accountExpenses.sumOf { it.amount }
                 val totalIncomesBase = accountIncomes.sumOf { it.amount }
-                val convertedInitial = when {
-                    account.currency == baseCurrency -> account.initialBalance
-                    else -> crossConvert(
-                        account.initialBalance,
-                        account.currency,
-                        baseCurrency,
-                        rates
-                    ) ?: account.initialBalance
+                val needsConversion = account.currency != baseCurrency
+                val convertedInitialOrNull = if (needsConversion) {
+                    crossConvert(account.initialBalance, account.currency, baseCurrency, rates)
+                } else {
+                    account.initialBalance
                 }
+                val convertedInitial = convertedInitialOrNull ?: account.initialBalance
+                val baseConversionAvailable = !needsConversion || convertedInitialOrNull != null
 
                 AccountWithBalance(
                     account = account,
                     currentBalance = account.initialBalance + totalIncomes - totalExpenses,
-                    baseCurrencyBalance = convertedInitial + totalIncomesBase - totalExpensesBase
+                    baseCurrencyBalance = convertedInitial + totalIncomesBase - totalExpensesBase,
+                    baseConversionAvailable = baseConversionAvailable
                 )
             }
         }

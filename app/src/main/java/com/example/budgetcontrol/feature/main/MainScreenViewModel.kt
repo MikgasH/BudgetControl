@@ -134,6 +134,10 @@ class MainScreenViewModel @Inject constructor(
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
 
+    /** 0 when rates have never been cached — treated as absent by the UI. */
+    val cachedRatesTimestamp: StateFlow<Long> = preferencesManager.getLastRatesTimestamp()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
     private val _cachedRates = MutableStateFlow<Map<String, Double>>(emptyMap())
 
     /**
@@ -153,16 +157,24 @@ class MainScreenViewModel @Inject constructor(
                 val memberIds = group?.memberAccountIds ?: emptyList()
                 val members = accounts.filter { it.account.id in memberIds }
                 val currencies = members.map { it.account.currency }.distinct()
-                if (currencies.size == 1) members.sumOf { it.currentBalance }
-                else sumInBaseCurrency(members)
+                when {
+                    currencies.size == 1 -> members.sumOf { it.currentBalance }
+                    // Mixed-currency group with missing rates: return null so UI shows
+                    // "—" instead of a silently-wrong best-effort total.
+                    members.any { !it.baseConversionAvailable } -> null
+                    else -> sumInBaseCurrency(members)
+                }
             }
             selectedId != null -> {
                 accounts.find { it.account.id == selectedId }?.currentBalance ?: 0.0
             }
             else -> {
                 val currencies = accounts.map { it.account.currency }.distinct()
-                if (currencies.size == 1) accounts.sumOf { it.currentBalance }
-                else sumInBaseCurrency(accounts)
+                when {
+                    currencies.size == 1 -> accounts.sumOf { it.currentBalance }
+                    accounts.any { !it.baseConversionAvailable } -> null
+                    else -> sumInBaseCurrency(accounts)
+                }
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -277,10 +289,16 @@ class MainScreenViewModel @Inject constructor(
         val groups = _groups.value
         val groupsWithBalance = groups.map { group ->
             val memberBalances = accounts.filter { it.account.id in group.memberAccountIds }
+            val currencies = memberBalances.map { it.account.currency }.distinct()
+            // Only mixed-currency groups need live rates to compute a meaningful total;
+            // single-currency groups always sum correctly in their native currency.
+            val ratesUnavailable = currencies.size > 1 &&
+                memberBalances.any { !it.baseConversionAvailable }
             AccountGroupWithBalance(
                 group = group,
                 combinedBalance = sumInBaseCurrency(memberBalances),
-                memberCount = group.memberAccountIds.size
+                memberCount = group.memberAccountIds.size,
+                ratesUnavailable = ratesUnavailable
             )
         }
         _uiState.update { it.copy(accountGroups = groupsWithBalance) }

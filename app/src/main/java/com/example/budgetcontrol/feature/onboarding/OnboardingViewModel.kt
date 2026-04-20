@@ -109,7 +109,12 @@ class OnboardingViewModel @Inject constructor(
                     )
                 }
                 is CerpsResult.Error -> {
-                    _uiState.value = _uiState.value.copy(currenciesLoading = false)
+                    // Offline fallback: let the user pick a base currency from the
+                    // hardcoded defaults rather than getting stuck on onboarding.
+                    _uiState.value = _uiState.value.copy(
+                        currencies = PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES,
+                        currenciesLoading = false
+                    )
                 }
             }
         }

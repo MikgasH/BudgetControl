@@ -127,7 +127,10 @@ class SettingsViewModel @Inject constructor(
             .onEach { theme -> _uiState.update { it.copy(currentTheme = theme) } }
             .launchIn(viewModelScope)
 
-        getAccountsUseCase.getAccountsWithBalances()
+        getAccountsUseCase.getAccountsWithBalances(
+            baseCurrencyFlow = preferencesManager.baseCurrencyFlow,
+            ratesFlow = preferencesManager.getLastRates()
+        )
             .onEach { accounts -> _uiState.update { it.copy(accounts = accounts) } }
             .launchIn(viewModelScope)
 

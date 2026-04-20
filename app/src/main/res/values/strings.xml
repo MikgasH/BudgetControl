@@ -260,6 +260,9 @@
     <string name="offline_service_unavailable">Rate service unavailable · using cached rate</string>
     <string name="offline_no_rates">Cannot get exchange rate · enter amount in EUR manually</string>
     <string name="stale_rate_warning">Rate may be outdated · updated %1$s hours ago</string>
+    <string name="foreign_currency_requires_internet">Currency conversion requires internet connection</string>
+    <string name="rates_updated_at">Rates updated: %1$s</string>
+    <string name="no_rate_data">No rate data</string>
 
     <!-- Current balance -->
     <string name="current_balance">Current balance</string>
@@ -464,6 +467,8 @@
     <string name="rate_history_no_data">No data</string>
     <string name="rate_history_data_source">Data from interbank rates \u00B7 updated every 8 hours</string>
     <string name="rate_history_error">Failed to load rate data</string>
+    <string name="rate_history_offline">No connection. Rate history is unavailable offline.</string>
+    <string name="rate_history_service_unavailable">Service temporarily unavailable.</string>
     <string name="rate_history_same_currency">Please select different currencies</string>
     <string name="rate_history_retry">Retry</string>
     <string name="rate_history_amount">Amount</string>

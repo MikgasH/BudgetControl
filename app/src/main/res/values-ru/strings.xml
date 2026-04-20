@@ -260,6 +260,9 @@
     <string name="offline_service_unavailable">Сервис курсов недоступен · используется сохранённый курс</string>
     <string name="offline_no_rates">Не удалось получить курс · введите сумму в EUR вручную</string>
     <string name="stale_rate_warning">Курс может быть неактуальным · обновлено %1$s ч. назад</string>
+    <string name="foreign_currency_requires_internet">Конвертация валют требует подключения к интернету</string>
+    <string name="rates_updated_at">Курсы обновлены: %1$s</string>
+    <string name="no_rate_data">Нет данных о курсе</string>
 
     <!-- Current balance -->
     <string name="current_balance">Текущий баланс</string>
@@ -464,6 +467,8 @@
     <string name="rate_history_no_data">Нет данных</string>
     <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждые 8 часов</string>
     <string name="rate_history_error">Не удалось загрузить данные о курсах</string>
+    <string name="rate_history_offline">Нет подключения. История курсов недоступна офлайн.</string>
+    <string name="rate_history_service_unavailable">Сервис временно недоступен.</string>
     <string name="rate_history_same_currency">Выберите разные валюты</string>
     <string name="rate_history_retry">Повторить</string>
     <string name="rate_history_amount">Сумма</string>

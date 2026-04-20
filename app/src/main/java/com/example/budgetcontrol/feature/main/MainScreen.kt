@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import com.example.budgetcontrol.ui.components.common.PeriodNavigationCard
@@ -78,6 +81,7 @@ fun MainScreen(
     val displayCurrency by viewModel.displayCurrency.collectAsState()
     val isApproximateBalance by viewModel.isApproximateBalance.collectAsState()
     val openingBalance by viewModel.openingBalance.collectAsState()
+    val cachedRatesTimestamp by viewModel.cachedRatesTimestamp.collectAsState()
     val currentContext = LocalContext.current
     val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
         context = currentContext,
@@ -331,6 +335,16 @@ fun MainScreen(
                             text = viewModel.formatBalance(balance, displayCurrency, isApproximateBalance),
                             color = Color.White
                         )
+                        if (isApproximateBalance && cachedRatesTimestamp > 0L) {
+                            Text(
+                                text = stringResource(
+                                    R.string.rates_updated_at,
+                                    formatRatesTimestamp(cachedRatesTimestamp)
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.6f)
+                            )
+                        }
                         val selectedName = viewModel.getSelectedAccountName()
                         if (selectedName != null) {
                             Text(
@@ -768,6 +782,15 @@ private fun FixedPeriodTypeSelector(
     }
 }
 
+
+private fun formatRatesTimestamp(timestamp: Long, locale: Locale = Locale.getDefault()): String {
+    val now = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = timestamp }
+    val sameDay = now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
+    val pattern = if (sameDay) "HH:mm" else "d MMM HH:mm"
+    return SimpleDateFormat(pattern, locale).format(Date(timestamp))
+}
 
 @Composable
 private fun AutoSizeBalanceText(

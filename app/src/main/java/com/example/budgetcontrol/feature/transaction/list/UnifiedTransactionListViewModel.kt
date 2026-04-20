@@ -57,7 +57,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
     private val getAccountsUseCase: GetAccountsUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val deleteIncomeUseCase: DeleteIncomeUseCase,
-    preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _selectedAccountId = MutableStateFlow<String?>(null)
@@ -97,7 +97,10 @@ class UnifiedTransactionListViewModel @Inject constructor(
             ) { accountId, categoryIds, typeFilter ->
                 FilterParams(accountId, categoryIds, typeFilter)
             },
-            getAccountsUseCase.getAccountsWithBalances()
+            getAccountsUseCase.getAccountsWithBalances(
+                baseCurrencyFlow = preferencesManager.baseCurrencyFlow,
+                ratesFlow = preferencesManager.getLastRates()
+            )
         ) { (expenses, incomes, categories), filters, accounts ->
             val allTransactions = buildList {
                 addAll(expenses.map { it.toTransaction() })

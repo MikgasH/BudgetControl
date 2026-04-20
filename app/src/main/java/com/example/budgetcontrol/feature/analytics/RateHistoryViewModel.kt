@@ -7,6 +7,7 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +37,8 @@ data class ScrubState(
 class RateHistoryViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val cerpsRepository: CerpsRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val networkStatusRepository: NetworkStatusRepository
 ) : ViewModel() {
 
     private val _rawCurrencies = MutableStateFlow<List<String>>(emptyList())
@@ -119,10 +121,17 @@ class RateHistoryViewModel @Inject constructor(
             when (val result = cerpsRepository.getCurrencies()) {
                 is CerpsResult.Success -> _rawCurrencies.value = result.data
                 is CerpsResult.Error -> {
-                    _error.value = context.getString(R.string.rate_history_error)
+                    _error.value = resolveErrorMessage()
                 }
             }
         }
+    }
+
+    private fun resolveErrorMessage(): String {
+        val offline = !networkStatusRepository.isInternetAvailable()
+        val resId = if (offline) R.string.rate_history_offline
+        else R.string.rate_history_service_unavailable
+        return context.getString(resId)
     }
 
     fun selectFrom(currency: String) {
@@ -209,7 +218,7 @@ class RateHistoryViewModel @Inject constructor(
                     }
                     is CerpsResult.Error -> {
                         Log.e(TAG, "loadTrends ERROR: period=$period, msg=${result.message}")
-                        _error.value = context.getString(R.string.rate_history_error)
+                        _error.value = resolveErrorMessage()
                         _trendsData.value = null
                     }
                 }
@@ -219,7 +228,7 @@ class RateHistoryViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "loadTrends EXCEPTION: period=$period", e)
-                _error.value = context.getString(R.string.rate_history_error)
+                _error.value = resolveErrorMessage()
                 _trendsData.value = null
             }
 

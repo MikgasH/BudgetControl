@@ -309,7 +309,8 @@ private fun TransactionFormContent(
             staleRateWarning = uiState.staleRateWarning,
             accounts = uiState.accounts,
             selectedAccountId = uiState.selectedAccountId,
-            onAccountSelect = onAccountSelect
+            onAccountSelect = onAccountSelect,
+            foreignCurrencyDisabled = uiState.foreignCurrencyDisabled
         )
     } else {
         EditTransactionFormContent(

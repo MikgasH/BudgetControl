@@ -86,7 +86,8 @@ fun AddTransactionContent(
     staleRateWarning: String? = null,
     accounts: List<AccountWithBalance> = emptyList(),
     selectedAccountId: String = "",
-    onAccountSelect: (String) -> Unit = {}
+    onAccountSelect: (String) -> Unit = {},
+    foreignCurrencyDisabled: Boolean = false
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -122,8 +123,18 @@ fun AddTransactionContent(
             baseCurrency = baseCurrency,
             favoriteCurrencies = favoriteCurrencies,
             isLoading = isCurrenciesLoading,
-            error = currenciesError
+            error = currenciesError,
+            enabled = !foreignCurrencyDisabled
         )
+
+        if (foreignCurrencyDisabled) {
+            Text(
+                text = stringResource(R.string.foreign_currency_requires_internet),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
 
         // Network status banner (only when currency != base)
         if (formState.selectedCurrency != baseCurrency && networkStatus != NetworkStatus.ONLINE) {

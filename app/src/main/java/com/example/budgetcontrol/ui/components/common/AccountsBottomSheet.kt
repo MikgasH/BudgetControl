@@ -332,28 +332,43 @@ fun AccountsBottomSheet(
                                 }
                                 val groupMembers = accounts.filter { it.account.id in group.memberAccountIds }
                                 val groupNativeCurrencies = groupMembers.map { it.account.currency }.distinct()
-                                val groupDisplayBalance: Double
+                                val groupDisplayBalance: Double?
                                 val groupDisplayCurrency: String
                                 val groupIsApprox: Boolean
                                 if (groupNativeCurrencies.size == 1) {
                                     groupDisplayBalance = groupMembers.sumOf { it.currentBalance }
                                     groupDisplayCurrency = groupNativeCurrencies.first()
                                     groupIsApprox = false
+                                } else if (groupWithBalance.ratesUnavailable) {
+                                    // Mixed-currency group with no rate for at least one member —
+                                    // formatAccountBalance renders null as "—".
+                                    groupDisplayBalance = null
+                                    groupDisplayCurrency = baseCurrency
+                                    groupIsApprox = false
                                 } else {
                                     groupDisplayBalance = groupWithBalance.combinedBalance
                                     groupDisplayCurrency = baseCurrency
                                     groupIsApprox = true
                                 }
-                                Text(
-                                    text = formatAccountBalance(groupDisplayBalance, groupDisplayCurrency, groupIsApprox),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (groupDisplayBalance >= 0) {
-                                        MaterialTheme.colorScheme.onSurface
-                                    } else {
-                                        MaterialTheme.colorScheme.error
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = formatAccountBalance(groupDisplayBalance, groupDisplayCurrency, groupIsApprox),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if ((groupDisplayBalance ?: 0.0) >= 0) {
+                                            MaterialTheme.colorScheme.onSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.error
+                                        }
+                                    )
+                                    if (groupWithBalance.ratesUnavailable && groupNativeCurrencies.size > 1) {
+                                        Text(
+                                            text = stringResource(R.string.no_rate_data),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                )
+                                }
                             }
                         }
                     }

@@ -6,12 +6,17 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionRequest
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.di.ApplicationScope
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateResult
 import com.example.budgetcontrol.core.util.RATES_STALE_MS
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,15 +30,43 @@ class CerpsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val apiService: CerpsApiService,
     private val analyticsApiService: CerpsAnalyticsApiService,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    @ApplicationScope private val applicationScope: CoroutineScope
 ) : CurrencyRateProvider {
 
     // --- Currencies in-memory cache (one request per session) ---
     private var cachedCurrencies: List<String>? = null
 
     // --- Exchange rates in-memory cache ---
-    private var cachedRates: Map<String, Double>? = null
-    private var cachedRatesTimestamp: Long = 0L
+    @Volatile private var cachedRates: Map<String, Double>? = null
+    @Volatile private var cachedRatesTimestamp: Long = 0L
+
+    // Guards one-time hydration from DataStore so the first caller racing with init
+    // doesn't miss the persisted cache and fire an avoidable network round-trip.
+    private val hydrationMutex = Mutex()
+    @Volatile private var hydrated = false
+
+    init {
+        // Fire-and-forget warm-up: read persisted rates into memory as early as possible
+        // so the first ensureRatesLoaded() call can skip the network when cache is fresh.
+        applicationScope.launch { hydrateFromCacheIfNeeded() }
+    }
+
+    private suspend fun hydrateFromCacheIfNeeded() {
+        if (hydrated) return
+        hydrationMutex.withLock {
+            if (hydrated) return
+            if (cachedRates == null) {
+                val dsRates = preferencesManager.getLastRates().firstOrNull().orEmpty()
+                val dsTimestamp = preferencesManager.getLastRatesTimestamp().firstOrNull() ?: 0L
+                if (dsRates.isNotEmpty()) {
+                    cachedRates = dsRates
+                    cachedRatesTimestamp = dsTimestamp
+                }
+            }
+            hydrated = true
+        }
+    }
 
     suspend fun getCurrencies(): CerpsResult<List<String>> {
         cachedCurrencies?.let { return CerpsResult.Success(it) }
@@ -46,16 +79,28 @@ class CerpsRepository @Inject constructor(
                 preferencesManager.saveAvailableCurrencies(currencies)
                 CerpsResult.Success(currencies)
             } else {
-                CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
+                currenciesFallback()
             }
         } catch (e: Exception) {
-            CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
+            currenciesFallback()
         }
+    }
+
+    // Graceful degradation: DataStore cache → hardcoded defaults. Returning Success here
+    // (rather than Error) lets the UI still populate a currency picker offline — the user
+    // can pick a currency; the conversion layer handles the "no rates" case separately.
+    private suspend fun currenciesFallback(): CerpsResult<List<String>> {
+        val cached = preferencesManager.getAvailableCurrencies().firstOrNull().orEmpty()
+        val list = cached.ifEmpty { PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES }
+        cachedCurrencies = list
+        return CerpsResult.Success(list)
     }
 
     // --- Exchange rates loading & caching ---
 
     suspend fun ensureRatesLoaded(): CerpsResult<Map<String, Double>> {
+        hydrateFromCacheIfNeeded()
+
         // Skip the network call while the in-memory cache is still within the stale window
         val rates = cachedRates
         if (rates != null && !areRatesStale()) {

@@ -82,6 +82,10 @@ data class TransactionFormUiState(
     val lastCashExchange: CurrencyExchange? = null,
     // Network status
     val networkStatus: NetworkStatus = NetworkStatus.ONLINE,
+    // True when foreign-currency selection is unavailable because no rates are cached
+    // (fully offline on first run). UI should disable the picker and surface the reason.
+    val foreignCurrencyDisabled: Boolean = false,
+    val foreignCurrencyDisabledMessage: String? = null,
     // Stale rate warning (shown when cached rates are older than 8 hours)
     val staleRateWarning: String? = null,
     // Save cash rate dialog
@@ -140,7 +144,10 @@ class TransactionFormViewModel @Inject constructor(
 
             // Now collect accounts — selectedAccountId is already set from prefs or navigation
             var initialCurrencyApplied = false
-            getAccountsUseCase.getAccountsWithBalances()
+            getAccountsUseCase.getAccountsWithBalances(
+                baseCurrencyFlow = preferencesManager.baseCurrencyFlow,
+                ratesFlow = preferencesManager.getLastRates()
+            )
                 .collect { accountsWithBalances ->
                     val current = _uiState.value
                     val resolvedId = if (accountsWithBalances.any { it.account.id == current.selectedAccountId }) {
@@ -185,22 +192,27 @@ class TransactionFormViewModel @Inject constructor(
     private fun checkNetworkStatus() {
         viewModelScope.launch {
             val hasInternet = networkStatusRepository.isInternetAvailable()
-            if (!hasInternet) {
-                val cachedRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
-                _uiState.value = _uiState.value.copy(
-                    networkStatus = if (cachedRates.isNotEmpty()) {
-                        NetworkStatus.NO_INTERNET
-                    } else {
-                        NetworkStatus.OFFLINE_NO_CACHE
-                    }
-                )
+            val cachedRates = preferencesManager.getLastRates().firstOrNull() ?: emptyMap()
+            // Foreign currency only makes sense when we have at least one rate to convert with.
+            // Stale rates are still usable here — the user is warned separately via staleRateWarning.
+            val foreignDisabled = !hasInternet && cachedRates.isEmpty()
+            val disabledMessage = if (foreignDisabled) {
+                context.getString(R.string.foreign_currency_requires_internet)
+            } else null
+
+            val status = if (!hasInternet) {
+                if (cachedRates.isNotEmpty()) NetworkStatus.NO_INTERNET
+                else NetworkStatus.OFFLINE_NO_CACHE
             } else {
                 val cerpsUp = networkStatusRepository.isCerpsAvailable()
-                _uiState.value = _uiState.value.copy(
-                    networkStatus = if (cerpsUp) NetworkStatus.ONLINE
-                    else NetworkStatus.SERVICE_UNAVAILABLE
-                )
+                if (cerpsUp) NetworkStatus.ONLINE else NetworkStatus.SERVICE_UNAVAILABLE
             }
+
+            _uiState.value = _uiState.value.copy(
+                networkStatus = status,
+                foreignCurrencyDisabled = foreignDisabled,
+                foreignCurrencyDisabledMessage = disabledMessage
+            )
         }
     }
 
@@ -286,6 +298,13 @@ class TransactionFormViewModel @Inject constructor(
     fun selectCurrency(currency: String) {
         val current = _uiState.value
         val baseCurrency = current.baseCurrency
+
+        // Block picking a foreign currency when we can't convert (fully offline, no cache).
+        // Fall back silently to base so the form stays usable and the UI message explains why.
+        if (currency != baseCurrency && current.foreignCurrencyDisabled) {
+            _uiState.value = current.copy(selectedCurrency = baseCurrency)
+            return
+        }
 
         viewModelScope.launch {
             val lastMethod = if (currency != baseCurrency) {
