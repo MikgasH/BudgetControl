@@ -26,6 +26,7 @@ android {
         localProperties.load(rootProject.file("local.properties").inputStream())
         buildConfigField("String", "CERPS_BASE_URL", "\"${localProperties["cerps.base.url"]}\"")
         buildConfigField("String", "CERPS_ANALYTICS_URL", "\"${localProperties["cerps.analytics.url"]}\"")
+        buildConfigField("String", "GEMINI_BASE_URL", "\"${localProperties["gemini.base.url"]}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties["gemini.api.key"]}\"")
     }
 

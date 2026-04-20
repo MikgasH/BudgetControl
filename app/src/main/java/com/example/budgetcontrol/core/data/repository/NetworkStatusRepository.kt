@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
+import com.example.budgetcontrol.core.util.CERPS_TIMEOUT_MS
+import com.example.budgetcontrol.core.util.HEALTH_CHECK_CACHE_MS
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
@@ -17,11 +19,6 @@ class NetworkStatusRepository @Inject constructor(
 
     private var lastHealthCheckResult: Boolean = false
     private var lastHealthCheckTimestamp: Long = 0L
-
-    companion object {
-        // 30s cache prevents hammering CERPS with health checks on every screen transition
-        private const val HEALTH_CHECK_CACHE_MS = 30_000L
-    }
 
     fun isInternetAvailable(): Boolean {
         val connectivityManager =
@@ -39,8 +36,8 @@ class NetworkStatusRepository @Inject constructor(
         }
 
         val result = try {
-            // 3s timeout matches the OkHttp connect timeout — fail fast if CERPS is unreachable
-            val response = withTimeoutOrNull(3000L) {
+            // Timeout matches the OkHttp connect timeout — fail fast if CERPS is unreachable
+            val response = withTimeoutOrNull(CERPS_TIMEOUT_MS) {
                 cerpsApiService.healthCheck()
             }
             response?.isSuccessful == true

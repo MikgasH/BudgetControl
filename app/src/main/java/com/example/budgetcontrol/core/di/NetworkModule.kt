@@ -7,6 +7,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiApiService
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
+import com.example.budgetcontrol.core.util.CERPS_TIMEOUT_MS
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -29,7 +30,8 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    else HttpLoggingInterceptor.Level.NONE
         }
 
         return OkHttpClient.Builder()
@@ -45,14 +47,15 @@ object NetworkModule {
     @Named("cerps")
     fun provideCerpsOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                    else HttpLoggingInterceptor.Level.NONE
         }
 
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(3, TimeUnit.SECONDS)
-            .readTimeout(3, TimeUnit.SECONDS)
-            .writeTimeout(3, TimeUnit.SECONDS)
+            .connectTimeout(CERPS_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .readTimeout(CERPS_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .writeTimeout(CERPS_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .build()
     }
 
@@ -114,7 +117,7 @@ object NetworkModule {
     @Named("gemini")
     fun provideGeminiRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://generativelanguage.googleapis.com/")
+            .baseUrl(BuildConfig.GEMINI_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

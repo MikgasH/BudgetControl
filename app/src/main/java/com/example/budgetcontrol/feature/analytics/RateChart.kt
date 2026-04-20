@@ -1,12 +1,12 @@
 package com.example.budgetcontrol.feature.analytics
 
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -14,9 +14,11 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.core.os.ConfigurationCompat
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import co.yml.charts.axis.AxisData
@@ -30,13 +32,15 @@ import co.yml.charts.ui.linechart.model.LinePlotData
 import co.yml.charts.ui.linechart.model.LineStyle
 import co.yml.charts.ui.linechart.model.LineType
 import co.yml.charts.ui.linechart.model.ShadowUnderLine
+import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.cerps.dto.RatePoint
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.util.FLAT_REL_THRESHOLD
+import com.example.budgetcontrol.core.util.INTERP_TARGET_POINTS
+import com.example.budgetcontrol.core.util.LTTB_THRESHOLD
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.roundToInt
-
-private const val LTTB_THRESHOLD = 100
 
 // LTTB (Largest-Triangle-Three-Buckets) downsampling.
 // Preserves visual shape far better than uniform stride sampling because it selects
@@ -138,10 +142,26 @@ internal fun RateChart(
     onPointSelected: (date: String?, rate: Double) -> Unit
 ) {
     val allPoints = trendsData.points
-    Log.d("RateChart", "RateChart called: ${allPoints.size} points, " +
-            "period=${trendsData.period}, change=${trendsData.changePercentage}%")
     if (allPoints.size < 2) {
-        Log.d("RateChart", "Early return: < 2 points")
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CHART_HEIGHT),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.rate_history_not_enough_data),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
         return
     }
     // YCharts' SmoothCurve collapses to invisible degenerate bezier paths when all
@@ -151,12 +171,9 @@ internal fun RateChart(
             allPoints.all { it.rate == allPoints.first().rate }
 
     val points = remember(allPoints) { lttbDownsample(allPoints, LTTB_THRESHOLD) }
-    // Target ~100 display points so YCharts' S-curve segments span only a few pixels
-    val interpSegments = if (points.size > 1) maxOf(10, 100 / (points.size - 1)) else 1
+    // Target ~INTERP_TARGET_POINTS display points so YCharts' S-curve segments span only a few pixels
+    val interpSegments = if (points.size > 1) maxOf(10, INTERP_TARGET_POINTS / (points.size - 1)) else 1
     val displayPoints = remember(points) { catmullRomInterpolate(points, interpSegments) }
-    Log.d("RateChart", "After LTTB: ${points.size} points → ${displayPoints.size} display points, " +
-            "first=${points.first().timestamp}/${points.first().rate}, " +
-            "last=${points.last().timestamp}/${points.last().rate}")
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(points) { selectedIndex = null }
@@ -179,7 +196,7 @@ internal fun RateChart(
     // dramatically sloped due to floating-point noise. Pin the Y axis to ±0.5% around
     // the current rate instead so the line renders flat/stable.
     val relativeRange = if (currentRate > 0f) (maxRate - minRate) / currentRate else 0f
-    val (yMin, yMax) = if (relativeRange < 0.001f) {
+    val (yMin, yMax) = if (relativeRange < FLAT_REL_THRESHOLD) {
         val halfBand = currentRate * 0.005f
         (currentRate - halfBand) to (currentRate + halfBand)
     } else {

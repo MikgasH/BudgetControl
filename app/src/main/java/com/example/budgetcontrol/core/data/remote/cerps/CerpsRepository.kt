@@ -8,6 +8,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateResult
+import com.example.budgetcontrol.core.util.RATES_STALE_MS
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.firstOrNull
@@ -33,12 +34,6 @@ class CerpsRepository @Inject constructor(
     // --- Exchange rates in-memory cache ---
     private var cachedRates: Map<String, Double>? = null
     private var cachedRatesTimestamp: Long = 0L
-    private var ratesLoadedThisSession: Boolean = false
-
-    companion object {
-        // 8h threshold balances freshness vs API usage — forex rates don't change drastically intraday
-        private const val STALE_THRESHOLD_MS = 8 * 60 * 60 * 1000L
-    }
 
     suspend fun getCurrencies(): CerpsResult<List<String>> {
         cachedCurrencies?.let { return CerpsResult.Success(it) }
@@ -51,36 +46,28 @@ class CerpsRepository @Inject constructor(
                 preferencesManager.saveAvailableCurrencies(currencies)
                 CerpsResult.Success(currencies)
             } else {
-                val cached = preferencesManager.getAvailableCurrencies().firstOrNull()
-                    ?: PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
-                cachedCurrencies = cached
-                CerpsResult.Success(cached)
+                CerpsResult.Error(context.getString(R.string.error_conversion, response.code().toString()))
             }
         } catch (e: Exception) {
-            val cached = preferencesManager.getAvailableCurrencies().firstOrNull()
-                ?: PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
-            cachedCurrencies = cached
-            CerpsResult.Success(cached)
+            CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
         }
     }
 
     // --- Exchange rates loading & caching ---
 
     suspend fun ensureRatesLoaded(): CerpsResult<Map<String, Double>> {
-        // Once the API succeeds this session, skip further network calls — rates are stable enough
+        // Skip the network call while the in-memory cache is still within the stale window
         val rates = cachedRates
-        if (ratesLoadedThisSession && rates != null) {
+        if (rates != null && !areRatesStale()) {
             return CerpsResult.Success(rates)
         }
 
-        // First call after app launch always hits the API to get fresh rates
         return try {
             val response = apiService.getCurrentRates()
             val ratesResponse = response.body()
             if (response.isSuccessful && ratesResponse != null) {
                 cachedRates = ratesResponse.rates
                 cachedRatesTimestamp = System.currentTimeMillis()
-                ratesLoadedThisSession = true
                 preferencesManager.saveLastRates(ratesResponse.rates, cachedRatesTimestamp)
                 CerpsResult.Success(ratesResponse.rates)
             } else {
@@ -120,10 +107,8 @@ class CerpsRepository @Inject constructor(
 
     override fun areRatesStale(): Boolean {
         if (cachedRatesTimestamp == 0L) return true
-        return (System.currentTimeMillis() - cachedRatesTimestamp) >= STALE_THRESHOLD_MS
+        return (System.currentTimeMillis() - cachedRatesTimestamp) >= RATES_STALE_MS
     }
-
-    fun areRatesFresh(): Boolean = ratesLoadedThisSession && cachedRates != null
 
     fun getRatesTimestamp(): Long = cachedRatesTimestamp
 
