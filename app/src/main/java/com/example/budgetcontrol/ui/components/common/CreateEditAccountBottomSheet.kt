@@ -258,7 +258,24 @@ fun CreateEditAccountBottomSheet(
             CustomColorPicker(
                 selectedColor = selectedColor,
                 onColorSelected = { selectedColor = it },
-                recentColors = recentColors
+                recentColors = recentColors,
+                previewContent = { color ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(color),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = resolveAccountIcon(selectedIcon),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
             )
 
             // Currency selector
