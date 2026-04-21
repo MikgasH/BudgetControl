@@ -67,6 +67,13 @@ fun CustomColorPicker(
     var blue by remember { mutableIntStateOf(initB) }
     var hexDraft by remember { mutableStateOf(selectedColor.removePrefix("#")) }
 
+    // ── Optional preview rendered above the grid ─────────────────────
+    previewContent?.let { content ->
+        Box(modifier = Modifier.padding(bottom = 12.dp)) {
+            content(selectedColor.toSafeColor())
+        }
+    }
+
     // ── Unified colour grid (recent first, then presets) ─────────────
     val allColors = remember(recentColors) {
         (recentColors + colorPickerPresets).distinct()
@@ -114,9 +121,6 @@ fun CustomColorPicker(
 
     AnimatedVisibility(visible = showCustom) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Optional icon/preview content supplied by the caller
-            previewContent?.invoke(Color(red, green, blue))
-
             // HEX input
             OutlinedTextField(
                 value = hexDraft,
