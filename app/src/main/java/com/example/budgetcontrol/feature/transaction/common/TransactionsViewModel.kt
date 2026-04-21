@@ -127,6 +127,18 @@ class TransactionFormViewModel @Inject constructor(
 
     private var allCategories: List<Category> = emptyList()
 
+    /** Currency of the currently selected account; falls back to baseCurrency if unresolved. */
+    private fun accountCurrency(): String {
+        val current = _uiState.value
+        return current.accounts.find { it.account.id == current.selectedAccountId }
+            ?.account?.currency ?: current.baseCurrency
+    }
+
+    private fun accountCurrencyFor(state: TransactionFormUiState): String {
+        return state.accounts.find { it.account.id == state.selectedAccountId }
+            ?.account?.currency ?: state.baseCurrency
+    }
+
     /** In-memory cache so we don't re-fetch currencies on every screen open */
     private var cachedCurrencies: List<String>? = null
 
@@ -297,21 +309,21 @@ class TransactionFormViewModel @Inject constructor(
 
     fun selectCurrency(currency: String) {
         val current = _uiState.value
-        val baseCurrency = current.baseCurrency
+        val accountCurrency = accountCurrency()
 
         // Block picking a foreign currency when we can't convert (fully offline, no cache).
-        // Fall back silently to base so the form stays usable and the UI message explains why.
-        if (currency != baseCurrency && current.foreignCurrencyDisabled) {
-            _uiState.value = current.copy(selectedCurrency = baseCurrency)
+        // Fall back silently to the account's own currency so the form stays usable.
+        if (currency != accountCurrency && current.foreignCurrencyDisabled) {
+            _uiState.value = current.copy(selectedCurrency = accountCurrency)
             return
         }
 
         viewModelScope.launch {
-            val lastMethod = if (currency != baseCurrency) {
+            val lastMethod = if (currency != accountCurrency) {
                 preferencesManager.lastPaymentMethodFlow.firstOrNull() ?: "CARD"
             } else "CARD"
 
-            val defaultBank = if (currency != baseCurrency) {
+            val defaultBank = if (currency != accountCurrency) {
                 current.availableBanks.firstOrNull { it.isDefault }
                     ?: current.availableBanks.firstOrNull()
             } else null
@@ -320,11 +332,9 @@ class TransactionFormViewModel @Inject constructor(
                 selectedCurrency = currency,
                 selectedBank = defaultBank,
                 convertedAmountPreview = "",
-                // Reset exact amount when currency changes
-                isExactAmountEnabled = if (currency == baseCurrency) false else current.isExactAmountEnabled,
-                exactEurAmount = if (currency == baseCurrency) "" else current.exactEurAmount,
-                // Restore last payment method
-                paymentMethod = if (currency == baseCurrency) "CARD" else lastMethod,
+                isExactAmountEnabled = if (currency == accountCurrency) false else current.isExactAmountEnabled,
+                exactEurAmount = if (currency == accountCurrency) "" else current.exactEurAmount,
+                paymentMethod = if (currency == accountCurrency) "CARD" else lastMethod,
                 cashRate = "",
                 cashRatePlaceholder = "",
                 cashRateHint = "",
@@ -333,7 +343,7 @@ class TransactionFormViewModel @Inject constructor(
                 staleRateWarning = null
             )
 
-            if (currency != baseCurrency) {
+            if (currency != accountCurrency) {
                 if (lastMethod == "CARD") {
                     fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
                 } else {
@@ -406,7 +416,7 @@ class TransactionFormViewModel @Inject constructor(
     fun selectBank(bank: Bank) {
         val current = _uiState.value
         _uiState.value = current.copy(selectedBank = bank, convertedAmountPreview = "")
-        if (current.selectedCurrency != current.baseCurrency) {
+        if (current.selectedCurrency != accountCurrency()) {
             fetchRateAndUpdatePreview(current.selectedCurrency, current.amount, bank)
         }
     }
@@ -414,10 +424,18 @@ class TransactionFormViewModel @Inject constructor(
     fun selectAccount(accountId: String) {
         val current = _uiState.value
         _uiState.value = current.copy(selectedAccountId = accountId)
-        // Auto-select account's currency when switching accounts
-        val account = current.accounts.find { it.account.id == accountId }?.account
-        if (account != null && account.currency != current.selectedCurrency) {
+        val account = current.accounts.find { it.account.id == accountId }?.account ?: return
+        if (account.currency != current.selectedCurrency) {
             selectCurrency(account.currency)
+        } else {
+            // New account's currency matches the transaction currency → home currency, clear bank/preview.
+            _uiState.value = _uiState.value.copy(
+                selectedBank = null,
+                convertedAmountPreview = "",
+                staleRateWarning = null,
+                isExactAmountEnabled = false,
+                exactEurAmount = ""
+            )
         }
     }
 
@@ -430,6 +448,7 @@ class TransactionFormViewModel @Inject constructor(
      */
     private fun fetchRateAndUpdatePreview(currency: String, amount: String, bank: Bank?) {
         if (bank == null) return
+        if (currency == accountCurrency()) return
         viewModelScope.launch {
             // Use cached rate if currency unchanged
             val interBankRate: Double? = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
@@ -611,15 +630,19 @@ class TransactionFormViewModel @Inject constructor(
                         ?: income?.originalCurrency
                         ?: _uiState.value.baseCurrency
                     val restoredBankName = expense?.bankName ?: income?.bankName
-                    val restoredBank = if (restoredBankName != null) {
-                        current.availableBanks.firstOrNull { it.name == restoredBankName }
-                    } else null
 
                     val origAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
 
                     val restoredAccountId = expense?.accountId
                         ?: income?.accountId
                         ?: Account.DEFAULT_ACCOUNT_ID
+
+                    val restoredAccountCurrency = current.accounts.find { it.account.id == restoredAccountId }
+                        ?.account?.currency ?: current.baseCurrency
+
+                    val restoredBank = if (restoredBankName != null && restoredCurrency != restoredAccountCurrency) {
+                        current.availableBanks.firstOrNull { it.name == restoredBankName }
+                    } else null
 
                     _uiState.value = current.copy(
                         categories = filteredCategories,
@@ -637,10 +660,10 @@ class TransactionFormViewModel @Inject constructor(
                         isLoading = false
                     )
 
-                    // If non-base currency, fetch interbank rate for preview
-                    if (restoredCurrency != _uiState.value.baseCurrency && restoredBank != null) {
-                        val origAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
-                        fetchRateAndUpdatePreview(restoredCurrency, origAmount.toString(), restoredBank)
+                    // Only fetch interbank preview if the transaction currency is foreign to its account.
+                    if (restoredCurrency != restoredAccountCurrency && restoredBank != null) {
+                        val previewAmount = expense?.originalAmount ?: income?.originalAmount ?: transaction.amount
+                        fetchRateAndUpdatePreview(restoredCurrency, previewAmount.toString(), restoredBank)
                     }
                 }
             } catch (e: Exception) {
@@ -655,7 +678,15 @@ class TransactionFormViewModel @Inject constructor(
     fun updateAmount(amount: String) {
         val filteredAmount = ValidationHelper.filterAmountInput(amount)
         val current = _uiState.value
-        val preview = if (current.selectedCurrency != current.baseCurrency && current.selectedBank != null
+        if (current.selectedCurrency == accountCurrency()) {
+            _uiState.value = current.copy(
+                amount = filteredAmount,
+                convertedAmountPreview = "",
+                showError = null
+            )
+            return
+        }
+        val preview = if (current.selectedBank != null
             && cachedInterBankRate != null && cachedRateCurrency == current.selectedCurrency
         ) {
             buildPreview(filteredAmount, cachedInterBankRate ?: return, current.selectedBank)
@@ -734,7 +765,7 @@ class TransactionFormViewModel @Inject constructor(
                 when (currentState.mode) {
                     TransactionFormMode.ADD -> {
                         val isCashMode = currentState.paymentMethod == "CASH" &&
-                                currentState.selectedCurrency != currentState.baseCurrency
+                                currentState.selectedCurrency != accountCurrencyFor(currentState)
                         when (currentState.transactionType) {
                             TransactionType.EXPENSE -> saveNewExpense(currentState, amountDouble, isCashMode)
                             TransactionType.INCOME -> saveNewIncome(currentState, amountDouble, isCashMode)
@@ -769,6 +800,8 @@ class TransactionFormViewModel @Inject constructor(
         isCashMode: Boolean
     ) {
         val baseCurrency = state.baseCurrency
+        val accountCurrency = accountCurrencyFor(state)
+        val isHomeCurrency = state.selectedCurrency == accountCurrency
         val result = if (isCashMode &&
             state.isExactAmountEnabled &&
             state.exactEurAmount.isNotBlank()
@@ -853,9 +886,10 @@ class TransactionFormViewModel @Inject constructor(
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
-                bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent,
+                bankName = if (isHomeCurrency) null else state.selectedBank?.name,
+                bankCommission = if (isHomeCurrency) null else state.selectedBank?.commissionPercent,
                 baseCurrency = baseCurrency,
+                accountCurrency = accountCurrency,
                 accountId = state.selectedAccountId
             )
         }
@@ -900,6 +934,8 @@ class TransactionFormViewModel @Inject constructor(
         isCashMode: Boolean
     ) {
         val baseCurrency = state.baseCurrency
+        val accountCurrency = accountCurrencyFor(state)
+        val isHomeCurrency = state.selectedCurrency == accountCurrency
         val result = if (isCashMode &&
             state.isExactAmountEnabled &&
             state.exactEurAmount.isNotBlank()
@@ -984,9 +1020,10 @@ class TransactionFormViewModel @Inject constructor(
                 categoryId = state.selectedCategory?.id ?: return,
                 description = state.description.ifBlank { null },
                 date = state.selectedDate,
-                bankName = state.selectedBank?.name,
-                bankCommission = state.selectedBank?.commissionPercent,
+                bankName = if (isHomeCurrency) null else state.selectedBank?.name,
+                bankCommission = if (isHomeCurrency) null else state.selectedBank?.commissionPercent,
                 baseCurrency = baseCurrency,
+                accountCurrency = accountCurrency,
                 accountId = state.selectedAccountId
             )
         }
@@ -1072,7 +1109,11 @@ class TransactionFormViewModel @Inject constructor(
         bankCommission: Double? = null,
         accountId: String = Account.DEFAULT_ACCOUNT_ID
     ) {
-        val baseCurrency = _uiState.value.baseCurrency
+        val state = _uiState.value
+        val baseCurrency = state.baseCurrency
+        val accountCurrency = state.accounts.find { it.account.id == accountId }
+            ?.account?.currency ?: baseCurrency
+        val isHomeCurrency = selectedCurrency == accountCurrency
         addTransactionUseCase(
             type = originalTransaction.type,
             amount = amount,
@@ -1080,9 +1121,10 @@ class TransactionFormViewModel @Inject constructor(
             categoryId = categoryId,
             description = description,
             date = date,
-            bankName = bankName,
-            bankCommission = bankCommission,
+            bankName = if (isHomeCurrency) null else bankName,
+            bankCommission = if (isHomeCurrency) null else bankCommission,
             baseCurrency = baseCurrency,
+            accountCurrency = accountCurrency,
             accountId = accountId
         )
         when (originalTransaction) {
@@ -1110,7 +1152,10 @@ class TransactionFormViewModel @Inject constructor(
             }
         }
 
-        val baseCurrency = _uiState.value.baseCurrency
+        val state = _uiState.value
+        val baseCurrency = state.baseCurrency
+        val accountCurrency = state.accounts.find { it.account.id == accountId }
+            ?.account?.currency ?: baseCurrency
         addTransactionUseCase.addInBaseCurrency(
             type = newType,
             amount = amount,
@@ -1118,6 +1163,7 @@ class TransactionFormViewModel @Inject constructor(
             categoryId = categoryId,
             description = description,
             date = date,
+            accountCurrency = accountCurrency,
             accountId = accountId
         )
         accountRepository.updateLastUsedAt(accountId)

@@ -13,6 +13,8 @@ sealed class AddTransactionResult {
     data class Error(val error: AddTransactionError) : AddTransactionResult()
 }
 
+const val RATE_SOURCE_HOME_CURRENCY = "HOME_CURRENCY"
+
 class AddTransactionUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val convertCurrencyUseCase: ConvertCurrencyUseCase,
@@ -28,6 +30,7 @@ class AddTransactionUseCase @Inject constructor(
         bankName: String? = null,
         bankCommission: Double? = null,
         baseCurrency: String,
+        accountCurrency: String,
         accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddTransactionResult {
         return try {
@@ -39,6 +42,11 @@ class AddTransactionUseCase @Inject constructor(
             }
             val conversion = (conversionResult as ConvertCurrencyResult.Success).conversion
 
+            val isHomeCurrency = currency == accountCurrency
+            val effectiveBankName = if (isHomeCurrency) null else bankName
+            val effectiveBankCommission = if (isHomeCurrency) null else bankCommission
+            val effectiveRateSource = if (isHomeCurrency) RATE_SOURCE_HOME_CURRENCY else conversion.rateSource
+
             val transaction = buildTransaction(
                 type = type,
                 amount = conversion.convertedAmount,
@@ -48,9 +56,9 @@ class AddTransactionUseCase @Inject constructor(
                 originalAmount = amount,
                 originalCurrency = currency,
                 exchangeRate = conversion.exchangeRate,
-                bankName = bankName,
-                bankCommission = bankCommission,
-                rateSource = conversion.rateSource,
+                bankName = effectiveBankName,
+                bankCommission = effectiveBankCommission,
+                rateSource = effectiveRateSource,
                 accountId = accountId
             )
 
@@ -69,6 +77,7 @@ class AddTransactionUseCase @Inject constructor(
         categoryId: String,
         description: String?,
         date: Long = System.currentTimeMillis(),
+        accountCurrency: String = baseCurrency,
         accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddTransactionResult {
         return invoke(
@@ -79,6 +88,7 @@ class AddTransactionUseCase @Inject constructor(
             description = description,
             date = date,
             baseCurrency = baseCurrency,
+            accountCurrency = accountCurrency,
             accountId = accountId
         )
     }

@@ -72,6 +72,7 @@ fun AddTransactionContent(
     errorMessage: String?,
     modifier: Modifier = Modifier,
     baseCurrency: String,
+    accountCurrency: String = baseCurrency,
     availableCurrencies: List<String> = emptyList(),
     isCurrenciesLoading: Boolean = false,
     currenciesError: String? = null,
@@ -136,13 +137,13 @@ fun AddTransactionContent(
             )
         }
 
-        // Network status banner (only when currency != base)
-        if (formState.selectedCurrency != baseCurrency && networkStatus != NetworkStatus.ONLINE) {
+        // Network status banner (only when tx currency differs from the account's currency)
+        if (formState.selectedCurrency != accountCurrency && networkStatus != NetworkStatus.ONLINE) {
             NetworkStatusBanner(networkStatus = networkStatus)
         }
 
         // Stale rate warning
-        if (formState.selectedCurrency != baseCurrency && staleRateWarning != null) {
+        if (formState.selectedCurrency != accountCurrency && staleRateWarning != null) {
             Text(
                 text = staleRateWarning,
                 style = MaterialTheme.typography.bodySmall,
@@ -151,7 +152,7 @@ fun AddTransactionContent(
             )
         }
 
-        if (formState.selectedCurrency != baseCurrency) {
+        if (formState.selectedCurrency != accountCurrency) {
             // Payment method toggle: Card / Cash
             PaymentMethodSelector(
                 selectedMethod = formState.paymentMethod,

@@ -256,6 +256,9 @@ private fun TransactionFormContent(
     onAccountSelect: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val accountCurrency = uiState.accounts.find { it.account.id == uiState.selectedAccountId }
+        ?.account?.currency ?: uiState.baseCurrency
+
     if (uiState.mode == TransactionFormMode.ADD) {
         AddTransactionContent(
             title = getContentTitle(uiState.mode, uiState.transactionType),
@@ -290,6 +293,7 @@ private fun TransactionFormContent(
             errorMessage = uiState.showError,
             modifier = modifier,
             baseCurrency = uiState.baseCurrency,
+            accountCurrency = accountCurrency,
             availableCurrencies = uiState.availableCurrencies,
             isCurrenciesLoading = uiState.isCurrenciesLoading,
             currenciesError = uiState.currenciesError,
@@ -373,7 +377,9 @@ private fun EditTransactionFormContent(
             TransactionTypeDisplay(uiState.transactionType)
         }
 
-        val isAmountLocked = uiState.selectedCurrency != uiState.baseCurrency
+        val editAccountCurrency = uiState.accounts.find { it.account.id == uiState.selectedAccountId }
+            ?.account?.currency ?: uiState.baseCurrency
+        val isAmountLocked = uiState.selectedCurrency != editAccountCurrency
 
         com.example.budgetcontrol.ui.components.common.AmountInputCard(
             amount = if (isAmountLocked) uiState.originalAmount.toString() else uiState.amount,
