@@ -8,6 +8,9 @@ import java.util.*
 
 object DateRangeHelper {
 
+    private const val MIN_YEAR = 2015
+    private const val MAX_YEAR = 2099
+
     // Capitalize the first letter in a date string (e.g. "21 марта" → "21 Марта")
     // Standard replaceFirstChar fails when the string starts with a digit.
     private fun capitalizeFirstLetter(text: String): String {
@@ -206,12 +209,12 @@ object DateRangeHelper {
         }
     }
 
-    // Sentinel years: the date picker uses year ≤2020 for "start of time" and ≥2099 for "end of time"
+    // Sentinel years: the date picker uses year ≤MIN_YEAR for "start of time" and ≥MAX_YEAR for "end of time"
     fun isAllTimePeriod(startDate: Long, endDate: Long): Boolean {
         val startCal = Calendar.getInstance().apply { timeInMillis = startDate }
         val endCal = Calendar.getInstance().apply { timeInMillis = endDate }
 
-        return startCal.get(Calendar.YEAR) <= 2020 && endCal.get(Calendar.YEAR) >= 2099
+        return startCal.get(Calendar.YEAR) <= MIN_YEAR && endCal.get(Calendar.YEAR) >= MAX_YEAR
     }
 
     fun isSameDay(date1: Long, date2: Long): Boolean {

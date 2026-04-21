@@ -33,6 +33,7 @@ import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
+import com.example.budgetcontrol.core.util.AMOUNT_FORMAT
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.components.common.TransactionItem
 import com.example.budgetcontrol.ui.util.displayName
@@ -581,6 +582,6 @@ private fun formatAccountBalance(balance: Double, currency: String): String {
     return if (balance == balance.toLong().toDouble()) {
         "${balance.toLong()} $currency"
     } else {
-        String.format(Locale.US, "%.2f %s", balance, currency)
+        String.format(Locale.US, "$AMOUNT_FORMAT %s", balance, currency)
     }
 }

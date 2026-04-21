@@ -16,6 +16,7 @@ import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -48,7 +49,7 @@ class TransactionDetailViewModel @Inject constructor(
     val uiState: StateFlow<TransactionDetailUiState> = _uiState.asStateFlow()
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     fun loadTransaction(transactionId: String, transactionType: TransactionType) {
         viewModelScope.launch {

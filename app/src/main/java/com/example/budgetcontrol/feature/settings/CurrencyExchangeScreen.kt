@@ -23,6 +23,7 @@ import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.ui.components.common.DatePickerDialog
 import java.text.SimpleDateFormat
 import java.util.Date
+import com.example.budgetcontrol.core.util.RATE_FORMAT
 import com.example.budgetcontrol.core.util.formatAmount
 import java.util.Locale
 
@@ -230,7 +231,7 @@ private fun AddExchangeForm(
             if (fromAmount != null && fromAmount > 0 && toAmount != null && toAmount > 0) {
                 val rate = toAmount / fromAmount
                 Text(
-                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, "%.4f", rate)}",
+                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, RATE_FORMAT, rate)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -360,7 +361,7 @@ private fun ExchangeHistoryItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, "%.4f", exchange.exchangeRate)}",
+                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, RATE_FORMAT, exchange.exchangeRate)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

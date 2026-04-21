@@ -14,6 +14,7 @@ import com.example.budgetcontrol.core.domain.usecase.DeleteExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,7 +47,7 @@ class ExpensesScreenViewModel @Inject constructor(
     val uiState: StateFlow<ExpensesScreenUiState> = _uiState.asStateFlow()
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     init {
         loadData()

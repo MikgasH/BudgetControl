@@ -7,6 +7,7 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +36,7 @@ class CurrencyExchangeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val exchanges: StateFlow<List<CurrencyExchange>> = currencyExchangeRepository.getAllExchanges()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
 
     private val _formState = MutableStateFlow(ExchangeFormState())
     val formState: StateFlow<ExchangeFormState> = _formState.asStateFlow()

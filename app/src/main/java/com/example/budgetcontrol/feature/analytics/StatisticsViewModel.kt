@@ -11,6 +11,9 @@ import com.example.budgetcontrol.core.domain.usecase.GetCategoriesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.DateRangeHelper
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
+import com.example.budgetcontrol.feature.main.PeriodType
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes
@@ -60,7 +63,7 @@ class StatisticsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     private val _uiState = MutableStateFlow(StatisticsUiState())
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
@@ -143,40 +146,13 @@ class StatisticsViewModel @Inject constructor(
     }
 
     private fun getStartTimeForPeriod(period: TimePeriod): Long? {
-        val calendar = java.util.Calendar.getInstance()
-        return when (period) {
-            TimePeriod.THIS_WEEK -> {
-                calendar.apply {
-                    set(java.util.Calendar.DAY_OF_WEEK, firstDayOfWeek)
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
-                }
-                calendar.timeInMillis
-            }
-            TimePeriod.THIS_MONTH -> {
-                calendar.apply {
-                    set(java.util.Calendar.DAY_OF_MONTH, 1)
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
-                }
-                calendar.timeInMillis
-            }
-            TimePeriod.THIS_YEAR -> {
-                calendar.apply {
-                    set(java.util.Calendar.DAY_OF_YEAR, 1)
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
-                }
-                calendar.timeInMillis
-            }
-            TimePeriod.ALL_TIME -> null
+        val periodType = when (period) {
+            TimePeriod.THIS_WEEK -> PeriodType.WEEK
+            TimePeriod.THIS_MONTH -> PeriodType.MONTH
+            TimePeriod.THIS_YEAR -> PeriodType.YEAR
+            TimePeriod.ALL_TIME -> return null
         }
+        return DateRangeHelper.getDateRange(periodType).first
     }
 
     fun selectPeriod(period: TimePeriod) {

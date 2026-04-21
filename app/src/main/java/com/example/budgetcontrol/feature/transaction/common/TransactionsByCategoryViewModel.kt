@@ -16,6 +16,7 @@ import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.usecase.GetExpensesUseCase
 import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -51,7 +52,7 @@ class TransactionsByCategoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     private val _uiState = MutableStateFlow(TransactionsByCategoryUiState())
     val uiState: StateFlow<TransactionsByCategoryUiState> = _uiState.asStateFlow()

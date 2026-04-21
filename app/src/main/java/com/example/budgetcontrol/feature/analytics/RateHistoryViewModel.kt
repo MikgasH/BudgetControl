@@ -10,6 +10,8 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.PERIODS
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,10 +48,10 @@ class RateHistoryViewModel @Inject constructor(
     private val _rawCurrencies = MutableStateFlow<List<String>>(emptyList())
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     val favoriteCurrencies: StateFlow<Set<String>> = preferencesManager.favoriteCurrenciesFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptySet())
 
     val availableCurrencies: StateFlow<List<String>> = combine(
         _rawCurrencies,
@@ -58,7 +60,7 @@ class RateHistoryViewModel @Inject constructor(
         val favs = currencies.filter { favorites.contains(it) }.sorted()
         val rest = currencies.filter { !favorites.contains(it) }.sorted()
         favs + rest
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
 
     private val _selectedFrom = MutableStateFlow("USD")
     val selectedFrom: StateFlow<String> = _selectedFrom.asStateFlow()
@@ -100,7 +102,6 @@ class RateHistoryViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "RateHistoryVM"
-        val PERIODS = listOf("1D", "7D", "30D", "90D", "180D")
         private val ISO_DATETIME_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
         private val ISO_DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     }

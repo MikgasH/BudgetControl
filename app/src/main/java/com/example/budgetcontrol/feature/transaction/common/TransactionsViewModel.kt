@@ -31,6 +31,7 @@ import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.util.ValidationHelper
 import java.util.UUID
 import android.content.Context
@@ -1245,7 +1246,7 @@ class TransactionFormViewModel @Inject constructor(
                 currentState.description != (original.description ?: "") ||
                 currentState.selectedCategory?.id != original.categoryId ||
                 currentState.transactionType != original.type ||
-                !isSameDay(currentState.selectedDate, original.date)
+                !DateRangeHelper.isSameDay(currentState.selectedDate, original.date)
     }
 
     fun confirmSaveRate() {
@@ -1308,12 +1309,5 @@ class TransactionFormViewModel @Inject constructor(
 
     fun resetSuccess() {
         _uiState.value = _uiState.value.copy(isSuccess = false)
-    }
-
-    private fun isSameDay(date1: Long, date2: Long): Boolean {
-        val cal1 = java.util.Calendar.getInstance().apply { timeInMillis = date1 }
-        val cal2 = java.util.Calendar.getInstance().apply { timeInMillis = date2 }
-        return cal1.get(java.util.Calendar.YEAR) == cal2.get(java.util.Calendar.YEAR) &&
-                cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
     }
 }

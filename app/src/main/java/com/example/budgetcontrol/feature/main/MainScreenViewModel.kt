@@ -33,6 +33,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.di.ApplicationScope
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.core.util.DateRangeHelper
@@ -135,11 +136,11 @@ class MainScreenViewModel @Inject constructor(
     private val _groups = MutableStateFlow<List<AccountGroup>>(emptyList())
 
     val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_BASE_CURRENCY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     /** 0 when rates have never been cached — treated as absent by the UI. */
     val cachedRatesTimestamp: StateFlow<Long> = preferencesManager.getLastRatesTimestamp()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), 0L)
 
     private val _cachedRates = MutableStateFlow<Map<String, Double>>(emptyMap())
 
@@ -180,7 +181,7 @@ class MainScreenViewModel @Inject constructor(
                 }
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
 
     /** Currency code to display alongside the balance. */
     val displayCurrency: StateFlow<String> = combine(
@@ -204,7 +205,7 @@ class MainScreenViewModel @Inject constructor(
                 if (currencies.size == 1) currencies.first() else baseCur
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_BASE_CURRENCY)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     /**
      * True when the displayed balance required currency conversion (mixed currencies).
@@ -225,7 +226,7 @@ class MainScreenViewModel @Inject constructor(
             }
             else -> accounts.map { it.account.currency }.distinct().size > 1
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), false)
 
     /**
      * Balance at the start of the currently selected period.
@@ -238,7 +239,7 @@ class MainScreenViewModel @Inject constructor(
             .distinctUntilChanged()
     ) { bal, (incomesTotal, expensesTotal, isAllTime) ->
         if (isAllTime || bal == null) null else bal - incomesTotal + expensesTotal
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
 
     private var loadDataJob: Job? = null
 

@@ -39,6 +39,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.remote.cerps.dto.RatePoint
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.util.PERCENT_FORMAT
+import com.example.budgetcontrol.core.util.PERIODS
+import com.example.budgetcontrol.core.util.RATE_FORMAT
 import com.example.budgetcontrol.core.util.formatAmount
 import java.util.Currency
 import java.util.Locale
@@ -48,7 +51,7 @@ private fun getCurrencyDisplayName(code: String, locale: Locale): String =
     catch (_: IllegalArgumentException) { code }
 
 private fun formatChangePercent(value: Double): String =
-    String.format(Locale.US, "%.2f", value)
+    String.format(Locale.US, PERCENT_FORMAT, value)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -536,7 +539,7 @@ private fun PeriodSelector(
     selectedPeriod: String,
     onPeriodSelected: (String) -> Unit
 ) {
-    val periods = RateHistoryViewModel.PERIODS
+    val periods = PERIODS
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -731,7 +734,7 @@ private fun InsufficientDataCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "1 $selectedFrom = ${String.format(Locale.US, "%.4f", trendsData.newRate)} $selectedTo",
+                text = "1 $selectedFrom = ${String.format(Locale.US, RATE_FORMAT, trendsData.newRate)} $selectedTo",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
