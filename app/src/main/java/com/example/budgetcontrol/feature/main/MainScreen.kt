@@ -783,13 +783,16 @@ private fun FixedPeriodTypeSelector(
 }
 
 
-private fun formatRatesTimestamp(timestamp: Long, locale: Locale = Locale.getDefault()): String {
+private val SAME_DAY_TIME_FORMAT = SimpleDateFormat("HH:mm", Locale.getDefault())
+private val OTHER_DAY_TIME_FORMAT = SimpleDateFormat("d MMM HH:mm", Locale.getDefault())
+
+private fun formatRatesTimestamp(timestamp: Long): String {
     val now = Calendar.getInstance()
     val then = Calendar.getInstance().apply { timeInMillis = timestamp }
     val sameDay = now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
         now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
-    val pattern = if (sameDay) "HH:mm" else "d MMM HH:mm"
-    return SimpleDateFormat(pattern, locale).format(Date(timestamp))
+    val formatter = if (sameDay) SAME_DAY_TIME_FORMAT else OTHER_DAY_TIME_FORMAT
+    return formatter.format(Date(timestamp))
 }
 
 @Composable

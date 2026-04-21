@@ -622,7 +622,7 @@ private fun BanksPage(
     banks: List<Bank>,
     onToggleFavorite: (Bank) -> Unit,
     onAddBank: (String, Double) -> Unit,
-    lookupState: LookupState = LookupState.Idle,
+    lookupState: LookupState? = null,
     onLookup: (String) -> Unit = {},
     onResetLookup: () -> Unit = {}
 ) {
@@ -754,7 +754,7 @@ private fun BanksPage(
 
 @Composable
 private fun AddBankDialog(
-    lookupState: LookupState = LookupState.Idle,
+    lookupState: LookupState? = null,
     onLookup: (String) -> Unit = {},
     onDismiss: () -> Unit,
     onConfirm: (String, Double) -> Unit

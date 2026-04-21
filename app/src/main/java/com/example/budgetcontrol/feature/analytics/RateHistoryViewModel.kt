@@ -3,6 +3,7 @@ package com.example.budgetcontrol.feature.analytics
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgetcontrol.BuildConfig
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
@@ -157,7 +158,7 @@ class RateHistoryViewModel @Inject constructor(
     }
 
     fun selectPeriod(period: String) {
-        Log.d(TAG, "selectPeriod: $period (was ${_selectedPeriod.value})")
+        if (BuildConfig.DEBUG) Log.d(TAG, "selectPeriod: $period (was ${_selectedPeriod.value})")
         _selectedPeriod.value = period
         loadTrends()
     }
@@ -182,7 +183,7 @@ class RateHistoryViewModel @Inject constructor(
         _error.value = null
         _trendsData.value = null
 
-        Log.d(TAG, "loadTrends: requesting $from→$to period=$period")
+        if (BuildConfig.DEBUG) Log.d(TAG, "loadTrends: requesting $from→$to period=$period")
 
         trendsJob = viewModelScope.launch {
             try {
@@ -193,7 +194,7 @@ class RateHistoryViewModel @Inject constructor(
                 )) {
                     is CerpsResult.Success -> {
                         val raw = result.data
-                        Log.d(TAG, "loadTrends RAW: period=$period, " +
+                        if (BuildConfig.DEBUG) Log.d(TAG, "loadTrends RAW: period=$period, " +
                                 "response.period=${raw.period}, " +
                                 "rawPoints=${raw.points.size}, " +
                                 "dataPoints=${raw.dataPoints}, " +
@@ -201,7 +202,7 @@ class RateHistoryViewModel @Inject constructor(
                                 "first=${raw.points.firstOrNull()?.timestamp}, " +
                                 "last=${raw.points.lastOrNull()?.timestamp}")
                         val data = filterPointsByDateRange(raw, period)
-                        Log.d(TAG, "loadTrends FILTERED: period=$period, " +
+                        if (BuildConfig.DEBUG) Log.d(TAG, "loadTrends FILTERED: period=$period, " +
                                 "points=${data.points.size}, " +
                                 "first=${data.points.firstOrNull()?.timestamp}, " +
                                 "last=${data.points.lastOrNull()?.timestamp}")
@@ -227,7 +228,7 @@ class RateHistoryViewModel @Inject constructor(
                 }
             } catch (e: CancellationException) {
                 // Must rethrow — swallowing CancellationException breaks structured concurrency
-                Log.d(TAG, "loadTrends CANCELLED: period=$period")
+                if (BuildConfig.DEBUG) Log.d(TAG, "loadTrends CANCELLED: period=$period")
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "loadTrends EXCEPTION: period=$period", e)
@@ -257,7 +258,7 @@ class RateHistoryViewModel @Inject constructor(
                 val ts = parseTimestamp(point.timestamp)
                 ts != null && !ts.before(cutoff)
             }
-            Log.d(TAG, "filterPointsByDateRange 1D: ${data.points.size} → ${filtered.size} points (cutoff=$cutoff)")
+            if (BuildConfig.DEBUG) Log.d(TAG, "filterPointsByDateRange 1D: ${data.points.size} → ${filtered.size} points (cutoff=$cutoff)")
             return data.copy(points = filtered, dataPoints = filtered.size)
         }
 
@@ -273,7 +274,7 @@ class RateHistoryViewModel @Inject constructor(
         return if (filtered.size == data.points.size || filtered.isEmpty()) {
             data
         } else {
-            Log.d(TAG, "filterPointsByDateRange: ${data.points.size} → ${filtered.size} points")
+            if (BuildConfig.DEBUG) Log.d(TAG, "filterPointsByDateRange: ${data.points.size} → ${filtered.size} points")
             data.copy(points = filtered, dataPoints = filtered.size)
         }
     }

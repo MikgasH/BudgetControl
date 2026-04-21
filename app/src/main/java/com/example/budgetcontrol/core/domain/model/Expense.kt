@@ -2,8 +2,6 @@ package com.example.budgetcontrol.core.domain.model
 
 import androidx.compose.runtime.Immutable
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
-import com.example.budgetcontrol.core.util.getCurrencySymbol
-import java.util.Locale
 
 @Immutable
 data class Expense(
@@ -24,12 +22,4 @@ data class Expense(
 
     fun wasConverted(baseCurrency: String): Boolean =
         originalCurrency != baseCurrency && exchangeRate != null
-
-    fun getDisplayAmount(baseCurrency: String): String {
-        return if (wasConverted(baseCurrency)) {
-            "${String.format(Locale.US, "%.2f", amount)} ${getCurrencySymbol(baseCurrency)} (${String.format(Locale.US, "%.2f", originalAmount)} ${getCurrencySymbol(originalCurrency)})"
-        } else {
-            "${String.format(Locale.US, "%.2f", amount)} ${getCurrencySymbol(baseCurrency)}"
-        }
-    }
 }

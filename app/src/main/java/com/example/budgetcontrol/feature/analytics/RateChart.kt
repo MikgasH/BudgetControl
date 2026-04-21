@@ -229,8 +229,8 @@ internal fun RateChart(
     }
 
     val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
-    val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-    val inputFormatAlt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val inputFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US) }
+    val inputFormatAlt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
 
     fun parseTimestamp(timestamp: String): java.util.Date? {
         val clean = timestamp.trimEnd('Z')
@@ -243,15 +243,17 @@ internal fun RateChart(
 
     // Detect if all points fall on the same calendar day (typical for 1D period)
     // to show time-of-day labels instead of date labels
-    val allSameDay = run {
+    val allSameDay = remember(points) {
         val dayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val days = points.mapNotNull { parseTimestamp(it.timestamp) }.map { dayFmt.format(it) }.toSet()
         days.size <= 1
     }
-    val outputFormat = if (allSameDay) {
-        SimpleDateFormat("HH:mm", appLocale)
-    } else {
-        SimpleDateFormat("d MMM", appLocale)
+    val outputFormat = remember(allSameDay, appLocale) {
+        if (allSameDay) {
+            SimpleDateFormat("HH:mm", appLocale)
+        } else {
+            SimpleDateFormat("d MMM", appLocale)
+        }
     }
 
     fun parseAndFormat(timestamp: String): String {

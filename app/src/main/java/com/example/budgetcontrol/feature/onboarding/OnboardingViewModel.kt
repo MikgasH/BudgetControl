@@ -168,8 +168,8 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    private val _commissionLookupState = MutableStateFlow<LookupState>(LookupState.Idle)
-    val commissionLookupState: StateFlow<LookupState> = _commissionLookupState.asStateFlow()
+    private val _commissionLookupState = MutableStateFlow<LookupState?>(null)
+    val commissionLookupState: StateFlow<LookupState?> = _commissionLookupState.asStateFlow()
 
     fun lookupBankCommission(bankName: String) {
         if (bankName.isBlank()) return
@@ -184,7 +184,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun resetCommissionLookup() {
-        _commissionLookupState.value = LookupState.Idle
+        _commissionLookupState.value = null
     }
 
     fun addOnboardingAccount(name: String, iconName: String, color: String, initialBalance: Double, currency: String) {

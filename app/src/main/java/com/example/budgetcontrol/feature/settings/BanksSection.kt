@@ -339,7 +339,7 @@ internal fun formatCommission(value: Double): String {
 internal fun AddEditBankDialog(
     bank: Bank?,
     initialName: String? = null,
-    lookupState: LookupState,
+    lookupState: LookupState?,
     onLookup: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, Double) -> Unit

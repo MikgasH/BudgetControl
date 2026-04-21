@@ -254,7 +254,7 @@ private fun AddExchangeForm(
             )
 
             // Date
-            val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            val dateFormat = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()) }
             OutlinedButton(
                 onClick = onDateClick,
                 modifier = Modifier.fillMaxWidth(),
@@ -342,7 +342,7 @@ private fun ExchangeHistoryItem(
     exchange: CurrencyExchange,
     onDelete: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()) }
 
     Card(
         modifier = Modifier.fillMaxWidth()

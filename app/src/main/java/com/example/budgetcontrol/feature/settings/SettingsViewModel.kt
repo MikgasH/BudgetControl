@@ -66,7 +66,6 @@ data class SettingsUiState(
 )
 
 sealed class LookupState {
-    object Idle : LookupState()
     object Loading : LookupState()
     data class Success(val value: Double) : LookupState()
     object NotFound : LookupState()
@@ -239,8 +238,8 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private val _commissionLookupState = MutableStateFlow<LookupState>(LookupState.Idle)
-    val commissionLookupState: StateFlow<LookupState> = _commissionLookupState.asStateFlow()
+    private val _commissionLookupState = MutableStateFlow<LookupState?>(null)
+    val commissionLookupState: StateFlow<LookupState?> = _commissionLookupState.asStateFlow()
 
     fun lookupBankCommission(bankName: String) {
         if (bankName.isBlank()) return
@@ -255,7 +254,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun resetCommissionLookup() {
-        _commissionLookupState.value = LookupState.Idle
+        _commissionLookupState.value = null
     }
 
     private fun loadCurrencies() {

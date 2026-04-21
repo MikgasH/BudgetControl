@@ -9,6 +9,7 @@ import com.example.budgetcontrol.core.data.remote.gemini.GeminiApiService
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.util.CERPS_TIMEOUT_MS
 import android.content.Context
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,6 +27,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = Gson()
 
     @Provides
     @Singleton
