@@ -1,7 +1,9 @@
 package com.example.budgetcontrol.core.domain.model
 
+import androidx.compose.runtime.Immutable
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 
+@Immutable
 data class Account(
     val id: String,
     val name: String,

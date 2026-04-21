@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.main
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Category
@@ -58,6 +59,7 @@ import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
+@Immutable
 data class MainScreenUiState(
     val transactions: List<Transaction> = emptyList(),
     val categories: List<Category> = emptyList(),
@@ -98,6 +100,7 @@ enum class PeriodType(@StringRes val displayNameRes: Int) {
     PERIOD(R.string.period_custom)
 }
 
+@Immutable
 private data class PeriodLoadResult(
     val transactions: List<Transaction>,
     val categories: List<Category>,

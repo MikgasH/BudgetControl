@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.RateSource
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
@@ -116,10 +117,12 @@ fun TransactionDetailContent(
             is Transaction.ExpenseTransaction -> transaction.bankCommission
             is Transaction.IncomeTransaction -> transaction.bankCommission
         }
-        val txRateSource = when (transaction) {
-            is Transaction.ExpenseTransaction -> transaction.rateSource
-            is Transaction.IncomeTransaction -> transaction.rateSource
-        }
+        val txRateSource = RateSource.fromStringOrNull(
+            when (transaction) {
+                is Transaction.ExpenseTransaction -> transaction.rateSource
+                is Transaction.IncomeTransaction -> transaction.rateSource
+            }
+        )
 
         if (originalCurrency != baseCurrency) {
             val originalFormatted = formatAmount(originalAmount)
@@ -134,7 +137,7 @@ fun TransactionDetailContent(
                 value = "$originalFormatted ${getCurrencySymbol(originalCurrency)} ($displayName)"
             )
 
-            val isCashExchange = txRateSource == "CASH_EXCHANGE"
+            val isCashExchange = txRateSource == RateSource.CASH_EXCHANGE
 
             if (isCashExchange) {
                 DetailItem(
@@ -152,7 +155,7 @@ fun TransactionDetailContent(
                     " ($trimmed%)"
                 } else ""
                 val bankLabel = "$name$commissionStr"
-                val isUserCorrected = txRateSource == "USER_CORRECTED"
+                val isUserCorrected = txRateSource == RateSource.USER_CORRECTED
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(

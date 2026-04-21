@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.transaction.common
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
@@ -11,6 +12,7 @@ import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
+import com.example.budgetcontrol.core.domain.model.RateSource
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.toExpense
@@ -44,6 +46,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@Immutable
 data class TransactionFormUiState(
     val mode: TransactionFormMode = TransactionFormMode.ADD,
     val transactionType: TransactionType = TransactionType.EXPENSE,
@@ -524,9 +527,6 @@ class TransactionFormViewModel @Inject constructor(
         changeTransactionType(newType)
     }
 
-    fun confirmTypeChange() {}
-    fun dismissTypeChangeDialog() {}
-
     private fun loadCategoriesForType(type: TransactionType) {
         viewModelScope.launch {
             try {
@@ -825,7 +825,7 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE",
+                rateSource = RateSource.CASH_EXCHANGE.name,
                 accountId = state.selectedAccountId
             )
         } else if (isCashMode) {
@@ -850,7 +850,7 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE",
+                rateSource = RateSource.CASH_EXCHANGE.name,
                 accountId = state.selectedAccountId
             )
         } else if (
@@ -959,7 +959,7 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE",
+                rateSource = RateSource.CASH_EXCHANGE.name,
                 accountId = state.selectedAccountId
             )
         } else if (isCashMode) {
@@ -984,7 +984,7 @@ class TransactionFormViewModel @Inject constructor(
                 date = state.selectedDate,
                 bankName = null,
                 bankCommission = null,
-                rateSource = "CASH_EXCHANGE",
+                rateSource = RateSource.CASH_EXCHANGE.name,
                 accountId = state.selectedAccountId
             )
         } else if (

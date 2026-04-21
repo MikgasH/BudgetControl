@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.analytics
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
@@ -28,6 +29,7 @@ import javax.inject.Inject
 
 enum class StatisticsTab { EXPENSES, INCOMES }
 
+@Immutable
 data class StatisticsUiState(
     val expenses: List<Expense> = emptyList(),
     val incomes: List<Income> = emptyList(),

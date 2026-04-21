@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.settings
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+@Immutable
 data class ExchangeFormState(
     val fromAmount: String = "",
     val fromCurrency: String = "USD",

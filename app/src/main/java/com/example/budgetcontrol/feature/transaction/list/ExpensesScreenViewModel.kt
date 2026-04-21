@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.transaction.list
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Category
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@Immutable
 data class ExpensesScreenUiState(
     val expenses: List<Expense> = emptyList(),
     val transactions: List<Transaction> = emptyList(),

@@ -1,9 +1,11 @@
 package com.example.budgetcontrol.core.domain.model
 
+import androidx.compose.runtime.Immutable
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import java.util.Locale
 
+@Immutable
 data class Income(
     val id: String,
     val amount: Double,

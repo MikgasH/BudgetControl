@@ -3,6 +3,7 @@ package com.example.budgetcontrol.feature.onboarding
 import android.content.Context
 import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.runtime.Immutable
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+@Immutable
 data class OnboardingUiState(
     val selectedLanguage: String = "",
     val selectedTheme: String = "light",

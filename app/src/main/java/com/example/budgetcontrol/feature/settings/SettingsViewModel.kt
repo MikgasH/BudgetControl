@@ -3,6 +3,7 @@ package com.example.budgetcontrol.feature.settings
 import android.content.Context
 import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.runtime.Immutable
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -46,6 +47,7 @@ import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
+@Immutable
 data class SettingsUiState(
     val currentLanguage: String = "",
     val currentTheme: String = "light",

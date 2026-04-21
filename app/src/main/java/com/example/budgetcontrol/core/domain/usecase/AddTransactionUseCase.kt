@@ -1,6 +1,7 @@
 package com.example.budgetcontrol.core.domain.usecase
 
 import com.example.budgetcontrol.core.domain.model.Account
+import com.example.budgetcontrol.core.domain.model.RateSource
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
@@ -12,8 +13,6 @@ sealed class AddTransactionResult {
     object Success : AddTransactionResult()
     data class Error(val error: AddTransactionError) : AddTransactionResult()
 }
-
-const val RATE_SOURCE_HOME_CURRENCY = "HOME_CURRENCY"
 
 class AddTransactionUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
@@ -45,7 +44,7 @@ class AddTransactionUseCase @Inject constructor(
             val isHomeCurrency = currency == accountCurrency
             val effectiveBankName = if (isHomeCurrency) null else bankName
             val effectiveBankCommission = if (isHomeCurrency) null else bankCommission
-            val effectiveRateSource = if (isHomeCurrency) RATE_SOURCE_HOME_CURRENCY else conversion.rateSource
+            val effectiveRateSource = if (isHomeCurrency) RateSource.HOME_CURRENCY.name else conversion.rateSource
 
             val transaction = buildTransaction(
                 type = type,
@@ -107,7 +106,7 @@ class AddTransactionUseCase @Inject constructor(
         date: Long = System.currentTimeMillis(),
         bankName: String? = null,
         bankCommission: Double? = null,
-        rateSource: String = "USER_CORRECTED",
+        rateSource: String = RateSource.USER_CORRECTED.name,
         accountId: String = Account.DEFAULT_ACCOUNT_ID
     ): AddTransactionResult {
         if (exactBaseAmount <= 0.0) {

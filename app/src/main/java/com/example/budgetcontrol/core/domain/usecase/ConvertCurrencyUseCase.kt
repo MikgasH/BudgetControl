@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.domain.usecase
 
+import com.example.budgetcontrol.core.domain.model.RateSource
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateResult
 import javax.inject.Inject
@@ -54,8 +55,8 @@ class ConvertCurrencyUseCase @Inject constructor(
                     val toRate = if (toCurrency == "EUR") 1.0 else rates.getValue(toCurrency)
                     // Store rate as "how many FROM units per 1 TO unit" for the detail screen display
                     val crossRate = fromRate / toRate
-                    // null rateSource means live rate was used; "CACHED_RATE" warns the UI that the rate may be outdated
-                    val rateSource = if (!currencyRateProvider.areRatesStale()) null else "CACHED_RATE"
+                    // null rateSource means live rate was used; CACHED_RATE warns the UI that the rate may be outdated
+                    val rateSource = if (!currencyRateProvider.areRatesStale()) null else RateSource.CACHED_RATE.name
                     ConvertCurrencyResult.Success(
                         ConversionResult(converted, crossRate, rateSource)
                     )

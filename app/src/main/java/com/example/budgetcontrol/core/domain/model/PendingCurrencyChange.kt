@@ -1,5 +1,8 @@
 package com.example.budgetcontrol.core.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class PendingCurrencyChange(
     val accountId: String,
     val name: String,

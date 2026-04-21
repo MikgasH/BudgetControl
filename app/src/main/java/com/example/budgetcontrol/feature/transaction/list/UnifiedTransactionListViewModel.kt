@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.transaction.list
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
@@ -31,6 +32,7 @@ import javax.inject.Inject
 
 enum class TransactionTypeFilter { ALL, INCOME, EXPENSE }
 
+@Immutable
 data class UnifiedTransactionListUiState(
     val transactions: List<Transaction> = emptyList(),
     val accounts: List<AccountWithBalance> = emptyList(),
@@ -43,6 +45,7 @@ data class UnifiedTransactionListUiState(
     val isLoading: Boolean = true
 )
 
+@Immutable
 private data class FilterParams(
     val accountId: String?,
     val categoryIds: Set<String>,

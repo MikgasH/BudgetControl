@@ -1,10 +1,12 @@
 package com.example.budgetcontrol.core.domain.model
 
+import androidx.compose.runtime.Immutable
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 
 /**
  * Unified model for expenses and incomes, allowing the main screen to display both types uniformly.
  */
+@Immutable
 sealed class Transaction {
     abstract val id: String
     abstract val amount: Double
@@ -14,6 +16,7 @@ sealed class Transaction {
     abstract val createdAt: Long
     abstract val type: TransactionType
 
+    @Immutable
     data class ExpenseTransaction(
         override val id: String,
         override val amount: Double,
@@ -32,6 +35,7 @@ sealed class Transaction {
         override val type: TransactionType = TransactionType.EXPENSE
     }
 
+    @Immutable
     data class IncomeTransaction(
         override val id: String,
         override val amount: Double,

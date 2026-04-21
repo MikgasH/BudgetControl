@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.feature.analytics
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.R
@@ -27,6 +28,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
+@Immutable
 data class ScrubState(
     val rateStart: Double,
     val rateEnd: Double,
