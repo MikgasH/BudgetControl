@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.Transaction
@@ -72,9 +73,15 @@ fun UnifiedTransactionListScreen(
     if (showAccountSheet) {
         AccountFilterBottomSheet(
             accounts = uiState.accounts,
+            groups = uiState.accountGroups,
             selectedAccountId = uiState.selectedAccountId,
+            selectedGroupId = uiState.selectedGroupId,
             onAccountSelect = { id ->
-                viewModel.setAccount(id)
+                if (id == null) viewModel.clearAccountFilter() else viewModel.setAccount(id)
+                showAccountSheet = false
+            },
+            onGroupSelect = { id ->
+                viewModel.setGroup(id)
                 showAccountSheet = false
             },
             onDismiss = { showAccountSheet = false }
@@ -153,14 +160,21 @@ fun UnifiedTransactionListScreen(
                     .padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val selectedGroup = uiState.accountGroups.find { it.id == uiState.selectedGroupId }
                 val selectedAccount = uiState.accounts.find { it.account.id == uiState.selectedAccountId }
+                val accountChipLabel = when {
+                    selectedGroup != null -> selectedGroup.name
+                    selectedAccount != null -> selectedAccount.account.name
+                    else -> stringResource(R.string.all_accounts)
+                }
                 FilterChip(
-                    selected = uiState.selectedAccountId != null,
+                    selected = uiState.selectedAccountId != null || uiState.selectedGroupId != null,
                     onClick = { showAccountSheet = true },
-                    label = { Text(selectedAccount?.account?.name ?: stringResource(R.string.all_accounts)) },
+                    label = { Text(accountChipLabel) },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.AccountBalanceWallet,
+                            imageVector = if (selectedGroup != null) Icons.Default.FolderOpen
+                                else Icons.Default.AccountBalanceWallet,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -323,8 +337,11 @@ fun UnifiedTransactionListScreen(
 @Composable
 private fun AccountFilterBottomSheet(
     accounts: List<AccountWithBalance>,
+    groups: List<AccountGroup>,
     selectedAccountId: String?,
+    selectedGroupId: String?,
     onAccountSelect: (String?) -> Unit,
+    onGroupSelect: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -353,13 +370,55 @@ private fun AccountFilterBottomSheet(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                trailingContent = if (selectedAccountId == null) {
+                trailingContent = if (selectedAccountId == null && selectedGroupId == null) {
                     { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                 } else null,
                 modifier = Modifier.clickable { onAccountSelect(null) }
             )
 
             HorizontalDivider()
+
+            if (groups.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.account_groups_header),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+                )
+
+                groups.forEach { group ->
+                    ListItem(
+                        headlineContent = { Text(group.name) },
+                        supportingContent = {
+                            Text(
+                                text = stringResource(R.string.group_member_count, group.memberAccountIds.size),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        trailingContent = if (selectedGroupId == group.id) {
+                            { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        } else null,
+                        modifier = Modifier.clickable { onGroupSelect(group.id) }
+                    )
+                }
+
+                HorizontalDivider()
+
+                Text(
+                    text = stringResource(R.string.accounts_header),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+                )
+            }
 
             accounts.forEach { accountWithBalance ->
                 val account = accountWithBalance.account

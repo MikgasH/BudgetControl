@@ -4,12 +4,14 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
+import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.findById
 import com.example.budgetcontrol.core.domain.model.toExpense
 import com.example.budgetcontrol.core.domain.model.toIncome
 import com.example.budgetcontrol.core.domain.model.toTransaction
+import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.domain.usecase.DeleteExpenseUseCase
 import com.example.budgetcontrol.core.domain.usecase.DeleteIncomeUseCase
@@ -37,8 +39,10 @@ enum class TransactionTypeFilter { ALL, INCOME, EXPENSE }
 data class UnifiedTransactionListUiState(
     val transactions: List<Transaction> = emptyList(),
     val accounts: List<AccountWithBalance> = emptyList(),
+    val accountGroups: List<AccountGroup> = emptyList(),
     val categories: List<Category> = emptyList(),
     val selectedAccountId: String? = null,
+    val selectedGroupId: String? = null,
     val selectedCategoryIds: Set<String> = emptySet(),
     val transactionTypeFilter: TransactionTypeFilter = TransactionTypeFilter.ALL,
     val startDate: Long? = null,
@@ -49,6 +53,7 @@ data class UnifiedTransactionListUiState(
 @Immutable
 private data class FilterParams(
     val accountId: String?,
+    val groupId: String?,
     val categoryIds: Set<String>,
     val typeFilter: TransactionTypeFilter
 )
@@ -59,12 +64,14 @@ class UnifiedTransactionListViewModel @Inject constructor(
     private val getIncomesUseCase: GetIncomesUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val getAccountsUseCase: GetAccountsUseCase,
+    private val accountGroupRepository: AccountGroupRepository,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val deleteIncomeUseCase: DeleteIncomeUseCase,
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _selectedAccountId = MutableStateFlow<String?>(null)
+    private val _selectedGroupId = MutableStateFlow<String?>(null)
     private val _selectedCategoryIds = MutableStateFlow<Set<String>>(emptySet())
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     private val _startDate = MutableStateFlow<Long?>(null)
@@ -96,26 +103,39 @@ class UnifiedTransactionListViewModel @Inject constructor(
             },
             combine(
                 _selectedAccountId,
+                _selectedGroupId,
                 _selectedCategoryIds,
                 _transactionTypeFilter
-            ) { accountId, categoryIds, typeFilter ->
-                FilterParams(accountId, categoryIds, typeFilter)
+            ) { accountId, groupId, categoryIds, typeFilter ->
+                FilterParams(accountId, groupId, categoryIds, typeFilter)
             },
             getAccountsUseCase.getAccountsWithBalances(
                 baseCurrencyFlow = preferencesManager.baseCurrencyFlow,
                 ratesFlow = preferencesManager.getLastRates()
-            )
-        ) { (expenses, incomes, categories), filters, accounts ->
+            ),
+            accountGroupRepository.getAllGroups()
+        ) { (expenses, incomes, categories), filters, accounts, groups ->
             val allTransactions = buildList {
                 addAll(expenses.map { it.toTransaction() })
                 addAll(incomes.map { it.toTransaction() })
             }
 
+            // Resolve group member IDs once per recomputation. A missing group (e.g. deleted
+            // while still selected) yields an empty set → no transactions match.
+            val groupMemberIds: Set<String>? = filters.groupId?.let { gid ->
+                groups.find { it.id == gid }?.memberAccountIds?.toSet() ?: emptySet()
+            }
+
             val filtered = allTransactions
                 .filter { tx ->
-                    val accountMatch = filters.accountId == null || when (tx) {
-                        is Transaction.ExpenseTransaction -> tx.accountId == filters.accountId
-                        is Transaction.IncomeTransaction -> tx.accountId == filters.accountId
+                    val txAccountId = when (tx) {
+                        is Transaction.ExpenseTransaction -> tx.accountId
+                        is Transaction.IncomeTransaction -> tx.accountId
+                    }
+                    val accountMatch = when {
+                        groupMemberIds != null -> txAccountId != null && txAccountId in groupMemberIds
+                        filters.accountId != null -> txAccountId == filters.accountId
+                        else -> true
                     }
                     val categoryMatch = filters.categoryIds.isEmpty() || tx.categoryId in filters.categoryIds
                     val typeMatch = when (filters.typeFilter) {
@@ -130,8 +150,10 @@ class UnifiedTransactionListViewModel @Inject constructor(
             UnifiedTransactionListUiState(
                 transactions = filtered,
                 accounts = accounts,
+                accountGroups = groups,
                 categories = categories,
                 selectedAccountId = filters.accountId,
+                selectedGroupId = filters.groupId,
                 selectedCategoryIds = filters.categoryIds,
                 transactionTypeFilter = filters.typeFilter,
                 startDate = dateRange?.first,
@@ -147,6 +169,17 @@ class UnifiedTransactionListViewModel @Inject constructor(
 
     fun setAccount(accountId: String?) {
         _selectedAccountId.value = accountId
+        _selectedGroupId.value = null
+    }
+
+    fun setGroup(groupId: String?) {
+        _selectedGroupId.value = groupId
+        _selectedAccountId.value = null
+    }
+
+    fun clearAccountFilter() {
+        _selectedAccountId.value = null
+        _selectedGroupId.value = null
     }
 
     fun toggleCategory(categoryId: String) {
