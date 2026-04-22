@@ -46,6 +46,7 @@ internal fun PeriodNavigationCard(
     onNavigate: (Int) -> Unit,
     openingBalance: Double? = null,
     displayCurrency: String = baseCurrency,
+    isOpeningBalanceApproximate: Boolean = false,
     collapseFraction: Float = 0f,
     chartHeight: Dp = 200.dp,
     barHeight: Dp = 44.dp
@@ -189,10 +190,11 @@ internal fun PeriodNavigationCard(
 
             // Opening balance — shown in both expanded and collapsed states
             if (openingBalance != null) {
+                val prefix = if (isOpeningBalanceApproximate) "~" else ""
                 Text(
                     text = stringResource(
                         R.string.opening_balance,
-                        "${formatAmount(openingBalance)} ${getCurrencySymbol(displayCurrency)}"
+                        "$prefix${formatAmount(openingBalance)} ${getCurrencySymbol(displayCurrency)}"
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

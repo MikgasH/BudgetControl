@@ -614,6 +614,7 @@ fun MainScreen(
                     baseCurrency = baseCurrency,
                     openingBalance = openingBalance,
                     displayCurrency = displayCurrency,
+                    isOpeningBalanceApproximate = isApproximateBalance,
                     onNavigate = viewModel::navigatePeriod,
                     collapseFraction = collapseFraction,
                     chartHeight = chartHeight,

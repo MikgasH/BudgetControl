@@ -24,6 +24,7 @@ import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.PendingCurrencyChange
 import com.example.budgetcontrol.core.domain.usecase.ConvertCurrencyResult
 import com.example.budgetcontrol.core.domain.usecase.UpdateAccountUseCase
+import com.example.budgetcontrol.core.domain.usecase.crossConvert
 import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
@@ -42,12 +43,14 @@ import androidx.annotation.StringRes
 import com.example.budgetcontrol.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -109,6 +112,15 @@ private data class PeriodLoadResult(
     val categoryStats: List<CategoryStatistic>,
     val periodExpensesTotal: Double,
     val periodIncomesTotal: Double
+)
+
+@Immutable
+private data class OpeningBalanceKey(
+    val accountId: String?,
+    val groupId: String?,
+    val groupMemberIds: List<String>,
+    val periodStart: Long?,
+    val isAllTime: Boolean
 )
 
 @HiltViewModel
@@ -229,17 +241,91 @@ class MainScreenViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), false)
 
     /**
-     * Balance at the start of the currently selected period.
-     * Computed as: current balance – period incomes + period expenses.
-     * null for the "all time" view or when the balance itself is unavailable.
+     * Balance at the start of the currently selected period, expressed in [displayCurrency].
+     *
+     * Computed from the ledger — not derived from the current balance — so it stays correct for
+     * past periods even when later transactions have moved the current balance. Formula:
+     *   initialBalance + Σ(incomes where date < periodStart) − Σ(expenses where date < periodStart)
+     *
+     * Transaction sums come from the DB in base currency (that's how `amount` is stored); they're
+     * converted into [displayCurrency] so the number lines up with the balance shown above it
+     * (otherwise mixing a PLN balance with EUR sums produces nonsense). null for "all time" or
+     * before accounts have loaded.
      */
-    val openingBalance: StateFlow<Double?> = combine(
-        balance,
-        _uiState.map { Triple(it.periodIncomesTotal, it.periodExpensesTotal, it.isAllTimePeriod) }
-            .distinctUntilChanged()
-    ) { bal, (incomesTotal, expensesTotal, isAllTime) ->
-        if (isAllTime || bal == null) null else bal - incomesTotal + expensesTotal
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val openingBalance: StateFlow<Double?> = _uiState
+        .map { s ->
+            val memberIds = if (s.selectedGroupId != null) {
+                s.accountGroups.find { it.group.id == s.selectedGroupId }
+                    ?.group?.memberAccountIds ?: emptyList()
+            } else emptyList()
+            val periodStart = if (s.isAllTimePeriod) null else {
+                DateRangeHelper.getDateRange(
+                    periodType = s.selectedPeriodType,
+                    periodOffset = s.currentPeriodIndex,
+                    customStartDate = s.customStartDate,
+                    customEndDate = s.customEndDate
+                ).first
+            }
+            OpeningBalanceKey(
+                accountId = s.selectedAccountId,
+                groupId = s.selectedGroupId,
+                groupMemberIds = memberIds,
+                periodStart = periodStart,
+                isAllTime = s.isAllTimePeriod
+            )
+        }
+        .distinctUntilChanged()
+        .flatMapLatest { key ->
+            val periodStart = key.periodStart
+            if (key.isAllTime || periodStart == null) return@flatMapLatest flowOf<Double?>(null)
+
+            val expBeforeFlow = when {
+                key.groupId != null && key.groupMemberIds.isNotEmpty() ->
+                    getExpensesUseCase.getTotalBeforeDateInAccounts(periodStart, key.groupMemberIds)
+                key.groupId != null -> flowOf(0.0)
+                else -> getExpensesUseCase.getTotalBeforeDate(periodStart, key.accountId)
+            }
+            val incBeforeFlow = when {
+                key.groupId != null && key.groupMemberIds.isNotEmpty() ->
+                    getIncomesUseCase.getTotalBeforeDateInAccounts(periodStart, key.groupMemberIds)
+                key.groupId != null -> flowOf(0.0)
+                else -> getIncomesUseCase.getTotalBeforeDate(periodStart, key.accountId)
+            }
+            val beforeSumsFlow = combine(expBeforeFlow, incBeforeFlow) { exp, inc -> exp to inc }
+
+            combine(
+                _accountsWithBalances,
+                _cachedRates,
+                baseCurrency,
+                displayCurrency,
+                beforeSumsFlow
+            ) { accounts, rates, base, displayCur, (expBefore, incBefore) ->
+                val inScope = when {
+                    key.groupId != null -> accounts.filter { it.account.id in key.groupMemberIds }
+                    key.accountId != null -> accounts.filter { it.account.id == key.accountId }
+                    else -> accounts
+                }
+                if (inScope.isEmpty()) return@combine null
+
+                // Initial balances live in each account's native currency; pull them into the
+                // display currency via rates. Missing rate → keep the raw value (matches the
+                // `baseCurrencyBalance` fallback and keeps the number close rather than null).
+                val initialSum = inScope.sumOf { awb ->
+                    val acc = awb.account
+                    if (acc.currency == displayCur) acc.initialBalance
+                    else crossConvert(acc.initialBalance, acc.currency, displayCur, rates)
+                        ?: acc.initialBalance
+                }
+                val expBeforeInDisplay = if (displayCur == base) expBefore
+                    else crossConvert(expBefore, base, displayCur, rates) ?: expBefore
+                val incBeforeInDisplay = if (displayCur == base) incBefore
+                    else crossConvert(incBefore, base, displayCur, rates) ?: incBefore
+
+                initialSum + incBeforeInDisplay - expBeforeInDisplay
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
 
     private var loadDataJob: Job? = null
 

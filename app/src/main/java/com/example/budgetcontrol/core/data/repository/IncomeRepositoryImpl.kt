@@ -70,4 +70,12 @@ class IncomeRepositoryImpl @Inject constructor(
     override suspend fun getIncomeCountByAccount(accountId: String): Int {
         return incomeDao.getIncomeCountByAccount(accountId)
     }
+
+    override fun getTotalIncomesBeforeDate(date: Long, accountId: String?): Flow<Double> {
+        return incomeDao.getTotalIncomesBeforeDate(date, accountId)
+    }
+
+    override fun getTotalIncomesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double> {
+        return incomeDao.getTotalIncomesBeforeDateInAccounts(date, accountIds)
+    }
 }

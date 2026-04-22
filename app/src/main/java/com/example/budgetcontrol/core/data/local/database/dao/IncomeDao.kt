@@ -57,4 +57,16 @@ interface IncomeDao {
 
     @Query("SELECT COUNT(*) FROM incomes WHERE accountId = :accountId")
     suspend fun getIncomeCountByAccount(accountId: String): Int
+
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM incomes " +
+                "WHERE date < :date AND (:accountId IS NULL OR accountId = :accountId)"
+    )
+    fun getTotalIncomesBeforeDate(date: Long, accountId: String?): Flow<Double>
+
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM incomes " +
+                "WHERE date < :date AND accountId IN (:accountIds)"
+    )
+    fun getTotalIncomesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double>
 }

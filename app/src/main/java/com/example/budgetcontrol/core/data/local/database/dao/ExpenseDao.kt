@@ -57,4 +57,16 @@ interface ExpenseDao {
 
     @Query("SELECT COUNT(*) FROM expenses WHERE accountId = :accountId")
     suspend fun getExpenseCountByAccount(accountId: String): Int
+
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM expenses " +
+                "WHERE date < :date AND (:accountId IS NULL OR accountId = :accountId)"
+    )
+    fun getTotalExpensesBeforeDate(date: Long, accountId: String?): Flow<Double>
+
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM expenses " +
+                "WHERE date < :date AND accountId IN (:accountIds)"
+    )
+    fun getTotalExpensesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double>
 }

@@ -70,4 +70,12 @@ class ExpenseRepositoryImpl @Inject constructor(
     override suspend fun getExpenseCountByAccount(accountId: String): Int {
         return expenseDao.getExpenseCountByAccount(accountId)
     }
+
+    override fun getTotalExpensesBeforeDate(date: Long, accountId: String?): Flow<Double> {
+        return expenseDao.getTotalExpensesBeforeDate(date, accountId)
+    }
+
+    override fun getTotalExpensesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double> {
+        return expenseDao.getTotalExpensesBeforeDateInAccounts(date, accountIds)
+    }
 }

@@ -33,4 +33,10 @@ class GetIncomesUseCase @Inject constructor(
     suspend fun getMaxDate(): Long? = repository.getMaxDate()
 
     suspend fun getIncomeCountByAccount(accountId: String): Int = repository.getIncomeCountByAccount(accountId)
+
+    fun getTotalBeforeDate(date: Long, accountId: String?): Flow<Double> =
+        repository.getTotalIncomesBeforeDate(date, accountId)
+
+    fun getTotalBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double> =
+        repository.getTotalIncomesBeforeDateInAccounts(date, accountIds)
 }
