@@ -6,6 +6,7 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionRequest
 import com.example.budgetcontrol.core.data.remote.cerps.dto.ConversionResponse
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
+import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
 import com.example.budgetcontrol.core.di.ApplicationScope
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateResult
@@ -203,6 +204,25 @@ class CerpsRepository @Inject constructor(
             throw e
         } catch (e: Exception) {
             CerpsResult.Error(context.getString(R.string.conversion_service_unavailable, e.message ?: ""))
+        }
+    }
+
+    suspend fun getBankCommission(bankName: String): GeminiResult {
+        return try {
+            val response = apiService.getBankCommission(bankName)
+            val body = response.body()
+            if (!response.isSuccessful || body == null) {
+                return GeminiResult.Error()
+            }
+            if (body.found && body.commission != null) {
+                GeminiResult.Success(body.commission)
+            } else {
+                GeminiResult.NotFound
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            GeminiResult.Error(e.message)
         }
     }
 

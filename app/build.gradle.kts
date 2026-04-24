@@ -26,8 +26,6 @@ android {
         localProperties.load(rootProject.file("local.properties").inputStream())
         buildConfigField("String", "CERPS_BASE_URL", "\"${localProperties["cerps.base.url"]}\"")
         buildConfigField("String", "CERPS_ANALYTICS_URL", "\"${localProperties["cerps.analytics.url"]}\"")
-        buildConfigField("String", "GEMINI_BASE_URL", "\"${localProperties["gemini.base.url"]}\"")
-        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties["gemini.api.key"]}\"")
     }
 
     buildTypes {
@@ -115,6 +113,8 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.1.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("app.cash.turbine:turbine:1.1.0")
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

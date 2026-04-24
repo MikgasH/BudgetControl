@@ -20,6 +20,16 @@ interface CerpsApiService {
     @GET("api/v1/rates/current")
     suspend fun getCurrentRates(@Query("base") base: String = "EUR"): Response<RatesResponse>
 
+    @GET("api/v1/ai/bank-commission")
+    suspend fun getBankCommission(
+        @Query("bankName") bankName: String
+    ): Response<BankCommissionResponse>
+
     @GET("actuator/health")
     suspend fun healthCheck(): Response<Any>
 }
+
+data class BankCommissionResponse(
+    val commission: Double?,
+    val found: Boolean
+)

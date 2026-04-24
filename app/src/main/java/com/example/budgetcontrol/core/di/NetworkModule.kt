@@ -5,7 +5,6 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsAnalyticsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsApiService
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
-import com.example.budgetcontrol.core.data.remote.gemini.GeminiApiService
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.util.CERPS_TIMEOUT_MS
 import android.content.Context
@@ -119,20 +118,4 @@ object NetworkModule {
         return NetworkStatusRepository(context, cerpsApiService)
     }
 
-    @Provides
-    @Singleton
-    @Named("gemini")
-    fun provideGeminiRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(BuildConfig.GEMINI_BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideGeminiApiService(@Named("gemini") retrofit: Retrofit): GeminiApiService {
-        return retrofit.create(GeminiApiService::class.java)
-    }
 }
