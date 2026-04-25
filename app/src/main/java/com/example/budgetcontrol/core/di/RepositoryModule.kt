@@ -4,6 +4,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.repository.AccountGroupRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.AccountRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.BankRepositoryImpl
+import com.example.budgetcontrol.core.data.repository.CategoryLimitRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.CategoryRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.CurrencyExchangeRepositoryImpl
 import com.example.budgetcontrol.core.data.repository.ExpenseRepositoryImpl
@@ -12,6 +13,7 @@ import com.example.budgetcontrol.core.data.repository.TransactionRepositoryImpl
 import com.example.budgetcontrol.core.domain.repository.AccountGroupRepository
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.BankRepository
+import com.example.budgetcontrol.core.domain.repository.CategoryLimitRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyRateProvider
@@ -81,4 +83,10 @@ abstract class RepositoryModule {
     abstract fun bindTransactionRepository(
         transactionRepositoryImpl: TransactionRepositoryImpl
     ): TransactionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCategoryLimitRepository(
+        categoryLimitRepositoryImpl: CategoryLimitRepositoryImpl
+    ): CategoryLimitRepository
 }

@@ -21,7 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryLimit
+import com.example.budgetcontrol.core.domain.model.CategoryLimitProgress
 import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.ui.components.common.CategoryIconWithLimitRing
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import com.example.budgetcontrol.ui.util.toSafeColor
@@ -73,7 +76,10 @@ internal fun CategoriesBottomSheet(
     onCreate: (CategoryType) -> Unit,
     onEdit: (Category) -> Unit,
     onDelete: (Category) -> Unit,
-    onResetDefaults: () -> Unit
+    onResetDefaults: () -> Unit,
+    limits: Map<String, CategoryLimit> = emptyMap(),
+    limitProgressMap: Map<String, CategoryLimitProgress> = emptyMap(),
+    baseCurrency: String = "EUR"
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
@@ -221,6 +227,9 @@ internal fun CategoriesBottomSheet(
                     items(filtered, key = { it.id }) { category ->
                         CategoryCard(
                             category = category,
+                            limitFraction = limitProgressMap[category.id]?.fraction,
+                            limitAmount = limits[category.id]?.amount,
+                            baseCurrency = baseCurrency,
                             onEdit = { onEdit(category) },
                             onDelete = { pendingDelete = category }
                         )
@@ -261,7 +270,10 @@ internal fun CategoriesBottomSheet(
 private fun CategoryCard(
     category: Category,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    limitFraction: Float? = null,
+    limitAmount: Double? = null,
+    baseCurrency: String = "EUR"
 ) {
     val iconBgColor = remember(category.color) { category.color.toSafeColor() }
     Card(
@@ -280,45 +292,67 @@ private fun CategoryCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(iconBgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = getCategoryIcon(category.iconName),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
+            if (limitFraction != null) {
+                CategoryIconWithLimitRing(
+                    iconName = category.iconName,
+                    iconColor = iconBgColor,
+                    sizeDp = 40.dp,
+                    progress = limitFraction,
+                    contentDescription = category.displayName()
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(iconBgColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = getCategoryIcon(category.iconName),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = category.displayName(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                if (category.isSystem) {
-                    Surface(
-                        shape = MaterialTheme.shapes.extraSmall,
-                        color = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = stringResource(R.string.system_category),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = category.displayName(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    if (category.isSystem) {
+                        Surface(
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(R.string.system_category),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                     }
+                }
+                if (limitAmount != null) {
+                    Text(
+                        text = stringResource(
+                            R.string.monthly_limit_label
+                        ) + ": " + formatLimitAmount(limitAmount) + " " + baseCurrency,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
             }
 
@@ -338,3 +372,12 @@ private fun CategoryCard(
         }
     }
 }
+
+private fun formatLimitAmount(amount: Double): String {
+    return if (amount == amount.toLong().toDouble()) {
+        amount.toLong().toString()
+    } else {
+        String.format(java.util.Locale.US, "%.2f", amount)
+    }
+}
+

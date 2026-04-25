@@ -503,4 +503,24 @@
     <string name="currency_change_conversion_line">%1$.2f %2$s → %3$.2f %4$s</string>
     <string name="currency_change_rate_line">Курс: 1 %1$s = %2$.4f %3$s</string>
     <string name="currency_change_confirm_button">Конвертировать и сохранить</string>
+
+    <!-- Лимиты по категориям -->
+    <string name="set_monthly_limit">Месячный лимит расходов</string>
+    <string name="monthly_limit_optional_label">Месячный лимит (необязательно)</string>
+    <string name="remove_limit">Убрать лимит</string>
+    <string name="monthly_limit_label">Месячный лимит</string>
+    <string name="current_limit_format">Текущий лимит: %1$s %2$s</string>
+    <string name="limit_remaining_format">Осталось %1$s %2$s из %3$s %4$s</string>
+    <string name="limit_exceeded_format">Лимит превышен на %1$s %2$s</string>
+    <string name="limit_reached">Лимит достигнут</string>
+
+    <!-- График динамики -->
+    <string name="trend_spending_title">Динамика трат</string>
+    <string name="trend_overall_title">Общая динамика</string>
+    <string name="trend_no_data">Нет данных о расходах для этой категории</string>
+    <string name="trend_period_day">День</string>
+    <string name="trend_period_week">Неделя</string>
+    <string name="trend_period_month">Месяц</string>
+    <string name="trend_period_year">Год</string>
+    <string name="no_transactions_in_period">Нет операций в этом периоде</string>
 </resources>

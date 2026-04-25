@@ -10,6 +10,7 @@ import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryLimit
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.core.domain.model.RateSource
@@ -18,6 +19,7 @@ import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.toExpense
 import com.example.budgetcontrol.core.domain.model.toIncome
 import com.example.budgetcontrol.core.domain.model.toTransaction
+import com.example.budgetcontrol.core.domain.repository.CategoryLimitRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
@@ -42,8 +44,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -98,7 +106,12 @@ data class TransactionFormUiState(
     val pendingSaveRate: Double = 0.0,
     // Accounts
     val accounts: List<AccountWithBalance> = emptyList(),
-    val selectedAccountId: String = Account.DEFAULT_ACCOUNT_ID
+    val selectedAccountId: String = Account.DEFAULT_ACCOUNT_ID,
+    // Category spending limit awareness for the currently selected category
+    val selectedCategoryLimit: CategoryLimit? = null,
+    val selectedCategoryMonthSpend: Double = 0.0,
+    val limitProgressMap: Map<String, com.example.budgetcontrol.core.domain.model.CategoryLimitProgress> = emptyMap(),
+    val categoryLimits: Map<String, CategoryLimit> = emptyMap()
 )
 
 enum class NetworkStatus {
@@ -123,7 +136,8 @@ class TransactionFormViewModel @Inject constructor(
     private val currencyExchangeRepository: CurrencyExchangeRepository,
     private val networkStatusRepository: NetworkStatusRepository,
     private val getAccountsUseCase: GetAccountsUseCase,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val categoryLimitRepository: CategoryLimitRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionFormUiState())
@@ -149,6 +163,9 @@ class TransactionFormViewModel @Inject constructor(
     /** Cache of the interbank exchange rate for the current currency */
     private var cachedInterBankRate: Double? = null
     private var cachedRateCurrency: String? = null
+
+    /** Tracks the active limit/spend observation so we can replace it on category change. */
+    private var limitObservationJob: Job? = null
 
     init {
         // Load saved account first, then start collecting accounts to avoid race condition
@@ -203,6 +220,40 @@ class TransactionFormViewModel @Inject constructor(
                 selectedCurrency = if (current.selectedCurrency == current.baseCurrency) currency else current.selectedCurrency
             )
         }.launchIn(viewModelScope)
+
+        // Maintain a category → limit progress map for the CategorySelector rings.
+        viewModelScope.launch {
+            val (start, end) = DateRangeHelper.getDateRange(
+                com.example.budgetcontrol.feature.main.PeriodType.MONTH,
+                periodOffset = 0
+            )
+            combine(
+                categoryLimitRepository.getAllLimits(),
+                expenseRepository.getSpentByCategoryInRange(start, end)
+            ) { limits, spends ->
+                val spentByCat = spends.associate { it.categoryId to it.spent }
+                val progress = limits.associate { limit ->
+                    val spent = spentByCat[limit.categoryId] ?: 0.0
+                    val remaining = limit.amount - spent
+                    val frac = if (limit.amount > 0.0) {
+                        (spent / limit.amount).toFloat().coerceIn(0f, 2f)
+                    } else 0f
+                    limit.categoryId to com.example.budgetcontrol.core.domain.model.CategoryLimitProgress(
+                        limit = limit.amount,
+                        spent = spent,
+                        remaining = remaining,
+                        fraction = frac
+                    )
+                }
+                val limitsByCat = limits.associateBy { it.categoryId }
+                progress to limitsByCat
+            }.collect { (progress, limitsByCat) ->
+                _uiState.value = _uiState.value.copy(
+                    limitProgressMap = progress,
+                    categoryLimits = limitsByCat
+                )
+            }
+        }
     }
 
     private fun checkNetworkStatus() {
@@ -732,8 +783,45 @@ class TransactionFormViewModel @Inject constructor(
 
         _uiState.value = updatedState.copy(
             selectedCategory = category,
-            showError = null
+            showError = null,
+            selectedCategoryLimit = null,
+            selectedCategoryMonthSpend = 0.0
         )
+
+        observeLimitForCategory(category)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeLimitForCategory(category: Category) {
+        limitObservationJob?.cancel()
+        // Income categories don't carry spending limits.
+        if (category.type != CategoryType.EXPENSE) return
+        limitObservationJob = viewModelScope.launch {
+            val (start, end) = DateRangeHelper.getDateRange(
+                com.example.budgetcontrol.feature.main.PeriodType.MONTH,
+                periodOffset = 0
+            )
+            categoryLimitRepository.getLimit(category.id)
+                .flatMapLatest { limit ->
+                    if (limit == null) {
+                        // Explicit type pins the LUB at flatMapLatest's combiner site —
+                        // without it, branch 1 infers Flow<Pair<Nothing?, Double>> and the
+                        // union with branch 2 can become awkward depending on smart-casts.
+                        flowOf<Pair<CategoryLimit?, Double>>(null to 0.0)
+                    } else {
+                        expenseRepository.getSpentByCategoryInRange(start, end).map { spends ->
+                            val spent = spends.firstOrNull { it.categoryId == category.id }?.spent ?: 0.0
+                            limit to spent
+                        }
+                    }
+                }
+                .collectLatest { (limit, spent) ->
+                    _uiState.value = _uiState.value.copy(
+                        selectedCategoryLimit = limit,
+                        selectedCategoryMonthSpend = spent
+                    )
+                }
+        }
     }
 
     fun updateDate(date: Long) {
@@ -1170,7 +1258,13 @@ class TransactionFormViewModel @Inject constructor(
         accountRepository.updateLastUsedAt(accountId)
     }
 
-    fun createCategory(name: String, iconName: String, color: String, type: CategoryType) {
+    fun createCategory(
+        name: String,
+        iconName: String,
+        color: String,
+        type: CategoryType,
+        limitAmount: Double? = null
+    ) {
         viewModelScope.launch {
             val newCategory = Category(
                 id = UUID.randomUUID().toString(),
@@ -1184,6 +1278,12 @@ class TransactionFormViewModel @Inject constructor(
                 usageCount = 0
             )
             categoryRepository.insertCategory(newCategory)
+            // Persist optional limit before the categories collect blocks below — the repo
+            // emission order doesn't matter for correctness, but doing it eagerly avoids a
+            // perceptual gap between the new category appearing and its ring rendering.
+            if (type == CategoryType.EXPENSE && limitAmount != null && limitAmount > 0.0) {
+                categoryLimitRepository.setLimit(newCategory.id, limitAmount)
+            }
 
             // Reload categories and auto-select the new one
             allCategories = emptyList()
@@ -1200,6 +1300,19 @@ class TransactionFormViewModel @Inject constructor(
                     selectedCategory = created ?: _uiState.value.selectedCategory
                 )
             }
+        }
+    }
+
+    fun setCategoryLimit(categoryId: String, amount: Double) {
+        if (amount <= 0.0) return
+        viewModelScope.launch {
+            categoryLimitRepository.setLimit(categoryId, amount)
+        }
+    }
+
+    fun clearCategoryLimit(categoryId: String) {
+        viewModelScope.launch {
+            categoryLimitRepository.clearLimit(categoryId)
         }
     }
 

@@ -6,11 +6,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.budgetcontrol.core.data.local.database.dao.BankDao
 import com.example.budgetcontrol.core.data.local.database.dao.CategoryDao
+import com.example.budgetcontrol.core.data.local.database.dao.CategoryLimitDao
 import com.example.budgetcontrol.core.data.local.database.dao.CurrencyExchangeDao
 import com.example.budgetcontrol.core.data.local.database.dao.ExpenseDao
 import com.example.budgetcontrol.core.data.local.database.dao.IncomeDao
 import com.example.budgetcontrol.core.data.local.database.entities.BankEntity
 import com.example.budgetcontrol.core.data.local.database.entities.CategoryEntity
+import com.example.budgetcontrol.core.data.local.database.entities.CategoryLimitEntity
 import com.example.budgetcontrol.core.data.local.database.entities.CurrencyExchangeEntity
 import com.example.budgetcontrol.core.data.local.database.entities.ExpenseEntity
 import com.example.budgetcontrol.core.data.local.database.entities.IncomeEntity
@@ -26,8 +28,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class, AccountEntity::class, AccountGroupEntity::class, AccountGroupMemberEntity::class],
-    version = 16,
+    entities = [ExpenseEntity::class, CategoryEntity::class, IncomeEntity::class, BankEntity::class, CurrencyExchangeEntity::class, AccountEntity::class, AccountGroupEntity::class, AccountGroupMemberEntity::class, CategoryLimitEntity::class],
+    version = 17,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun currencyExchangeDao(): CurrencyExchangeDao
     abstract fun accountDao(): AccountDao
     abstract fun accountGroupDao(): AccountGroupDao
+    abstract fun categoryLimitDao(): CategoryLimitDao
 
     companion object {
         const val DATABASE_NAME = "budget_control_db"
@@ -280,6 +283,26 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_expenses_accountId` ON `expenses` (`accountId`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_incomes_accountId` ON `incomes` (`accountId`)")
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS category_limits (
+                        categoryId TEXT NOT NULL PRIMARY KEY,
+                        amount REAL NOT NULL,
+                        periodType TEXT NOT NULL DEFAULT 'MONTH',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_category_limits_categoryId` ON `category_limits` (`categoryId`)"
+                )
             }
         }
 

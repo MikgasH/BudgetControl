@@ -224,6 +224,8 @@ fun TransactionFormScreen(
                 onUpdateCategoryColor = viewModel::updateCategoryColor,
                 onUpdateCategory = viewModel::updateCustomCategory,
                 onDeleteCategory = viewModel::deleteCustomCategory,
+                onSetCategoryLimit = viewModel::setCategoryLimit,
+                onClearCategoryLimit = viewModel::clearCategoryLimit,
                 onPaymentMethodSelect = viewModel::selectPaymentMethod,
                 onCashRateChange = viewModel::updateCashRate,
                 onAccountSelect = viewModel::selectAccount,
@@ -247,10 +249,12 @@ private fun TransactionFormContent(
     onBankSelect: (Bank) -> Unit,
     onExactAmountToggle: (Boolean) -> Unit,
     onExactEurAmountChange: (String) -> Unit,
-    onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
+    onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
     onDeleteCategory: (Category) -> Unit = {},
+    onSetCategoryLimit: (categoryId: String, amount: Double) -> Unit = { _, _ -> },
+    onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> },
     onPaymentMethodSelect: (String) -> Unit = {},
     onCashRateChange: (String) -> Unit = {},
     onAccountSelect: (String) -> Unit = {},
@@ -304,7 +308,9 @@ private fun TransactionFormContent(
                 onCreateCategory = onCreateCategory,
                 onUpdateCategoryColor = onUpdateCategoryColor,
                 onUpdateCategory = onUpdateCategory,
-                onDeleteCategory = onDeleteCategory
+                onDeleteCategory = onDeleteCategory,
+                onSetCategoryLimit = onSetCategoryLimit,
+                onClearCategoryLimit = onClearCategoryLimit
             ),
             cashRatePlaceholder = uiState.cashRatePlaceholder,
             cashRateHint = uiState.cashRateHint,
@@ -314,7 +320,11 @@ private fun TransactionFormContent(
             accounts = uiState.accounts,
             selectedAccountId = uiState.selectedAccountId,
             onAccountSelect = onAccountSelect,
-            foreignCurrencyDisabled = uiState.foreignCurrencyDisabled
+            foreignCurrencyDisabled = uiState.foreignCurrencyDisabled,
+            selectedCategoryLimit = uiState.selectedCategoryLimit,
+            selectedCategoryMonthSpend = uiState.selectedCategoryMonthSpend,
+            limitProgressMap = uiState.limitProgressMap,
+            categoryLimits = uiState.categoryLimits
         )
     } else {
         EditTransactionFormContent(
@@ -332,6 +342,8 @@ private fun TransactionFormContent(
             onUpdateCategoryColor = onUpdateCategoryColor,
             onUpdateCategory = onUpdateCategory,
             onDeleteCategory = onDeleteCategory,
+            onSetCategoryLimit = onSetCategoryLimit,
+            onClearCategoryLimit = onClearCategoryLimit,
             accounts = uiState.accounts,
             selectedAccountId = uiState.selectedAccountId,
             onAccountSelect = onAccountSelect,
@@ -352,10 +364,12 @@ private fun EditTransactionFormContent(
     onTransactionTypeChange: (TransactionType) -> Unit,
     onCurrencySelect: (String) -> Unit,
     onBankSelect: (Bank) -> Unit,
-    onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
+    onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
     onDeleteCategory: (Category) -> Unit = {},
+    onSetCategoryLimit: (categoryId: String, amount: Double) -> Unit = { _, _ -> },
+    onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> },
     accounts: List<AccountWithBalance> = emptyList(),
     selectedAccountId: String = "",
     onAccountSelect: (String) -> Unit = {},
@@ -400,7 +414,12 @@ private fun EditTransactionFormContent(
             onCreateCategory = onCreateCategory,
             onUpdateCategoryColor = onUpdateCategoryColor,
             onUpdateCategory = onUpdateCategory,
-            onDeleteCategory = onDeleteCategory
+            onDeleteCategory = onDeleteCategory,
+            baseCurrency = uiState.baseCurrency,
+            categoryLimits = uiState.categoryLimits,
+            onSetCategoryLimit = onSetCategoryLimit,
+            onClearCategoryLimit = onClearCategoryLimit,
+            limitProgressMap = uiState.limitProgressMap
         )
 
         if (accounts.size > 1) {

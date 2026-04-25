@@ -20,7 +20,8 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
                     TransactionType.EXPENSE -> navController.navigate("${Screen.ExpenseDetail.route}/${transaction.id}")
                     TransactionType.INCOME -> navController.navigate("${Screen.IncomeDetail.route}/${transaction.id}")
                 }
-            }
+            },
+            onAddExpenseClick = { navController.navigate(Screen.AddExpense.route) }
         )
     }
 

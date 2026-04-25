@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.domain.repository
 
+import com.example.budgetcontrol.core.data.local.database.dao.CategorySpend
 import com.example.budgetcontrol.core.domain.model.Expense
 import kotlinx.coroutines.flow.Flow
 
@@ -21,4 +22,5 @@ interface ExpenseRepository {
     suspend fun getExpenseCountByAccount(accountId: String): Int
     fun getTotalExpensesBeforeDate(date: Long, accountId: String?): Flow<Double>
     fun getTotalExpensesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double>
+    fun getSpentByCategoryInRange(periodStart: Long, periodEnd: Long): Flow<List<CategorySpend>>
 }

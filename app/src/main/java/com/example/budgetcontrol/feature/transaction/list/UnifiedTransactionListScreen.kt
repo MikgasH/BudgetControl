@@ -4,12 +4,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -35,6 +42,9 @@ import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.util.AMOUNT_FORMAT
+import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.ui.components.charts.TrendChart
+import com.example.budgetcontrol.ui.components.charts.TrendChartLegend
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.components.common.TransactionItem
 import com.example.budgetcontrol.ui.util.displayName
@@ -47,10 +57,13 @@ import java.util.*
 fun UnifiedTransactionListScreen(
     onBackClick: () -> Unit,
     onTransactionClick: (Transaction) -> Unit = {},
+    onAddExpenseClick: () -> Unit = {},
     viewModel: UnifiedTransactionListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
+    val lazyListState = rememberLazyListState()
+    val isScrollingUp by lazyListState.isScrollingUp()
 
     var showPeriodPicker by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
@@ -120,6 +133,26 @@ fun UnifiedTransactionListScreen(
                     navigationIconContentColor = Color.White
                 )
             )
+        },
+        floatingActionButton = {
+            // Hide the FAB while scrolling down so it doesn't cover content; show on scroll-up.
+            // The fade+scale combo matches Material 3's animateFloatingActionButton pattern.
+            AnimatedVisibility(
+                visible = isScrollingUp,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                FloatingActionButton(
+                    onClick = onAddExpenseClick,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.add_expense),
+                        tint = Color.White
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -127,28 +160,37 @@ fun UnifiedTransactionListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Transaction type filter chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = uiState.transactionTypeFilter == TransactionTypeFilter.ALL,
-                    onClick = { viewModel.setTransactionTypeFilter(TransactionTypeFilter.ALL) },
-                    label = { Text(stringResource(R.string.filter_all_types)) }
-                )
-                FilterChip(
-                    selected = uiState.transactionTypeFilter == TransactionTypeFilter.INCOME,
-                    onClick = { viewModel.setTransactionTypeFilter(TransactionTypeFilter.INCOME) },
-                    label = { Text(stringResource(R.string.income_tab)) }
-                )
-                FilterChip(
-                    selected = uiState.transactionTypeFilter == TransactionTypeFilter.EXPENSE,
-                    onClick = { viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE) },
-                    label = { Text(stringResource(R.string.expense_tab)) }
-                )
+            // Transaction type filter chips. The row hides itself when only one tab is
+            // available — picking among one option is just visual noise.
+            if (uiState.availableTypeTabs.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (TransactionTypeFilter.ALL in uiState.availableTypeTabs) {
+                        FilterChip(
+                            selected = uiState.transactionTypeFilter == TransactionTypeFilter.ALL,
+                            onClick = { viewModel.setTransactionTypeFilter(TransactionTypeFilter.ALL) },
+                            label = { Text(stringResource(R.string.filter_all_types)) }
+                        )
+                    }
+                    if (TransactionTypeFilter.INCOME in uiState.availableTypeTabs) {
+                        FilterChip(
+                            selected = uiState.transactionTypeFilter == TransactionTypeFilter.INCOME,
+                            onClick = { viewModel.setTransactionTypeFilter(TransactionTypeFilter.INCOME) },
+                            label = { Text(stringResource(R.string.income_tab)) }
+                        )
+                    }
+                    if (TransactionTypeFilter.EXPENSE in uiState.availableTypeTabs) {
+                        FilterChip(
+                            selected = uiState.transactionTypeFilter == TransactionTypeFilter.EXPENSE,
+                            onClick = { viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE) },
+                            label = { Text(stringResource(R.string.expense_tab)) }
+                        )
+                    }
+                }
             }
 
             // Account, Category, Period filter chips (horizontally scrollable)
@@ -232,7 +274,18 @@ fun UnifiedTransactionListScreen(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                    }
+                    },
+                    trailingIcon = if (uiState.startDate != null) {
+                        {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.delete_action),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable { viewModel.clearDateRange() }
+                            )
+                        }
+                    } else null
                 )
             }
 
@@ -279,38 +332,68 @@ fun UnifiedTransactionListScreen(
 
             HorizontalDivider()
 
-            // Transaction list
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
+            // Transaction list — keep one LazyColumn for both populated and empty states
+            // so the trend chart still renders when a single category is selected but has
+            // no transactions in the current filter.
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-
-                uiState.transactions.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_transactions),
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(32.dp)
-                        )
+            } else {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (uiState.trendChart !is TrendChartData.Empty) {
+                        item(key = "trend_chart") {
+                            val title = when {
+                                uiState.selectedCategoryIds.size == 1 ->
+                                    stringResource(R.string.trend_spending_title)
+                                else ->
+                                    stringResource(R.string.trend_overall_title)
+                            }
+                            TrendChartCard(
+                                title = title,
+                                data = uiState.trendChart,
+                                categories = uiState.categories,
+                                selectedPeriod = uiState.selectedTrendPeriod,
+                                onPeriodSelected = viewModel::setTrendPeriod,
+                                onBucketTapped = viewModel::onTrendBucketTapped,
+                                onBackgroundTapped = viewModel::clearDateRange
+                            )
+                        }
                     }
-                }
-
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    if (uiState.transactions.isEmpty()) {
+                        item(key = "empty_state") {
+                            // When the empty state is the result of tapping a trend bucket
+                            // (date range now active), use the period-specific message so
+                            // the user understands the chart still reflects the full history.
+                            val emptyMessage = if (uiState.startDate != null) {
+                                stringResource(R.string.no_transactions_in_period)
+                            } else {
+                                stringResource(R.string.no_transactions)
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = emptyMessage,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(32.dp)
+                                )
+                            }
+                        }
+                    } else {
                         items(
                             items = uiState.transactions,
                             key = { tx -> "${tx.type}_${tx.id}" }
@@ -634,6 +717,139 @@ private fun CategoryFilterItem(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+@Composable
+private fun TrendChartCard(
+    title: String,
+    data: TrendChartData,
+    categories: List<Category>,
+    selectedPeriod: PeriodType,
+    onPeriodSelected: (PeriodType) -> Unit,
+    onBucketTapped: (start: Long, end: Long, total: Double) -> Unit,
+    onBackgroundTapped: () -> Unit
+) {
+    val hasData = when (data) {
+        is TrendChartData.Stacked -> data.buckets.any { it.total > 0.0 }
+        is TrendChartData.PairedStacked -> data.buckets.any { it.expenseTotal > 0.0 || it.incomeTotal > 0.0 }
+        is TrendChartData.SingleCategory -> data.buckets.any { it.total > 0.0 }
+        TrendChartData.Empty -> false
+    }
+    val showLegend = data is TrendChartData.Stacked || data is TrendChartData.PairedStacked
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TrendPeriodChip(
+                    selected = selectedPeriod == PeriodType.DAY,
+                    label = stringResource(R.string.trend_period_day),
+                    onClick = { onPeriodSelected(PeriodType.DAY) }
+                )
+                TrendPeriodChip(
+                    selected = selectedPeriod == PeriodType.WEEK,
+                    label = stringResource(R.string.trend_period_week),
+                    onClick = { onPeriodSelected(PeriodType.WEEK) }
+                )
+                TrendPeriodChip(
+                    selected = selectedPeriod == PeriodType.MONTH,
+                    label = stringResource(R.string.trend_period_month),
+                    onClick = { onPeriodSelected(PeriodType.MONTH) }
+                )
+                TrendPeriodChip(
+                    selected = selectedPeriod == PeriodType.YEAR,
+                    label = stringResource(R.string.trend_period_year),
+                    onClick = { onPeriodSelected(PeriodType.YEAR) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (!hasData) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.trend_no_data),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                TrendChart(
+                    data = data,
+                    onBucketTapped = onBucketTapped,
+                    onBackgroundTapped = onBackgroundTapped
+                )
+                if (showLegend) {
+                    TrendChartLegend(
+                        data = data,
+                        categories = categories
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendPeriodChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) }
+    )
+}
+
+/**
+ * Tracks scroll direction by snapshotting firstVisibleItemIndex/Offset between recompositions.
+ * Returns `true` when the most recent scroll was upward (or at rest), `false` while scrolling down.
+ * Used to hide the FAB on scroll-down so it doesn't block content, mirroring the canonical
+ * Material 3 LazyListState pattern.
+ */
+@Composable
+private fun LazyListState.isScrollingUp(): State<Boolean> {
+    var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
+    var previousOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
+    return remember(this) {
+        derivedStateOf {
+            val scrollingUp = if (previousIndex != firstVisibleItemIndex) {
+                previousIndex > firstVisibleItemIndex
+            } else {
+                previousOffset >= firstVisibleItemScrollOffset
+            }
+            previousIndex = firstVisibleItemIndex
+            previousOffset = firstVisibleItemScrollOffset
+            scrollingUp
+        }
     }
 }
 

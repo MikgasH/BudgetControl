@@ -503,4 +503,24 @@
     <string name="currency_change_conversion_line">%1$.2f %2$s → %3$.2f %4$s</string>
     <string name="currency_change_rate_line">Rate: 1 %1$s = %2$.4f %3$s</string>
     <string name="currency_change_confirm_button">Convert &amp; save</string>
+
+    <!-- Category spending limits -->
+    <string name="set_monthly_limit">Monthly spending limit</string>
+    <string name="monthly_limit_optional_label">Monthly spending limit (optional)</string>
+    <string name="remove_limit">Remove limit</string>
+    <string name="monthly_limit_label">Monthly limit</string>
+    <string name="current_limit_format">Current limit: %1$s %2$s</string>
+    <string name="limit_remaining_format">%1$s %2$s remaining of %3$s %4$s</string>
+    <string name="limit_exceeded_format">Limit exceeded by %1$s %2$s</string>
+    <string name="limit_reached">Limit reached</string>
+
+    <!-- Category trend chart -->
+    <string name="trend_spending_title">Spending trend</string>
+    <string name="trend_overall_title">Overall spending</string>
+    <string name="trend_no_data">No spending data for this category</string>
+    <string name="trend_period_day">Day</string>
+    <string name="trend_period_week">Week</string>
+    <string name="trend_period_month">Month</string>
+    <string name="trend_period_year">Year</string>
+    <string name="no_transactions_in_period">No transactions in this period</string>
 </resources>

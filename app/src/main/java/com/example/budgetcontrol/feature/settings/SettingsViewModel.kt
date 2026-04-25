@@ -9,7 +9,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryLimit
+import com.example.budgetcontrol.core.domain.model.CategoryLimitProgress
 import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.util.DateRangeHelper
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
@@ -21,6 +27,7 @@ import com.example.budgetcontrol.core.domain.model.Account
 import com.example.budgetcontrol.core.domain.model.PendingCurrencyChange
 import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.core.domain.repository.BankRepository
+import com.example.budgetcontrol.core.domain.repository.CategoryLimitRepository
 import com.example.budgetcontrol.core.domain.repository.CategoryRepository
 import com.example.budgetcontrol.core.domain.repository.ExpenseRepository
 import com.example.budgetcontrol.core.domain.repository.IncomeRepository
@@ -85,6 +92,7 @@ class SettingsViewModel @Inject constructor(
     private val incomeRepository: IncomeRepository,
     private val updateAccountUseCase: UpdateAccountUseCase,
     private val categoryRepository: CategoryRepository,
+    private val categoryLimitRepository: CategoryLimitRepository,
     getExpensesUseCase: GetExpensesUseCase,
     getIncomesUseCase: GetIncomesUseCase
 ) : ViewModel() {
@@ -119,6 +127,34 @@ class SettingsViewModel @Inject constructor(
 
     val categories: StateFlow<List<Category>> = categoryRepository.getAllCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
+
+    val categoryLimits: StateFlow<Map<String, CategoryLimit>> = categoryLimitRepository.getAllLimits()
+        .map { list -> list.associateBy { it.categoryId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyMap())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val categoryLimitProgress: StateFlow<Map<String, CategoryLimitProgress>> =
+        categoryLimitRepository.getAllLimits()
+            .flatMapLatest { limits ->
+                val (start, end) = DateRangeHelper.getDateRange(PeriodType.MONTH, periodOffset = 0)
+                expenseRepository.getSpentByCategoryInRange(start, end).map { spends ->
+                    val spentByCategory = spends.associate { it.categoryId to it.spent }
+                    limits.associate { limit ->
+                        val spent = spentByCategory[limit.categoryId] ?: 0.0
+                        val remaining = limit.amount - spent
+                        val frac = if (limit.amount > 0.0) {
+                            (spent / limit.amount).toFloat().coerceIn(0f, 2f)
+                        } else 0f
+                        limit.categoryId to CategoryLimitProgress(
+                            limit = limit.amount,
+                            spent = spent,
+                            remaining = remaining,
+                            fraction = frac
+                        )
+                    }
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyMap())
 
     init {
         preferencesManager.languageFlow
@@ -456,11 +492,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun createCategory(name: String, iconName: String, color: String, type: CategoryType) {
+    fun createCategory(
+        name: String,
+        iconName: String,
+        color: String,
+        type: CategoryType,
+        limitAmount: Double? = null
+    ) {
         viewModelScope.launch {
+            val newId = UUID.randomUUID().toString()
             categoryRepository.insertCategory(
                 Category(
-                    id = UUID.randomUUID().toString(),
+                    id = newId,
                     name = name,
                     iconName = iconName,
                     color = color,
@@ -469,14 +512,32 @@ class SettingsViewModel @Inject constructor(
                     isDefault = false
                 )
             )
+            // Limit persistence is gated on type=EXPENSE inside the bottom sheet, but we
+            // double-check here so a future caller can't smuggle a limit onto an income.
+            if (type == CategoryType.EXPENSE && limitAmount != null && limitAmount > 0.0) {
+                categoryLimitRepository.setLimit(newId, limitAmount)
+            }
         }
     }
 
-    fun updateCategory(name: String, iconName: String, color: String) {
+    fun updateCategory(
+        name: String,
+        iconName: String,
+        color: String,
+        limitAmount: Double? = null
+    ) {
         val id = _uiState.value.editingCategoryId ?: return
         viewModelScope.launch {
             val existing = categoryRepository.getCategoryById(id) ?: return@launch
             categoryRepository.updateCategory(existing.copy(name = name, iconName = iconName, color = color))
+            if (existing.type == CategoryType.EXPENSE) {
+                if (limitAmount != null && limitAmount > 0.0) {
+                    categoryLimitRepository.setLimit(id, limitAmount)
+                } else {
+                    // User cleared the field → drop any existing limit. Idempotent when none.
+                    categoryLimitRepository.clearLimit(id)
+                }
+            }
         }
     }
 
@@ -495,6 +556,19 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             categories.value.forEach { categoryRepository.deleteCategory(it) }
             categoryRepository.initializeDefaultCategories()
+        }
+    }
+
+    fun setCategoryLimit(categoryId: String, amount: Double) {
+        if (amount <= 0.0) return
+        viewModelScope.launch {
+            categoryLimitRepository.setLimit(categoryId, amount)
+        }
+    }
+
+    fun clearCategoryLimit(categoryId: String) {
+        viewModelScope.launch {
+            categoryLimitRepository.clearLimit(categoryId)
         }
     }
 }

@@ -16,12 +16,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryLimit
+import com.example.budgetcontrol.core.domain.model.CategoryLimitProgress
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
+import com.example.budgetcontrol.core.util.formatAmount
+import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.feature.transaction.common.NetworkStatus
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,10 +60,12 @@ data class TransactionFormCallbacks(
 )
 
 data class TransactionCategoryActions(
-    val onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType) -> Unit)? = null,
+    val onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit)? = null,
     val onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     val onUpdateCategory: (Category) -> Unit = {},
-    val onDeleteCategory: (Category) -> Unit = {}
+    val onDeleteCategory: (Category) -> Unit = {},
+    val onSetCategoryLimit: (categoryId: String, amount: Double) -> Unit = { _, _ -> },
+    val onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> }
 )
 
 @Composable
@@ -88,7 +94,11 @@ fun AddTransactionContent(
     accounts: List<AccountWithBalance> = emptyList(),
     selectedAccountId: String = "",
     onAccountSelect: (String) -> Unit = {},
-    foreignCurrencyDisabled: Boolean = false
+    foreignCurrencyDisabled: Boolean = false,
+    selectedCategoryLimit: CategoryLimit? = null,
+    selectedCategoryMonthSpend: Double = 0.0,
+    limitProgressMap: Map<String, CategoryLimitProgress> = emptyMap(),
+    categoryLimits: Map<String, CategoryLimit> = emptyMap()
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -267,8 +277,30 @@ fun AddTransactionContent(
             onCreateCategory = categoryActions.onCreateCategory,
             onUpdateCategoryColor = categoryActions.onUpdateCategoryColor,
             onUpdateCategory = categoryActions.onUpdateCategory,
-            onDeleteCategory = categoryActions.onDeleteCategory
+            onDeleteCategory = categoryActions.onDeleteCategory,
+            limitProgressMap = limitProgressMap,
+            baseCurrency = baseCurrency,
+            categoryLimits = categoryLimits,
+            onSetCategoryLimit = categoryActions.onSetCategoryLimit,
+            onClearCategoryLimit = categoryActions.onClearCategoryLimit
         )
+
+        if (selectedCategoryLimit != null
+            && formState.transactionType == TransactionType.EXPENSE
+        ) {
+            CategoryLimitSummary(
+                limit = selectedCategoryLimit,
+                monthSpend = selectedCategoryMonthSpend,
+                amountInput = formState.amount,
+                selectedCurrency = formState.selectedCurrency,
+                accountCurrency = accountCurrency,
+                baseCurrency = baseCurrency,
+                convertedAmountPreview = convertedAmountPreview,
+                exactBaseAmount = if (formState.isExactMode) formState.exactEurAmount else "",
+                cashRate = formState.cashRate,
+                paymentMethod = formState.paymentMethod
+            )
+        }
 
         if (accounts.size > 1) {
             AccountSelector(
@@ -488,6 +520,99 @@ private fun CashRateSection(
             )
         }
     }
+}
+
+/**
+ * Renders the "X remaining of Y" / "limit reached" / "limit exceeded" line.
+ *
+ * The projected spend = month-to-date + the current entry converted to the base currency.
+ * We try to honor the live `convertedAmountPreview` for foreign-currency card flows; for
+ * other flows we approximate by parsing the amount as base currency.
+ */
+@Composable
+private fun CategoryLimitSummary(
+    limit: CategoryLimit,
+    monthSpend: Double,
+    amountInput: String,
+    selectedCurrency: String,
+    accountCurrency: String,
+    baseCurrency: String,
+    convertedAmountPreview: String,
+    exactBaseAmount: String,
+    cashRate: String,
+    paymentMethod: String
+) {
+    val projectedEntry = computeProjectedBaseAmount(
+        amountInput = amountInput,
+        selectedCurrency = selectedCurrency,
+        accountCurrency = accountCurrency,
+        baseCurrency = baseCurrency,
+        convertedAmountPreview = convertedAmountPreview,
+        exactBaseAmount = exactBaseAmount,
+        cashRate = cashRate,
+        paymentMethod = paymentMethod
+    )
+    val projectedSpend = monthSpend + projectedEntry
+    val remaining = limit.amount - projectedSpend
+    val symbol = getCurrencySymbol(baseCurrency)
+
+    val color = when {
+        remaining > 0 -> MaterialTheme.colorScheme.onSurfaceVariant
+        remaining == 0.0 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.error
+    }
+
+    val text = when {
+        remaining > 0 -> stringResource(
+            R.string.limit_remaining_format,
+            formatAmount(remaining),
+            symbol,
+            formatAmount(limit.amount),
+            symbol
+        )
+        remaining == 0.0 -> stringResource(R.string.limit_reached)
+        else -> stringResource(
+            R.string.limit_exceeded_format,
+            formatAmount(-remaining),
+            symbol
+        )
+    }
+
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        modifier = Modifier.padding(horizontal = 4.dp)
+    )
+}
+
+private fun computeProjectedBaseAmount(
+    amountInput: String,
+    selectedCurrency: String,
+    accountCurrency: String,
+    baseCurrency: String,
+    convertedAmountPreview: String,
+    exactBaseAmount: String,
+    cashRate: String,
+    paymentMethod: String
+): Double {
+    val amount = amountInput.replace(',', '.').toDoubleOrNull() ?: return 0.0
+    if (amount <= 0.0) return 0.0
+    val exactBase = exactBaseAmount.replace(',', '.').toDoubleOrNull()
+    if (exactBase != null && exactBase > 0.0) return exactBase
+    if (selectedCurrency == baseCurrency) return amount
+    if (paymentMethod == "CASH") {
+        val rate = cashRate.replace(',', '.').toDoubleOrNull()
+        if (rate != null && rate > 0.0) return amount / rate
+    }
+    // Fallback: try to read the converted amount preview (format: "≈ X.XX BASE …")
+    val previewNumber = convertedAmountPreview
+        .replace(',', '.')
+        .split(' ', ' ')
+        .firstOrNull { it.toDoubleOrNull() != null }
+        ?.toDoubleOrNull()
+    if (previewNumber != null) return previewNumber
+    return if (selectedCurrency == accountCurrency) amount else 0.0
 }
 
 @Composable

@@ -33,6 +33,8 @@ fun SettingsScreen(
     val favoriteCurrencies by viewModel.favoriteCurrencies.collectAsState()
     val baseCurrency by viewModel.baseCurrency.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val categoryLimits by viewModel.categoryLimits.collectAsState()
+    val categoryLimitProgress by viewModel.categoryLimitProgress.collectAsState()
 
     var showBanksSheet by remember { mutableStateOf(false) }
     var showCurrenciesSheet by remember { mutableStateOf(false) }
@@ -185,7 +187,10 @@ fun SettingsScreen(
             },
             onEdit = { category -> viewModel.showEditCategorySheet(category.id) },
             onDelete = viewModel::deleteCategory,
-            onResetDefaults = viewModel::resetCategoriesToDefaults
+            onResetDefaults = viewModel::resetCategoriesToDefaults,
+            limits = categoryLimits,
+            limitProgressMap = categoryLimitProgress,
+            baseCurrency = baseCurrency
         )
     }
 
@@ -287,18 +292,21 @@ fun SettingsScreen(
                 initialName = editingCategory.displayName(),
                 initialIconName = editingCategory.iconName,
                 initialColor = editingCategory.color,
+                initialLimitAmount = categoryLimits[editingCategory.id]?.amount,
+                baseCurrency = baseCurrency,
                 isEditMode = true,
-                onSave = { name, iconName, color, _ ->
-                    viewModel.updateCategory(name, iconName, color)
+                onSave = { name, iconName, color, _, limitAmount ->
+                    viewModel.updateCategory(name, iconName, color, limitAmount)
                 },
                 onDismiss = { viewModel.dismissCategorySheet() }
             )
         } else {
             CreateCategoryBottomSheet(
                 categoryType = pendingCategoryType,
+                baseCurrency = baseCurrency,
                 isEditMode = false,
-                onSave = { name, iconName, color, type ->
-                    viewModel.createCategory(name, iconName, color, type)
+                onSave = { name, iconName, color, type, limitAmount ->
+                    viewModel.createCategory(name, iconName, color, type, limitAmount)
                 },
                 onDismiss = { viewModel.dismissCategorySheet() }
             )

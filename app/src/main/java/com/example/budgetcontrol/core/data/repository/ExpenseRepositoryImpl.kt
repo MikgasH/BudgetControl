@@ -1,5 +1,6 @@
 package com.example.budgetcontrol.core.data.repository
 
+import com.example.budgetcontrol.core.data.local.database.dao.CategorySpend
 import com.example.budgetcontrol.core.data.local.database.dao.ExpenseDao
 import com.example.budgetcontrol.core.data.mapper.toDomain
 import com.example.budgetcontrol.core.data.mapper.toEntity
@@ -77,5 +78,9 @@ class ExpenseRepositoryImpl @Inject constructor(
 
     override fun getTotalExpensesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double> {
         return expenseDao.getTotalExpensesBeforeDateInAccounts(date, accountIds)
+    }
+
+    override fun getSpentByCategoryInRange(periodStart: Long, periodEnd: Long): Flow<List<CategorySpend>> {
+        return expenseDao.getSpentByCategoryInRange(periodStart, periodEnd)
     }
 }

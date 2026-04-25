@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
@@ -121,10 +123,12 @@ private val iconGroups = listOf(
 fun CreateCategoryBottomSheet(
     categoryType: CategoryType,
     onDismiss: () -> Unit,
-    onSave: (name: String, iconName: String, color: String, type: CategoryType) -> Unit,
+    onSave: (name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit,
     initialName: String = "",
     initialIconName: String = "category",
     initialColor: String = colorPickerPresets[4],
+    initialLimitAmount: Double? = null,
+    baseCurrency: String = "EUR",
     isEditMode: Boolean = false,
     colorPickerViewModel: ColorPickerViewModel = hiltViewModel()
 ) {
@@ -132,13 +136,20 @@ fun CreateCategoryBottomSheet(
     var selectedIcon by remember { mutableStateOf(initialIconName) }
     var selectedColor by remember { mutableStateOf(initialColor) }
     var showMoreIcons by remember { mutableStateOf(false) }
+    val initialLimitText = remember(initialLimitAmount) {
+        initialLimitAmount?.let { formatLimitInput(it) } ?: ""
+    }
+    var limitText by remember(initialLimitAmount) { mutableStateOf(initialLimitText) }
 
     val recentColors by colorPickerViewModel.customColors.collectAsState()
 
     // Track unsaved changes
     val hasUnsavedChanges by remember {
         derivedStateOf {
-            (name.isNotBlank() && name != initialName) || selectedIcon != initialIconName || selectedColor != initialColor
+            (name.isNotBlank() && name != initialName) ||
+                selectedIcon != initialIconName ||
+                selectedColor != initialColor ||
+                limitText != initialLimitText
         }
     }
 
@@ -332,6 +343,29 @@ fun CreateCategoryBottomSheet(
                 }
             )
 
+            // ── SECTION 4: Monthly limit (expense only) ─────────────
+            // Empty input → no limit. Existing limit shows current value pre-filled.
+            if (categoryType == CategoryType.EXPENSE) {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = limitText,
+                    onValueChange = { input ->
+                        limitText = input.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }
+                    },
+                    label = { Text(stringResource(R.string.monthly_limit_optional_label)) },
+                    suffix = { Text(baseCurrency) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             // ── Save button ──────────────────────────────────────────
@@ -341,7 +375,10 @@ fun CreateCategoryBottomSheet(
                     if (color !in colorPickerPresets) {
                         colorPickerViewModel.addCustomColor(color)
                     }
-                    onSave(name.trim(), selectedIcon, color, categoryType)
+                    val parsedLimit = if (categoryType == CategoryType.EXPENSE) {
+                        limitText.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }
+                    } else null
+                    onSave(name.trim(), selectedIcon, color, categoryType, parsedLimit)
                     onDismiss()
                 },
                 enabled = name.isNotBlank(),
@@ -361,6 +398,10 @@ fun CreateCategoryBottomSheet(
         }
     }
 }
+
+private fun formatLimitInput(amount: Double): String =
+    if (amount == amount.toLong().toDouble()) amount.toLong().toString()
+    else String.format(java.util.Locale.US, "%.2f", amount)
 
 // ── Helper composables ───────────────────────────────────────────────
 

@@ -4,6 +4,8 @@ import androidx.room.*
 import com.example.budgetcontrol.core.data.local.database.entities.ExpenseEntity
 import kotlinx.coroutines.flow.Flow
 
+data class CategorySpend(val categoryId: String, val spent: Double)
+
 @Dao
 interface ExpenseDao {
 
@@ -69,4 +71,14 @@ interface ExpenseDao {
                 "WHERE date < :date AND accountId IN (:accountIds)"
     )
     fun getTotalExpensesBeforeDateInAccounts(date: Long, accountIds: List<String>): Flow<Double>
+
+    @Query(
+        """
+        SELECT categoryId, COALESCE(SUM(amount), 0.0) AS spent
+        FROM expenses
+        WHERE date BETWEEN :periodStart AND :periodEnd
+        GROUP BY categoryId
+        """
+    )
+    fun getSpentByCategoryInRange(periodStart: Long, periodEnd: Long): Flow<List<CategorySpend>>
 }

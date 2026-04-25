@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.graphics.toColorInt
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.CategoryLimitProgress
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.ui.util.displayName
@@ -58,10 +59,15 @@ fun CategorySelector(
     onCategorySelect: (Category) -> Unit,
     transactionType: TransactionType,
     modifier: Modifier = Modifier,
-    onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType) -> Unit)? = null,
+    onCreateCategory: ((name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit)? = null,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
-    onDeleteCategory: (Category) -> Unit = {}
+    onDeleteCategory: (Category) -> Unit = {},
+    limitProgressMap: Map<String, CategoryLimitProgress> = emptyMap(),
+    baseCurrency: String = "EUR",
+    categoryLimits: Map<String, com.example.budgetcontrol.core.domain.model.CategoryLimit> = emptyMap(),
+    onSetCategoryLimit: (categoryId: String, amount: Double) -> Unit = { _, _ -> },
+    onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> }
 ) {
     val title = when (transactionType) {
         TransactionType.EXPENSE -> stringResource(R.string.expense_categories)
@@ -90,10 +96,11 @@ fun CategorySelector(
                 showCreateSheet = false
                 createSheetInitialName = ""
             },
-            onSave = { name, iconName, color, type ->
-                onCreateCategory(name, iconName, color, type)
+            onSave = { name, iconName, color, type, limitAmount ->
+                onCreateCategory(name, iconName, color, type, limitAmount)
             },
-            initialName = createSheetInitialName
+            initialName = createSheetInitialName,
+            baseCurrency = baseCurrency
         )
     }
 
@@ -115,13 +122,16 @@ fun CategorySelector(
                     showCreateSheet = true
                 }
             } else null,
-            onLongPress = { settingsCategory = it }
+            onLongPress = { settingsCategory = it },
+            limitProgressMap = limitProgressMap
         )
     }
 
     settingsCategory?.let { cat ->
         CategorySettingsSheet(
             category = cat,
+            existingLimit = categoryLimits[cat.id],
+            baseCurrency = baseCurrency,
             onDismiss = { settingsCategory = null },
             onUpdateCategoryColor = { category, color ->
                 onUpdateCategoryColor(category, color)
@@ -134,7 +144,9 @@ fun CategorySelector(
             onDeleteCategory = { deleted ->
                 onDeleteCategory(deleted)
                 settingsCategory = null
-            }
+            },
+            onSetCategoryLimit = onSetCategoryLimit,
+            onClearCategoryLimit = onClearCategoryLimit
         )
     }
 
@@ -164,6 +176,7 @@ fun CategorySelector(
                 CompactCategoryItem(
                     category = category,
                     isSelected = category.id == selectedCategory?.id,
+                    limitFraction = limitProgressMap[category.id]?.fraction,
                     onClick = { onCategorySelect(category) },
                     onLongClick = { settingsCategory = category },
                     modifier = Modifier.weight(1f)
@@ -188,6 +201,7 @@ fun CategorySelector(
                 CompactCategoryItem(
                     category = category,
                     isSelected = category.id == selectedCategory?.id,
+                    limitFraction = limitProgressMap[category.id]?.fraction,
                     onClick = { onCategorySelect(category) },
                     onLongClick = { settingsCategory = category },
                     modifier = Modifier.weight(1f)
@@ -219,7 +233,8 @@ private fun CompactCategoryItem(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    limitFraction: Float? = null
 ) {
     val backgroundColor = if (isSelected) {
         category.color.toSafeColor(MaterialTheme.colorScheme.primary)
@@ -237,19 +252,33 @@ private fun CompactCategoryItem(
             onLongClick = onLongClick
         )
     ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(backgroundColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = getCategoryIcon(category.iconName),
+        if (limitFraction != null) {
+            CategoryIconWithLimitRing(
+                iconName = category.iconName,
+                iconColor = backgroundColor,
+                sizeDp = 52.dp,
+                progress = limitFraction,
                 contentDescription = category.displayName(),
-                tint = contentColor,
-                modifier = Modifier.size(24.dp)
+                // Match the non-limit branch: white over the vibrant selected color,
+                // onSurfaceVariant over the muted surfaceVariant when unselected.
+                // Without this, the icon was rendered white over light gray and looked faded.
+                contentColor = contentColor
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(backgroundColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = getCategoryIcon(category.iconName),
+                    contentDescription = category.displayName(),
+                    tint = contentColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -323,7 +352,8 @@ private fun AllCategoriesBottomSheet(
     onDismiss: () -> Unit,
     onCreateCategory: (() -> Unit)?,
     onCreateCategoryWithName: ((String) -> Unit)? = null,
-    onLongPress: (Category) -> Unit
+    onLongPress: (Category) -> Unit,
+    limitProgressMap: Map<String, CategoryLimitProgress> = emptyMap()
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
@@ -413,6 +443,7 @@ private fun AllCategoriesBottomSheet(
                         CompactCategoryItem(
                             category = category,
                             isSelected = category.id == selectedCategory?.id,
+                            limitFraction = limitProgressMap[category.id]?.fraction,
                             onClick = { onCategorySelect(category) },
                             onLongClick = { onLongPress(category) },
                             modifier = Modifier.animateItem()
@@ -521,10 +552,14 @@ private val settingsPresetColors = listOf(
 @Composable
 private fun CategorySettingsSheet(
     category: Category,
+    existingLimit: com.example.budgetcontrol.core.domain.model.CategoryLimit?,
+    baseCurrency: String,
     onDismiss: () -> Unit,
     onUpdateCategoryColor: (Category, String) -> Unit,
     onUpdateCategory: (Category) -> Unit,
-    onDeleteCategory: (Category) -> Unit
+    onDeleteCategory: (Category) -> Unit,
+    onSetCategoryLimit: (categoryId: String, amount: Double) -> Unit,
+    onClearCategoryLimit: (categoryId: String) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -536,24 +571,132 @@ private fun CategorySettingsSheet(
         if (category.isSystem) {
             SystemCategorySettings(
                 category = category,
+                existingLimit = existingLimit,
+                baseCurrency = baseCurrency,
                 onSave = { newColor -> onUpdateCategoryColor(category, newColor) },
+                onSetLimit = { amount -> onSetCategoryLimit(category.id, amount) },
+                onClearLimit = { onClearCategoryLimit(category.id) },
                 onDismiss = onDismiss
             )
         } else {
             CustomCategorySettings(
                 category = category,
+                existingLimit = existingLimit,
+                baseCurrency = baseCurrency,
                 onSave = { updated -> onUpdateCategory(updated) },
                 onDelete = { onDeleteCategory(category) },
+                onSetLimit = { amount -> onSetCategoryLimit(category.id, amount) },
+                onClearLimit = { onClearCategoryLimit(category.id) },
                 onDismiss = onDismiss
             )
         }
     }
 }
 
+/**
+ * Monthly-limit editor block, shared between system and custom category settings.
+ * Only renders for EXPENSE categories.
+ */
+@Composable
+private fun MonthlyLimitSection(
+    category: Category,
+    existingLimit: com.example.budgetcontrol.core.domain.model.CategoryLimit?,
+    baseCurrency: String,
+    onSetLimit: (Double) -> Unit,
+    onClearLimit: () -> Unit
+) {
+    if (category.type != CategoryType.EXPENSE) return
+
+    var limitText by remember(existingLimit) {
+        mutableStateOf(existingLimit?.amount?.let { formatLimitInputCs(it) } ?: "")
+    }
+
+    HorizontalDivider()
+
+    Text(
+        text = stringResource(R.string.set_monthly_limit),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp)
+    )
+
+    if (existingLimit != null) {
+        Text(
+            text = stringResource(
+                R.string.current_limit_format,
+                formatLimitInputCs(existingLimit.amount),
+                baseCurrency
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp)
+        )
+    }
+
+    OutlinedTextField(
+        value = limitText,
+        onValueChange = { input ->
+            limitText = input.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }
+        },
+        label = { Text(stringResource(R.string.monthly_limit_label)) },
+        suffix = { Text(baseCurrency) },
+        singleLine = true,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+        ),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary
+        )
+    )
+
+    val parsedLimit = limitText.replace(',', '.').toDoubleOrNull()
+    Button(
+        onClick = {
+            val v = parsedLimit
+            if (v != null && v > 0.0) onSetLimit(v)
+        },
+        enabled = (parsedLimit ?: 0.0) > 0.0,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(stringResource(R.string.save))
+    }
+
+    if (existingLimit != null) {
+        TextButton(
+            onClick = onClearLimit,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.remove_limit),
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+private fun formatLimitInputCs(amount: Double): String =
+    if (amount == amount.toLong().toDouble()) amount.toLong().toString()
+    else String.format(java.util.Locale.US, "%.2f", amount)
+
 @Composable
 private fun SystemCategorySettings(
     category: Category,
+    existingLimit: com.example.budgetcontrol.core.domain.model.CategoryLimit?,
+    baseCurrency: String,
     onSave: (String) -> Unit,
+    onSetLimit: (Double) -> Unit,
+    onClearLimit: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedColor by remember { mutableStateOf(category.color) }
@@ -652,14 +795,26 @@ private fun SystemCategorySettings(
                 color = Color.White
             )
         }
+
+        MonthlyLimitSection(
+            category = category,
+            existingLimit = existingLimit,
+            baseCurrency = baseCurrency,
+            onSetLimit = onSetLimit,
+            onClearLimit = onClearLimit
+        )
     }
 }
 
 @Composable
 private fun CustomCategorySettings(
     category: Category,
+    existingLimit: com.example.budgetcontrol.core.domain.model.CategoryLimit?,
+    baseCurrency: String,
     onSave: (Category) -> Unit,
     onDelete: () -> Unit,
+    onSetLimit: (Double) -> Unit,
+    onClearLimit: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val initialName = category.displayName()
@@ -1017,6 +1172,14 @@ private fun CustomCategorySettings(
                 fontWeight = FontWeight.Medium
             )
         }
+
+        MonthlyLimitSection(
+            category = category,
+            existingLimit = existingLimit,
+            baseCurrency = baseCurrency,
+            onSetLimit = onSetLimit,
+            onClearLimit = onClearLimit
+        )
     }
 }
 
