@@ -595,21 +595,18 @@ private fun CategorySettingsSheet(
 
 /**
  * Monthly-limit editor block, shared between system and custom category settings.
- * Only renders for EXPENSE categories.
+ * Only renders for EXPENSE categories. Stateless — `limitText` is hoisted to the
+ * parent so the parent's single Save button can persist the limit alongside
+ * the rest of the category in one operation.
  */
 @Composable
 private fun MonthlyLimitSection(
     category: Category,
-    existingLimit: com.example.budgetcontrol.core.domain.model.CategoryLimit?,
     baseCurrency: String,
-    onSetLimit: (Double) -> Unit,
-    onClearLimit: () -> Unit
+    limitText: String,
+    onLimitTextChange: (String) -> Unit
 ) {
     if (category.type != CategoryType.EXPENSE) return
-
-    var limitText by remember(existingLimit) {
-        mutableStateOf(existingLimit?.amount?.let { formatLimitInputCs(it) } ?: "")
-    }
 
     HorizontalDivider()
 
@@ -622,28 +619,24 @@ private fun MonthlyLimitSection(
             .padding(start = 4.dp)
     )
 
-    if (existingLimit != null) {
-        Text(
-            text = stringResource(
-                R.string.current_limit_format,
-                formatLimitInputCs(existingLimit.amount),
-                baseCurrency
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 4.dp)
-        )
-    }
-
     OutlinedTextField(
         value = limitText,
         onValueChange = { input ->
-            limitText = input.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }
+            onLimitTextChange(input.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' })
         },
         label = { Text(stringResource(R.string.monthly_limit_label)) },
         suffix = { Text(baseCurrency) },
+        trailingIcon = if (limitText.isNotBlank()) {
+            {
+                IconButton(onClick = { onLimitTextChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = stringResource(R.string.remove_limit),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        } else null,
         singleLine = true,
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
@@ -656,33 +649,6 @@ private fun MonthlyLimitSection(
             cursorColor = MaterialTheme.colorScheme.primary
         )
     )
-
-    val parsedLimit = limitText.replace(',', '.').toDoubleOrNull()
-    Button(
-        onClick = {
-            val v = parsedLimit
-            if (v != null && v > 0.0) onSetLimit(v)
-        },
-        enabled = (parsedLimit ?: 0.0) > 0.0,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(stringResource(R.string.save))
-    }
-
-    if (existingLimit != null) {
-        TextButton(
-            onClick = onClearLimit,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = stringResource(R.string.remove_limit),
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-    }
 }
 
 private fun formatLimitInputCs(amount: Double): String =
@@ -700,6 +666,9 @@ private fun SystemCategorySettings(
     onDismiss: () -> Unit
 ) {
     var selectedColor by remember { mutableStateOf(category.color) }
+    var limitText by remember(existingLimit) {
+        mutableStateOf(existingLimit?.amount?.let { formatLimitInputCs(it) } ?: "")
+    }
 
     Column(
         modifier = Modifier
@@ -778,10 +747,28 @@ private fun SystemCategorySettings(
             }
         }
 
+        MonthlyLimitSection(
+            category = category,
+            baseCurrency = baseCurrency,
+            limitText = limitText,
+            onLimitTextChange = { limitText = it }
+        )
+
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Save button — persists color AND the limit in one operation
         Button(
-            onClick = { onSave(selectedColor) },
+            onClick = {
+                onSave(selectedColor)
+                if (category.type == CategoryType.EXPENSE) {
+                    val parsed = limitText.replace(',', '.').toDoubleOrNull()
+                    if (parsed != null && parsed > 0.0) {
+                        onSetLimit(parsed)
+                    } else if (existingLimit != null) {
+                        onClearLimit()
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
@@ -795,14 +782,6 @@ private fun SystemCategorySettings(
                 color = Color.White
             )
         }
-
-        MonthlyLimitSection(
-            category = category,
-            existingLimit = existingLimit,
-            baseCurrency = baseCurrency,
-            onSetLimit = onSetLimit,
-            onClearLimit = onClearLimit
-        )
     }
 }
 
@@ -830,6 +809,9 @@ private fun CustomCategorySettings(
     var green by remember { mutableIntStateOf(initialRgb.second) }
     var blue by remember { mutableIntStateOf(initialRgb.third) }
     var hexDraft by remember { mutableStateOf(category.color.removePrefix("#")) }
+    var limitText by remember(existingLimit) {
+        mutableStateOf(existingLimit?.amount?.let { formatLimitInputCs(it) } ?: "")
+    }
 
     // Delete confirmation dialog
     if (showDeleteConfirm) {
@@ -1118,9 +1100,16 @@ private fun CustomCategorySettings(
             }
         }
 
+        MonthlyLimitSection(
+            category = category,
+            baseCurrency = baseCurrency,
+            limitText = limitText,
+            onLimitTextChange = { limitText = it }
+        )
+
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Save button
+        // Save button — persists name/icon/color AND the limit in one operation
         Button(
             onClick = {
                 if (name.isNotBlank()) {
@@ -1129,6 +1118,14 @@ private fun CustomCategorySettings(
                         iconName = selectedIcon,
                         color = selectedColor
                     ))
+                    if (category.type == CategoryType.EXPENSE) {
+                        val parsed = limitText.replace(',', '.').toDoubleOrNull()
+                        if (parsed != null && parsed > 0.0) {
+                            onSetLimit(parsed)
+                        } else if (existingLimit != null) {
+                            onClearLimit()
+                        }
+                    }
                 }
             },
             enabled = name.isNotBlank(),
@@ -1172,14 +1169,6 @@ private fun CustomCategorySettings(
                 fontWeight = FontWeight.Medium
             )
         }
-
-        MonthlyLimitSection(
-            category = category,
-            existingLimit = existingLimit,
-            baseCurrency = baseCurrency,
-            onSetLimit = onSetLimit,
-            onClearLimit = onClearLimit
-        )
     }
 }
 
