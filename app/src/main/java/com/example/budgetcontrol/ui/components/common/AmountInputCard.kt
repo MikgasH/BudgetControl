@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -16,6 +17,8 @@ import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import java.util.Currency
+
+const val AMOUNT_FIELD_TEST_TAG = "amount_field"
 
 @Composable
 fun AmountInputCard(
@@ -95,7 +98,9 @@ fun AmountInputCard(
                     fontSize = 32.sp,
                     color = accent
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AMOUNT_FIELD_TEST_TAG),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = accent,
                     unfocusedBorderColor = accent.copy(alpha = 0.5f),

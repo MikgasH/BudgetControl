@@ -234,7 +234,7 @@ fun OnboardingScreen(
 // ═══════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun LanguagePage(
+internal fun LanguagePage(
     selectedLanguage: String,
     onLanguageSelected: (String) -> Unit
 ) {
