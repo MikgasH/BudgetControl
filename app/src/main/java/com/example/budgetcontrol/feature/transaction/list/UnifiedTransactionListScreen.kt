@@ -18,11 +18,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +49,7 @@ import com.example.budgetcontrol.ui.components.charts.TrendChart
 import com.example.budgetcontrol.ui.components.charts.TrendChartLegend
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.components.common.TransactionItem
+import com.example.budgetcontrol.ui.util.LocalWindowWidthSizeClass
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import java.text.SimpleDateFormat
@@ -343,22 +346,93 @@ fun UnifiedTransactionListScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
-                LazyColumn(
-                    state = lazyListState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (uiState.trendChart !is TrendChartData.Empty) {
-                        item(key = "trend_chart") {
-                            val title = when {
-                                uiState.selectedCategoryIds.size == 1 ->
-                                    stringResource(R.string.trend_spending_title)
-                                else ->
-                                    stringResource(R.string.trend_overall_title)
+                val isExpanded = LocalWindowWidthSizeClass.current == WindowWidthSizeClass.Expanded
+                val trendTitle = when {
+                    uiState.selectedCategoryIds.size == 1 ->
+                        stringResource(R.string.trend_spending_title)
+                    else ->
+                        stringResource(R.string.trend_overall_title)
+                }
+
+                @Composable
+                fun TransactionsList(modifier: Modifier) {
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = modifier,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // On Compact/Medium the chart sits at the top of the same LazyColumn.
+                        // On Expanded it moves to the left pane, so skip it here.
+                        if (!isExpanded && uiState.trendChart !is TrendChartData.Empty) {
+                            item(key = "trend_chart") {
+                                TrendChartCard(
+                                    title = trendTitle,
+                                    data = uiState.trendChart,
+                                    categories = uiState.categories,
+                                    selectedPeriod = uiState.selectedTrendPeriod,
+                                    onPeriodSelected = viewModel::setTrendPeriod,
+                                    onBucketTapped = viewModel::onTrendBucketTapped,
+                                    onBackgroundTapped = viewModel::clearDateRange
+                                )
                             }
+                        }
+                        if (uiState.transactions.isEmpty()) {
+                            item(key = "empty_state") {
+                                // When the empty state is the result of tapping a trend bucket
+                                // (date range now active), use the period-specific message so
+                                // the user understands the chart still reflects the full history.
+                                val emptyMessage = if (uiState.startDate != null) {
+                                    stringResource(R.string.no_transactions_in_period)
+                                } else {
+                                    stringResource(R.string.no_transactions)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 48.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = emptyMessage,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(32.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            items(
+                                items = uiState.transactions,
+                                key = { tx -> "${tx.type}_${tx.id}" }
+                            ) { transaction ->
+                                TransactionItem(
+                                    transaction = transaction,
+                                    category = viewModel.getCategoryById(transaction.categoryId),
+                                    baseCurrency = baseCurrency,
+                                    onTransactionClick = { onTransactionClick(it) },
+                                    onDeleteClick = { viewModel.deleteTransaction(it) }
+                                )
+                            }
+                            item {
+                                Spacer(modifier = Modifier.height(80.dp))
+                            }
+                        }
+                    }
+                }
+
+                if (isExpanded && uiState.trendChart !is TrendChartData.Empty) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp)
+                        ) {
                             TrendChartCard(
-                                title = title,
+                                title = trendTitle,
                                 data = uiState.trendChart,
                                 categories = uiState.categories,
                                 selectedPeriod = uiState.selectedTrendPeriod,
@@ -367,49 +441,15 @@ fun UnifiedTransactionListScreen(
                                 onBackgroundTapped = viewModel::clearDateRange
                             )
                         }
+                        VerticalDivider()
+                        TransactionsList(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
                     }
-                    if (uiState.transactions.isEmpty()) {
-                        item(key = "empty_state") {
-                            // When the empty state is the result of tapping a trend bucket
-                            // (date range now active), use the period-specific message so
-                            // the user understands the chart still reflects the full history.
-                            val emptyMessage = if (uiState.startDate != null) {
-                                stringResource(R.string.no_transactions_in_period)
-                            } else {
-                                stringResource(R.string.no_transactions)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 48.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = emptyMessage,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(32.dp)
-                                )
-                            }
-                        }
-                    } else {
-                        items(
-                            items = uiState.transactions,
-                            key = { tx -> "${tx.type}_${tx.id}" }
-                        ) { transaction ->
-                            TransactionItem(
-                                transaction = transaction,
-                                category = viewModel.getCategoryById(transaction.categoryId),
-                                baseCurrency = baseCurrency,
-                                onTransactionClick = { onTransactionClick(it) },
-                                onDeleteClick = { viewModel.deleteTransaction(it) }
-                            )
-                        }
-                        item {
-                            Spacer(modifier = Modifier.height(80.dp))
-                        }
-                    }
+                } else {
+                    TransactionsList(modifier = Modifier.fillMaxSize())
                 }
             }
         }

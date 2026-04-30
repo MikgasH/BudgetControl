@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +51,11 @@ import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.util.displayName
 import androidx.core.graphics.toColorInt
 import java.util.Locale
+import com.example.budgetcontrol.ui.util.LocalWindowWidthSizeClass
 import com.example.budgetcontrol.ui.util.getCategoryIcon
 import com.example.budgetcontrol.ui.util.toSafeColor
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
@@ -460,6 +464,48 @@ fun MainScreen(
             }
         }
     ) { paddingValues ->
+        val isExpanded = LocalWindowWidthSizeClass.current == WindowWidthSizeClass.Expanded
+
+        if (isExpanded) {
+            ExpandedMainContent(
+                paddingValues = paddingValues,
+                uiState = uiState,
+                periodDisplayText = periodDisplayText,
+                baseCurrency = baseCurrency,
+                openingBalance = openingBalance,
+                displayCurrency = displayCurrency,
+                isApproximateBalance = isApproximateBalance,
+                onSelectOperationType = viewModel::selectOperationType,
+                onSelectPeriodType = { period ->
+                    if (period == PeriodType.PERIOD) {
+                        showPeriodPicker = true
+                    } else {
+                        viewModel.selectPeriodType(period)
+                    }
+                },
+                onNavigatePeriod = viewModel::navigatePeriod,
+                onCategoryClick = { categoryId ->
+                    val (startDate, endDate) = viewModel.getCurrentPeriodDateRange()
+                    val effectiveAccountId = when {
+                        uiState.selectedGroupId != null -> {
+                            viewModel.getSelectedGroupMemberIds().joinToString(",")
+                                .takeIf { it.isNotBlank() }
+                        }
+                        else -> uiState.selectedAccountId
+                    }
+                    onCategoryClick(
+                        categoryId,
+                        uiState.selectedOperationType,
+                        startDate,
+                        endDate,
+                        uiState.isAllTimePeriod,
+                        effectiveAccountId
+                    )
+                }
+            )
+            return@Scaffold
+        }
+
         val listState = rememberLazyListState()
         val scope = rememberCoroutineScope()
 
@@ -893,6 +939,92 @@ private fun CategoryStatisticItem(
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpandedMainContent(
+    paddingValues: PaddingValues,
+    uiState: MainScreenUiState,
+    periodDisplayText: String,
+    baseCurrency: String,
+    openingBalance: Double?,
+    displayCurrency: String,
+    isApproximateBalance: Boolean,
+    onSelectOperationType: (OperationType) -> Unit,
+    onSelectPeriodType: (PeriodType) -> Unit,
+    onNavigatePeriod: (Int) -> Unit,
+    onCategoryClick: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ExpenseIncomeToggle(
+                selectedType = uiState.selectedOperationType,
+                onTypeSelected = onSelectOperationType
+            )
+            FixedPeriodTypeSelector(
+                selectedPeriod = uiState.selectedPeriodType,
+                onPeriodSelected = onSelectPeriodType
+            )
+            PeriodNavigationCard(
+                uiState = uiState,
+                periodDisplayText = periodDisplayText,
+                baseCurrency = baseCurrency,
+                openingBalance = openingBalance,
+                displayCurrency = displayCurrency,
+                isOpeningBalanceApproximate = isApproximateBalance,
+                onNavigate = onNavigatePeriod,
+                collapseFraction = 0f,
+                chartHeight = 280.dp,
+                barHeight = 44.dp
+            )
+        }
+        VerticalDivider()
+        if (uiState.categoryStatistics.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.no_data_this_period),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(uiState.categoryStatistics) { stat ->
+                    CategoryStatisticItem(
+                        statistic = stat,
+                        baseCurrency = baseCurrency,
+                        onClick = { onCategoryClick(stat.category.id) }
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
         }
     }

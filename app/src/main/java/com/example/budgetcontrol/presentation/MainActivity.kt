@@ -5,12 +5,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.navigation.AppNavigation
 import com.example.budgetcontrol.core.theme.BudgetControlTheme
+import com.example.budgetcontrol.ui.util.LocalWindowWidthSizeClass
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -20,12 +24,14 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var preferencesManager: PreferencesManager
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             val theme by preferencesManager.themeFlow.collectAsState(initial = "system")
             val onboardingCompleted by preferencesManager.onboardingCompletedFlow.collectAsState(initial = null)
+            val windowSizeClass = calculateWindowSizeClass(this)
 
             BudgetControlTheme(
                 darkTheme = when (theme) {
@@ -34,9 +40,13 @@ class MainActivity : AppCompatActivity() {
                     else -> isSystemInDarkTheme()
                 }
             ) {
-                val completed = onboardingCompleted
-                if (completed != null) {
-                    AppNavigation(onboardingCompleted = completed)
+                CompositionLocalProvider(
+                    LocalWindowWidthSizeClass provides windowSizeClass.widthSizeClass
+                ) {
+                    val completed = onboardingCompleted
+                    if (completed != null) {
+                        AppNavigation(onboardingCompleted = completed)
+                    }
                 }
             }
         }

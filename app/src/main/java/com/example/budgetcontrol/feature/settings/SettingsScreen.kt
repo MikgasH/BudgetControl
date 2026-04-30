@@ -1,11 +1,14 @@
 package com.example.budgetcontrol.feature.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +22,7 @@ import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.ui.components.common.CreateCategoryBottomSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 import com.example.budgetcontrol.ui.components.common.CurrencyChangeConfirmDialog
+import com.example.budgetcontrol.ui.util.LocalWindowWidthSizeClass
 import com.example.budgetcontrol.ui.util.displayName
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,108 +74,129 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-
-            AppearanceSection(
-                currentTheme = uiState.currentTheme,
-                onThemeChange = viewModel::setTheme
-            )
-
-            LanguageSection(
-                currentLanguage = uiState.currentLanguage,
-                onLanguageChange = viewModel::setLanguage
-            )
-
-            AccountsSection(
-                accountCount = uiState.accounts.size,
-                onManageClick = { viewModel.showCreateAccountSheet() },
-                onAccountClick = { accountId -> viewModel.showEditAccountSheet(accountId) },
-                accounts = uiState.accounts,
-                baseCurrency = baseCurrency
-            )
-
-            CategoriesSection(
-                expenseCount = categories.count { it.type == CategoryType.EXPENSE },
-                incomeCount = categories.count { it.type == CategoryType.INCOME },
-                onManageClick = { showCategoriesSheet = true }
-            )
-
-            // Currency exchanges
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+        val sections: List<@Composable () -> Unit> = listOf(
+            {
+                AppearanceSection(
+                    currentTheme = uiState.currentTheme,
+                    onThemeChange = viewModel::setTheme
                 )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            },
+            {
+                LanguageSection(
+                    currentLanguage = uiState.currentLanguage,
+                    onLanguageChange = viewModel::setLanguage
+                )
+            },
+            {
+                AccountsSection(
+                    accountCount = uiState.accounts.size,
+                    onManageClick = { viewModel.showCreateAccountSheet() },
+                    onAccountClick = { accountId -> viewModel.showEditAccountSheet(accountId) },
+                    accounts = uiState.accounts,
+                    baseCurrency = baseCurrency
+                )
+            },
+            {
+                CategoriesSection(
+                    expenseCount = categories.count { it.type == CategoryType.EXPENSE },
+                    incomeCount = categories.count { it.type == CategoryType.INCOME },
+                    onManageClick = { showCategoriesSheet = true }
+                )
+            },
+            {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.currency_exchanges),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.exchange_rate_label),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        FilledTonalButton(onClick = onCurrencyExchangesClick) {
+                            Text(stringResource(R.string.manage))
+                        }
+                    }
+                }
+            },
+            {
+                BanksSection(
+                    banks = banks,
+                    onManageClick = { showBanksSheet = true }
+                )
+            },
+            {
+                CurrenciesSection(
+                    count = favoriteCurrencies.size,
+                    isLoading = uiState.isCurrenciesLoading,
+                    onManageClick = { showCurrenciesSheet = true }
+                )
+            },
+            {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Text(
-                            text = stringResource(R.string.currency_exchanges),
+                            text = stringResource(R.string.about_app),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = stringResource(R.string.exchange_rate_label),
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = stringResource(R.string.app_version),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = stringResource(R.string.app_description),
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    FilledTonalButton(onClick = onCurrencyExchangesClick) {
-                        Text(stringResource(R.string.manage))
-                    }
                 }
             }
+        )
 
-            BanksSection(
-                banks = banks,
-                onManageClick = { showBanksSheet = true }
-            )
-
-            CurrenciesSection(
-                count = favoriteCurrencies.size,
-                isLoading = uiState.isCurrenciesLoading,
-                onManageClick = { showCurrenciesSheet = true }
-            )
-
-            // About section
-            Card(
-                modifier = Modifier.fillMaxWidth()
+        val isExpanded = LocalWindowWidthSizeClass.current == WindowWidthSizeClass.Expanded
+        if (isExpanded) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.about_app),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = stringResource(R.string.app_version),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    Text(
-                        text = stringResource(R.string.app_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                items(sections.size) { index -> sections[index]() }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                sections.forEach { section -> section() }
             }
         }
     }
