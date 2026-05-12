@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import com.example.budgetcontrol.core.util.RATE_FORMAT
 import com.example.budgetcontrol.core.util.formatAmount
+import com.example.budgetcontrol.core.util.toDoubleLocale
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -226,12 +227,13 @@ private fun AddExchangeForm(
             }
 
             // Rate display
-            val fromAmount = formState.fromAmount.toDoubleOrNull()
-            val toAmount = formState.toAmount.toDoubleOrNull()
+            val fromAmount = formState.fromAmount.toDoubleLocale()
+            val toAmount = formState.toAmount.toDoubleLocale()
             if (fromAmount != null && fromAmount > 0 && toAmount != null && toAmount > 0) {
                 val rate = toAmount / fromAmount
+                val rateFormatted = String.format(Locale.US, RATE_FORMAT, rate)
                 Text(
-                    text = "${stringResource(R.string.exchange_rate)}: ${String.format(Locale.US, RATE_FORMAT, rate)}",
+                    text = "${stringResource(R.string.exchange_rate)}: $rateFormatted ${formState.toCurrency} per ${formState.fromCurrency}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium

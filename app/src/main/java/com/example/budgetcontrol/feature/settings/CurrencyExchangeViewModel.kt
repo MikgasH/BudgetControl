@@ -8,6 +8,7 @@ import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import com.example.budgetcontrol.core.domain.repository.CurrencyExchangeRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
+import com.example.budgetcontrol.core.util.toDoubleLocale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,9 +22,9 @@ import javax.inject.Inject
 @Immutable
 data class ExchangeFormState(
     val fromAmount: String = "",
-    val fromCurrency: String = "USD",
+    val fromCurrency: String = DEFAULT_BASE_CURRENCY,
     val toAmount: String = "",
-    val toCurrency: String = DEFAULT_BASE_CURRENCY,
+    val toCurrency: String = "USD",
     val location: String = "",
     val date: Long = System.currentTimeMillis(),
     val error: String? = null
@@ -44,8 +45,8 @@ class CurrencyExchangeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             preferencesManager.baseCurrencyFlow.collect { currency ->
-                if (_formState.value.toCurrency == DEFAULT_BASE_CURRENCY) {
-                    _formState.value = _formState.value.copy(toCurrency = currency)
+                if (_formState.value.fromCurrency == DEFAULT_BASE_CURRENCY) {
+                    _formState.value = _formState.value.copy(fromCurrency = currency)
                 }
             }
         }
@@ -77,15 +78,17 @@ class CurrencyExchangeViewModel @Inject constructor(
 
     fun saveExchange() {
         val form = _formState.value
-        val fromAmount = form.fromAmount.toDoubleOrNull()
-        val toAmount = form.toAmount.toDoubleOrNull()
+        val fromAmount = form.fromAmount.toDoubleLocale()
+        val toAmount = form.toAmount.toDoubleLocale()
 
         if (fromAmount == null || fromAmount <= 0 || toAmount == null || toAmount <= 0) {
             _formState.value = form.copy(error = "enter_amounts")
             return
         }
 
-        // Rate = "how many TO units per 1 FROM unit" — matches how exchange bureaus display rates
+        // Stored canonically as from=base ("you gave"), to=foreign ("you received").
+        // exchangeRate = foreign per base = toAmount / fromAmount, matching the
+        // foreign-per-base semantic used by CERPS rates and the cash-mode formula.
         val exchangeRate = toAmount / fromAmount
 
         viewModelScope.launch {

@@ -4,6 +4,10 @@ import android.content.Context
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Category
 
+fun String.toDoubleLocale(): Double? {
+    return this.replace(",", ".").toDoubleOrNull()
+}
+
 object ValidationHelper {
 
     sealed class ValidationResult {

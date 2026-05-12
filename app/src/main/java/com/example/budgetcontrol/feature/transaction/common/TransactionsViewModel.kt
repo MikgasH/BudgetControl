@@ -433,7 +433,7 @@ class TransactionFormViewModel @Inject constructor(
         viewModelScope.launch {
             val baseCurrency = _uiState.value.baseCurrency
             // Try to load last saved cash exchange rate
-            val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(currency, baseCurrency)
+            val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(baseCurrency, currency)
             if (lastExchange != null) {
                 val formatted = String.format(java.util.Locale.US, "%.4f", lastExchange.exchangeRate)
                 _uiState.value = _uiState.value.copy(

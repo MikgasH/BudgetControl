@@ -275,8 +275,8 @@
     <string name="save_exchange">Save exchange</string>
     <string name="no_exchanges">No exchanges recorded yet</string>
     <string name="exchange_history">Exchange history</string>
-    <string name="exchange_from">From</string>
-    <string name="exchange_to">To</string>
+    <string name="exchange_from">You gave</string>
+    <string name="exchange_to">You received</string>
     <string name="exchange_rate">Rate</string>
     <string name="exchange_amount_required">Enter amounts</string>
 

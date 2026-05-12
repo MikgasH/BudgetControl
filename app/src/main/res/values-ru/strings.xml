@@ -275,8 +275,8 @@
     <string name="save_exchange">Сохранить обмен</string>
     <string name="no_exchanges">Обменов пока нет</string>
     <string name="exchange_history">История обменов</string>
-    <string name="exchange_from">Из</string>
-    <string name="exchange_to">В</string>
+    <string name="exchange_from">Вы отдали</string>
+    <string name="exchange_to">Вы получили</string>
     <string name="exchange_rate">Курс</string>
     <string name="exchange_amount_required">Введите суммы</string>
 
