@@ -11,7 +11,6 @@
     <string name="no_upper">NO</string>
     <string name="cancel_upper">CANCEL</string>
     <string name="select_upper">SELECT</string>
-    <string name="total">Total</string>
     <string name="edit">Edit</string>
     <string name="unknown_error">Unknown error</string>
     <string name="unknown_category">Unknown category</string>
@@ -62,7 +61,6 @@
     <!-- StatisticsScreen -->
     <string name="statistics">Statistics</string>
     <string name="no_data_for_selected_period">No data for the selected period</string>
-    <string name="expenses_count_suffix"> expenses</string>
 
     <!-- SettingsScreen -->
     <string name="about_app">About app</string>
@@ -82,8 +80,6 @@
     <string name="language_russian">Russian</string>
 
     <!-- TransactionFormScreen -->
-    <string name="form_modified_title">Operation was modified</string>
-    <string name="form_not_empty_title">Form is not empty</string>
     <string name="exit_without_saving">Exit without saving?</string>
     <string name="add_expense">Add expense</string>
     <string name="add_income">Add income</string>
@@ -124,12 +120,10 @@
     <string name="cash">Cash</string>
     <string name="exchange_rate_label">Exchange rate</string>
     <string name="last_exchange">Last exchange</string>
-    <string name="using_interbank_rate">Using interbank rate</string>
     <string name="cash_rate_hint">1 EUR = %1$s %2$s</string>
 
     <!-- AccountSelector -->
     <string name="account_label">Account</string>
-    <string name="select_account">Select account</string>
 
     <!-- AccountsBottomSheet -->
     <string name="all_accounts">All accounts</string>
@@ -143,10 +137,8 @@
     <string name="initial_balance_label">Initial balance</string>
     <string name="search_accounts">Search accounts</string>
     <string name="no_accounts_found">No accounts found</string>
-    <string name="cannot_delete_default_account">Cannot delete the default account</string>
 
     <!-- Account groups -->
-    <string name="account_group">Account group</string>
     <string name="account_groups_header">Groups</string>
     <string name="accounts_header">Accounts</string>
     <string name="new_group">New group</string>
@@ -212,7 +204,6 @@
 
     <!-- UnifiedTransactionListScreen -->
     <string name="all_transactions">All transactions</string>
-    <string name="search_transactions">Search by description</string>
     <string name="no_transactions">No transactions for the selected filters</string>
     <string name="filter_n_categories">%1$d categories</string>
     <string name="done">Done</string>
@@ -237,7 +228,6 @@
     <string name="validation_select_category">Select a category</string>
 
     <!-- PieChart -->
-    <string name="pie_chart_total">Total</string>
 
     <!-- TransactionDetailViewModel -->
     <string name="error_loading">Error loading: %1$s</string>
@@ -247,9 +237,7 @@
     <string name="category_not_found">Category not found</string>
 
     <!-- CerpsRepository -->
-    <string name="error_loading_currencies">Error loading currencies: %1$s</string>
     <string name="conversion_service_unavailable">Conversion service unavailable: %1$s</string>
-    <string name="conversion_failed">Conversion failed</string>
     <string name="error_conversion">Conversion error: %1$s</string>
 
     <!-- AddExpenseUseCase -->
@@ -259,14 +247,11 @@
     <string name="offline_no_internet">Offline · using cached rate</string>
     <string name="offline_service_unavailable">Rate service unavailable · using cached rate</string>
     <string name="offline_no_rates">Cannot get exchange rate · enter amount in EUR manually</string>
-    <string name="stale_rate_warning">Rate may be outdated · updated %1$s hours ago</string>
     <string name="foreign_currency_requires_internet">Currency conversion requires internet connection</string>
     <string name="rates_updated_at">Rates updated: %1$s</string>
     <string name="no_rate_data">No rate data</string>
 
     <!-- Current balance -->
-    <string name="current_balance">Current balance</string>
-    <string name="current_balance_desc">Your balance when you started using the app</string>
 
     <!-- Currency exchanges -->
     <string name="currency_exchanges">Currency exchanges</string>
@@ -282,7 +267,6 @@
 
     <!-- Banks management -->
     <string name="banks_and_commissions">Banks &amp; Commissions</string>
-    <string name="banks_description">Manage bank conversion commissions</string>
     <string name="add_bank">Add bank</string>
     <string name="bank_name_label">Bank name</string>
     <string name="commission_percent_label">Commission %</string>
@@ -295,18 +279,13 @@
     <string name="not_found_hint">Not found · enter manually</string>
     <string name="lookup_error_hint">Request failed · try again</string>
     <string name="default_bank">Default</string>
-    <string name="last_favorite_error">At least one bank must remain in favorites</string>
     <string name="bank_min_one_required">At least one bank must be selected</string>
     <string name="bank_checkbox_hint">☑ Select banks you use — they\'ll appear when adding expenses</string>
     <string name="bank_star_hint">★ Star marks your primary bank — pre-selected automatically</string>
-    <string name="favorite">Favorite</string>
 
     <!-- Favourite currencies -->
     <string name="favourite_currencies">Favourite Currencies</string>
     <string name="favourite_currencies_description">Select currencies you use frequently. They will appear first in the currency selector.</string>
-    <string name="loading_currencies">Loading currencies…</string>
-    <string name="last_favourite_currency_error">At least one currency must remain in favourites</string>
-    <string name="error_loading_currency_list">Could not load currencies: %1$s</string>
 
     <!-- Bottom sheet management -->
     <string name="manage">Manage</string>
@@ -315,7 +294,6 @@
     <string name="search_banks">Search banks</string>
     <string name="search_currencies">Search currencies</string>
     <string name="no_banks_found">No banks found</string>
-    <string name="add_bank_with_name">Add \"%1$s\"?</string>
     <string name="no_currencies_found">No currencies found</string>
     <string name="manage_favourites_hint">Manage favourites in Settings</string>
     <string name="add_favourites_hint">Add your most-used currencies in Settings</string>
@@ -359,7 +337,6 @@
     <string name="search_categories">Search categories</string>
     <string name="add_custom_category">Add category</string>
     <string name="category_name_label">Category name</string>
-    <string name="category_name_required">Enter a category name</string>
     <string name="select_icon">Icon</string>
     <string name="select_color">Color</string>
     <string name="system_category">System</string>
@@ -369,15 +346,12 @@
     <string name="reset_categories_confirm">Delete all custom categories and restore defaults?</string>
 
     <!-- CategorySelector grid -->
-    <string name="frequently_used">Frequently used</string>
     <string name="all_categories">All categories</string>
-    <string name="categories_manage_hint">To edit or delete categories, go to Settings</string>
     <string name="long_press_hint">Long press a category to edit or delete it</string>
     <string name="system_category_color_only">System category · color only</string>
     <string name="edit_category">Edit category</string>
     <string name="delete_category">Delete category</string>
     <string name="delete_category_confirm">Delete category \"%1$s\"?</string>
-    <string name="category_in_use">Cannot delete: category is used in transactions</string>
 
     <!-- Create category sheet -->
     <string name="create_category">Create category</string>
@@ -390,7 +364,6 @@
     <string name="icon_group_entertainment">Entertainment</string>
     <string name="icon_group_other">Other</string>
     <string name="hex_color_label">HEX color</string>
-    <string name="recent_colors">Recent</string>
     <string name="discard_changes">Discard changes?</string>
     <string name="discard_changes_confirm">You have unsaved changes. Discard them?</string>
     <string name="close">Close</string>
@@ -401,7 +374,6 @@
     <string name="cancel_button">Cancel</string>
 
     <!-- Discard form (ADD mode back press) -->
-    <string name="discard_changes_title">Discard changes?</string>
     <string name="discard_button">Discard</string>
     <string name="keep_editing_button">Keep editing</string>
 
@@ -425,21 +397,15 @@
     <string name="onboarding_banks_title">Your banks</string>
     <string name="onboarding_banks_desc">Select banks you use for foreign currency payments. We\'ll apply their real commission rates for accurate conversion.</string>
     <string name="onboarding_currencies_title">Your currencies</string>
-    <string name="onboarding_currencies_desc">Select currencies you work with — they\'ll appear first in lists</string>
     <string name="onboarding_currencies_subtitle">These currencies will appear at the top of selection lists for quick access.</string>
-    <string name="onboarding_balance_title">Your current balance</string>
-    <string name="onboarding_balance_desc">Optional. Enter how much money you have now to track your net worth accurately from day one.</string>
     <string name="onboarding_accounts_title">Your accounts</string>
     <string name="onboarding_accounts_desc">Set up your accounts. You can always add more later in settings.</string>
-    <string name="onboarding_skip">Skip</string>
     <string name="onboarding_ready_title">You\'re all set!</string>
     <string name="onboarding_ready_desc">Your app is configured and ready to use</string>
     <string name="onboarding_start">Start</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_add_custom_bank">Add custom bank</string>
     <string name="onboarding_group_accounts_cta">Group your accounts?</string>
-    <string name="accounts_ungrouped">Other accounts</string>
-    <string name="onboarding_starting_balance">Starting balance</string>
     <string name="onboarding_accounts_empty_cta">Add your first account</string>
     <string name="onboarding_accounts_empty_hint">You need at least one account to continue</string>
 
@@ -447,26 +413,17 @@
     <string name="bank_name_placeholder">e.g. Revolut, N26, Monzo…</string>
 
     <!-- Current balance dialog -->
-    <string name="current_balance_not_set">Not set</string>
-    <string name="current_balance_warning">This will adjust your starting balance</string>
 
     <!-- Currency exchange screen -->
     <string name="currency_exchange_desc">Record cash exchanges so the app can suggest rates when you pay with cash.</string>
 
     <!-- Rate history -->
     <string name="rate_history">Rate History</string>
-    <string name="rate_history_view">View</string>
     <string name="rate_history_from">From</string>
     <string name="rate_history_to">To</string>
-    <string name="rate_history_period">Period</string>
     <string name="rate_history_change">Change</string>
-    <string name="rate_history_start_rate">Start rate</string>
-    <string name="rate_history_end_rate">End rate</string>
     <string name="rate_history_current_rate">Current rate</string>
-    <string name="rate_history_points">%1$d points</string>
-    <string name="rate_history_no_data">No data</string>
     <string name="rate_history_data_source">Data from interbank rates \u00B7 updated every 8 hours</string>
-    <string name="rate_history_error">Failed to load rate data</string>
     <string name="rate_history_offline">No connection. Rate history is unavailable offline.</string>
     <string name="rate_history_service_unavailable">Service temporarily unavailable.</string>
     <string name="rate_history_same_currency">Please select different currencies</string>
@@ -496,7 +453,6 @@
     <string name="stale_rate_warning_improved">Rate may be outdated (updated %1$s h ago). You can still proceed — use \'Specify exact amount\' for 100%% accuracy.</string>
 
     <!-- Account currency -->
-    <string name="account_currency_label">Account currency</string>
     <string name="currency_change_blocked">Currency cannot be changed because this account has transactions</string>
     <string name="currency_change_confirm_title">Change account currency?</string>
     <string name="currency_change_confirm_message">Initial balance will be converted from %1$s to %2$s.</string>
@@ -509,7 +465,6 @@
     <string name="monthly_limit_optional_label">Monthly spending limit (optional)</string>
     <string name="remove_limit">Remove limit</string>
     <string name="monthly_limit_label">Monthly limit</string>
-    <string name="current_limit_format">Current limit: %1$s %2$s</string>
     <string name="limit_remaining_format">%1$s %2$s remaining of %3$s %4$s</string>
     <string name="limit_exceeded_format">Limit exceeded by %1$s %2$s</string>
     <string name="limit_reached">Limit reached</string>

@@ -11,7 +11,6 @@
     <string name="no_upper">НЕТ</string>
     <string name="cancel_upper">ОТМЕНА</string>
     <string name="select_upper">ВЫБРАТЬ</string>
-    <string name="total">Всего</string>
     <string name="edit">Редактировать</string>
     <string name="unknown_error">Неизвестная ошибка</string>
     <string name="unknown_category">Неизвестная категория</string>
@@ -62,7 +61,6 @@
     <!-- StatisticsScreen -->
     <string name="statistics">Статистика</string>
     <string name="no_data_for_selected_period">Нет данных за выбранный период</string>
-    <string name="expenses_count_suffix"> трат</string>
 
     <!-- SettingsScreen -->
     <string name="about_app">О приложении</string>
@@ -82,8 +80,6 @@
     <string name="language_russian">Русский</string>
 
     <!-- TransactionFormScreen -->
-    <string name="form_modified_title">Операция была изменена</string>
-    <string name="form_not_empty_title">Форма не пуста</string>
     <string name="exit_without_saving">Выйти без сохранения?</string>
     <string name="add_expense">Добавить трату</string>
     <string name="add_income">Добавить доход</string>
@@ -124,12 +120,10 @@
     <string name="cash">Наличные</string>
     <string name="exchange_rate_label">Курс обмена</string>
     <string name="last_exchange">Последний обмен</string>
-    <string name="using_interbank_rate">Используется межбанковский курс</string>
     <string name="cash_rate_hint">1 EUR = %1$s %2$s</string>
 
     <!-- AccountSelector -->
     <string name="account_label">Счёт</string>
-    <string name="select_account">Выбрать счёт</string>
 
     <!-- AccountsBottomSheet -->
     <string name="all_accounts">Все счета</string>
@@ -143,10 +137,8 @@
     <string name="initial_balance_label">Начальный баланс</string>
     <string name="search_accounts">Поиск счетов</string>
     <string name="no_accounts_found">Счета не найдены</string>
-    <string name="cannot_delete_default_account">Нельзя удалить счёт по умолчанию</string>
 
     <!-- Account groups -->
-    <string name="account_group">Группа счетов</string>
     <string name="account_groups_header">Группы</string>
     <string name="accounts_header">Счета</string>
     <string name="new_group">Новая группа</string>
@@ -212,7 +204,6 @@
 
     <!-- UnifiedTransactionListScreen -->
     <string name="all_transactions">Все операции</string>
-    <string name="search_transactions">Поиск по описанию</string>
     <string name="no_transactions">Операций по выбранным фильтрам нет</string>
     <string name="filter_n_categories">%1$d категории</string>
     <string name="done">Готово</string>
@@ -237,7 +228,6 @@
     <string name="validation_select_category">Выберите категорию</string>
 
     <!-- PieChart -->
-    <string name="pie_chart_total">Всего</string>
 
     <!-- TransactionDetailViewModel -->
     <string name="error_loading">Ошибка загрузки: %1$s</string>
@@ -247,9 +237,7 @@
     <string name="category_not_found">Категория не найдена</string>
 
     <!-- CerpsRepository -->
-    <string name="error_loading_currencies">Ошибка загрузки валют: %1$s</string>
     <string name="conversion_service_unavailable">Сервис конвертации недоступен: %1$s</string>
-    <string name="conversion_failed">Конвертация не удалась</string>
     <string name="error_conversion">Ошибка конвертации: %1$s</string>
 
     <!-- AddExpenseUseCase -->
@@ -259,14 +247,11 @@
     <string name="offline_no_internet">Нет сети · используется сохранённый курс</string>
     <string name="offline_service_unavailable">Сервис курсов недоступен · используется сохранённый курс</string>
     <string name="offline_no_rates">Не удалось получить курс · введите сумму в EUR вручную</string>
-    <string name="stale_rate_warning">Курс может быть неактуальным · обновлено %1$s ч. назад</string>
     <string name="foreign_currency_requires_internet">Конвертация валют требует подключения к интернету</string>
     <string name="rates_updated_at">Курсы обновлены: %1$s</string>
     <string name="no_rate_data">Нет данных о курсе</string>
 
     <!-- Current balance -->
-    <string name="current_balance">Текущий баланс</string>
-    <string name="current_balance_desc">Ваш баланс на момент начала использования приложения</string>
 
     <!-- Currency exchanges -->
     <string name="currency_exchanges">Обмен валюты</string>
@@ -282,7 +267,6 @@
 
     <!-- Banks management -->
     <string name="banks_and_commissions">Банки и комиссии</string>
-    <string name="banks_description">Управление комиссиями банков</string>
     <string name="add_bank">Добавить банк</string>
     <string name="bank_name_label">Название банка</string>
     <string name="commission_percent_label">Комиссия %</string>
@@ -295,18 +279,13 @@
     <string name="not_found_hint">Не найдено · введите вручную</string>
     <string name="lookup_error_hint">Ошибка запроса · попробуйте снова</string>
     <string name="default_bank">По умолчанию</string>
-    <string name="last_favorite_error">Хотя бы один банк должен остаться в избранном</string>
     <string name="bank_min_one_required">Должен быть выбран хотя бы один банк</string>
     <string name="bank_checkbox_hint">☑ Отметьте банки которыми пользуетесь — они появятся при добавлении траты</string>
     <string name="bank_star_hint">★ Звезда — основной банк, выбирается автоматически</string>
-    <string name="favorite">Избранное</string>
 
     <!-- Favourite currencies -->
     <string name="favourite_currencies">Избранные валюты</string>
     <string name="favourite_currencies_description">Выберите часто используемые валюты. Они будут отображаться первыми в списке.</string>
-    <string name="loading_currencies">Загрузка валют…</string>
-    <string name="last_favourite_currency_error">Хотя бы одна валюта должна остаться в избранном</string>
-    <string name="error_loading_currency_list">Не удалось загрузить валюты: %1$s</string>
 
     <!-- Bottom sheet management -->
     <string name="manage">Настроить</string>
@@ -315,7 +294,6 @@
     <string name="search_banks">Поиск банков</string>
     <string name="search_currencies">Поиск валют</string>
     <string name="no_banks_found">Банки не найдены</string>
-    <string name="add_bank_with_name">Добавить \"%1$s\"?</string>
     <string name="no_currencies_found">Валюты не найдены</string>
     <string name="manage_favourites_hint">Управление избранными в настройках</string>
     <string name="add_favourites_hint">Добавьте часто используемые валюты в настройках</string>
@@ -359,7 +337,6 @@
     <string name="search_categories">Поиск категорий</string>
     <string name="add_custom_category">Добавить категорию</string>
     <string name="category_name_label">Название категории</string>
-    <string name="category_name_required">Введите название категории</string>
     <string name="select_icon">Иконка</string>
     <string name="select_color">Цвет</string>
     <string name="system_category">Системная</string>
@@ -369,15 +346,12 @@
     <string name="reset_categories_confirm">Удалить все пользовательские категории и восстановить по умолчанию?</string>
 
     <!-- CategorySelector grid -->
-    <string name="frequently_used">Часто используемые</string>
     <string name="all_categories">Все категории</string>
-    <string name="categories_manage_hint">Для редактирования и удаления категорий перейдите в Настройки</string>
     <string name="long_press_hint">Удерживайте категорию для редактирования или удаления</string>
     <string name="system_category_color_only">Системная категория · только цвет</string>
     <string name="edit_category">Редактировать категорию</string>
     <string name="delete_category">Удалить категорию</string>
     <string name="delete_category_confirm">Удалить категорию «%1$s»?</string>
-    <string name="category_in_use">Невозможно удалить: категория используется в транзакциях</string>
 
     <!-- Create category sheet -->
     <string name="create_category">Создать категорию</string>
@@ -390,7 +364,6 @@
     <string name="icon_group_entertainment">Развлечения</string>
     <string name="icon_group_other">Другое</string>
     <string name="hex_color_label">HEX цвет</string>
-    <string name="recent_colors">Недавние</string>
     <string name="discard_changes">Отменить изменения?</string>
     <string name="discard_changes_confirm">У вас есть несохранённые изменения. Отменить их?</string>
     <string name="close">Закрыть</string>
@@ -401,7 +374,6 @@
     <string name="cancel_button">Отмена</string>
 
     <!-- Discard form (ADD mode back press) -->
-    <string name="discard_changes_title">Отменить изменения?</string>
     <string name="discard_button">Выйти</string>
     <string name="keep_editing_button">Остаться</string>
 
@@ -425,21 +397,15 @@
     <string name="onboarding_banks_title">Ваши банки</string>
     <string name="onboarding_banks_desc">Выберите банки которыми платите в иностранной валюте. Мы применим их реальные комиссии для точной конвертации.</string>
     <string name="onboarding_currencies_title">Ваши валюты</string>
-    <string name="onboarding_currencies_desc">Выберите валюты с которыми работаете — они будут первыми в списках</string>
     <string name="onboarding_currencies_subtitle">Эти валюты будут отображаться первыми в списках выбора для быстрого доступа.</string>
-    <string name="onboarding_balance_title">Ваш текущий баланс</string>
-    <string name="onboarding_balance_desc">Необязательно. Введите сколько у вас сейчас денег чтобы точно отслеживать состояние с первого дня.</string>
     <string name="onboarding_accounts_title">Ваши счета</string>
     <string name="onboarding_accounts_desc">Настройте свои счета. Вы всегда можете добавить ещё позже в настройках.</string>
-    <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_ready_title">Всё готово!</string>
     <string name="onboarding_ready_desc">Приложение настроено и готово к использованию</string>
     <string name="onboarding_start">Начать</string>
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_add_custom_bank">Добавить свой банк</string>
     <string name="onboarding_group_accounts_cta">Сгруппировать счета?</string>
-    <string name="accounts_ungrouped">Остальные счета</string>
-    <string name="onboarding_starting_balance">Начальный баланс</string>
     <string name="onboarding_accounts_empty_cta">Добавить первый счёт</string>
     <string name="onboarding_accounts_empty_hint">Нужен хотя бы один счёт для продолжения</string>
 
@@ -447,26 +413,17 @@
     <string name="bank_name_placeholder">напр. Revolut, N26, Monzo…</string>
 
     <!-- Current balance dialog -->
-    <string name="current_balance_not_set">Не задан</string>
-    <string name="current_balance_warning">Это изменит ваш начальный баланс</string>
 
     <!-- Currency exchange screen -->
     <string name="currency_exchange_desc">Записывайте обмены наличных, чтобы приложение могло предлагать курс при оплате наличными.</string>
 
     <!-- Rate history -->
     <string name="rate_history">История курсов</string>
-    <string name="rate_history_view">Открыть</string>
     <string name="rate_history_from">Из</string>
     <string name="rate_history_to">В</string>
-    <string name="rate_history_period">Период</string>
     <string name="rate_history_change">Изменение</string>
-    <string name="rate_history_start_rate">Начальный курс</string>
-    <string name="rate_history_end_rate">Конечный курс</string>
     <string name="rate_history_current_rate">Текущий курс</string>
-    <string name="rate_history_points">%1$d точек</string>
-    <string name="rate_history_no_data">Нет данных</string>
     <string name="rate_history_data_source">Данные межбанковских курсов \u00B7 обновляются каждые 8 часов</string>
-    <string name="rate_history_error">Не удалось загрузить данные о курсах</string>
     <string name="rate_history_offline">Нет подключения. История курсов недоступна офлайн.</string>
     <string name="rate_history_service_unavailable">Сервис временно недоступен.</string>
     <string name="rate_history_same_currency">Выберите разные валюты</string>
@@ -496,7 +453,6 @@
     <string name="stale_rate_warning_improved">Курс может быть неактуальным (обновлён %1$s ч. назад). Вы можете продолжить — используйте \'Уточнить сумму\' для 100%% точности.</string>
 
     <!-- Account currency -->
-    <string name="account_currency_label">Валюта счёта</string>
     <string name="currency_change_blocked">Нельзя изменить валюту, так как у счёта есть операции</string>
     <string name="currency_change_confirm_title">Изменить валюту счёта?</string>
     <string name="currency_change_confirm_message">Начальный баланс будет конвертирован из %1$s в %2$s.</string>
@@ -509,7 +465,6 @@
     <string name="monthly_limit_optional_label">Месячный лимит (необязательно)</string>
     <string name="remove_limit">Убрать лимит</string>
     <string name="monthly_limit_label">Месячный лимит</string>
-    <string name="current_limit_format">Текущий лимит: %1$s %2$s</string>
     <string name="limit_remaining_format">Осталось %1$s %2$s из %3$s %4$s</string>
     <string name="limit_exceeded_format">Лимит превышен на %1$s %2$s</string>
     <string name="limit_reached">Лимит достигнут</string>
