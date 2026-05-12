@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -71,7 +72,7 @@ private val iconGroups = listOf(
         IconEntry("train", Icons.Default.Train),
         IconEntry("directions_bus", Icons.Default.DirectionsBus),
         IconEntry("two_wheeler", Icons.Default.TwoWheeler),
-        IconEntry("directions_bike", Icons.Default.DirectionsBike),
+        IconEntry("directions_bike", Icons.AutoMirrored.Filled.DirectionsBike),
         IconEntry("local_shipping", Icons.Default.LocalShipping),
         IconEntry("sailing", Icons.Default.Sailing)
     )),
@@ -471,7 +472,7 @@ private fun resolveIcon(key: String): ImageVector = when (key) {
     "train" -> Icons.Default.Train
     "directions_bus" -> Icons.Default.DirectionsBus
     "two_wheeler" -> Icons.Default.TwoWheeler
-    "directions_bike" -> Icons.Default.DirectionsBike
+    "directions_bike" -> Icons.AutoMirrored.Filled.DirectionsBike
     "local_shipping" -> Icons.Default.LocalShipping
     "sailing" -> Icons.Default.Sailing
     "local_cafe" -> Icons.Default.LocalCafe

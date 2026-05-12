@@ -228,9 +228,9 @@ private fun PeriodSelector(
 private fun CategoryStatisticItem(
     statistic: CategoryStatistic,
     baseCurrency: String,
+    modifier: Modifier = Modifier,
     showPercentOfIncome: Boolean = false,
-    totalIncome: Double = 0.0,
-    modifier: Modifier = Modifier
+    totalIncome: Double = 0.0
 ) {
     val displayedPercentage = if (showPercentOfIncome && totalIncome > 0) {
         (statistic.totalAmount / totalIncome * 100).toFloat()

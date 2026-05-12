@@ -1,6 +1,7 @@
 package com.example.budgetcontrol.ui.util
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -38,7 +39,7 @@ fun getCategoryIcon(iconName: String?): ImageVector {
         "train" -> Icons.Default.Train
         "directions_bus" -> Icons.Default.DirectionsBus
         "two_wheeler" -> Icons.Default.TwoWheeler
-        "directions_bike" -> Icons.Default.DirectionsBike
+        "directions_bike" -> Icons.AutoMirrored.Filled.DirectionsBike
         "local_shipping" -> Icons.Default.LocalShipping
         "sailing" -> Icons.Default.Sailing
         "local_cafe" -> Icons.Default.LocalCafe

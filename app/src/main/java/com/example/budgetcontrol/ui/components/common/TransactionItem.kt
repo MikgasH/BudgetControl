@@ -36,9 +36,9 @@ fun TransactionItem(
     transaction: Transaction,
     category: Category?,
     baseCurrency: String,
+    modifier: Modifier = Modifier,
     onTransactionClick: (Transaction) -> Unit = {},
-    onDeleteClick: (Transaction) -> Unit = {},
-    modifier: Modifier = Modifier
+    onDeleteClick: (Transaction) -> Unit = {}
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val dateFormatter = remember(Locale.getDefault().language) {
@@ -200,8 +200,8 @@ fun TransactionItemDetailed(
     category: Category?,
     baseCurrency: String,
     onClick: () -> Unit,
-    accountName: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accountName: String? = null
 ) {
     Card(
         modifier = modifier

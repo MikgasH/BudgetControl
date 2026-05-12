@@ -1,5 +1,7 @@
 package com.example.budgetcontrol.presentation
 
+import android.app.Activity
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -55,8 +57,17 @@ class MainActivity : AppCompatActivity() {
     override fun recreate() {
         // Smooth crossfade instead of the default jarring flash
         // when the Activity recreates (language or locale change).
-        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+        applyCrossfade(Activity.OVERRIDE_TRANSITION_CLOSE)
         super.recreate()
-        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+        applyCrossfade(Activity.OVERRIDE_TRANSITION_OPEN)
+    }
+
+    private fun applyCrossfade(overrideType: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(overrideType, R.anim.fade_in, R.anim.fade_out)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+        }
     }
 }

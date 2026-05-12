@@ -250,6 +250,7 @@ private fun TransactionFormContent(
     onExactAmountToggle: (Boolean) -> Unit,
     onExactEurAmountChange: (String) -> Unit,
     onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit,
+    modifier: Modifier = Modifier,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
     onDeleteCategory: (Category) -> Unit = {},
@@ -257,8 +258,7 @@ private fun TransactionFormContent(
     onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> },
     onPaymentMethodSelect: (String) -> Unit = {},
     onCashRateChange: (String) -> Unit = {},
-    onAccountSelect: (String) -> Unit = {},
-    modifier: Modifier = Modifier
+    onAccountSelect: (String) -> Unit = {}
 ) {
     val accountCurrency = uiState.accounts.find { it.account.id == uiState.selectedAccountId }
         ?.account?.currency ?: uiState.baseCurrency
@@ -365,6 +365,7 @@ private fun EditTransactionFormContent(
     onCurrencySelect: (String) -> Unit,
     onBankSelect: (Bank) -> Unit,
     onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit,
+    modifier: Modifier = Modifier,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
     onUpdateCategory: (Category) -> Unit = {},
     onDeleteCategory: (Category) -> Unit = {},
@@ -372,8 +373,7 @@ private fun EditTransactionFormContent(
     onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> },
     accounts: List<AccountWithBalance> = emptyList(),
     selectedAccountId: String = "",
-    onAccountSelect: (String) -> Unit = {},
-    modifier: Modifier = Modifier
+    onAccountSelect: (String) -> Unit = {}
 ) {
     Column(
         modifier = modifier

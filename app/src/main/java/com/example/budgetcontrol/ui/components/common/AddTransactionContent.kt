@@ -455,10 +455,10 @@ private fun CashRateSection(
     cashRate: String,
     onCashRateChange: (String) -> Unit,
     cashRatePlaceholder: String,
-    cashRateHint: String = "",
     lastCashExchange: CurrencyExchange?,
     selectedCurrency: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cashRateHint: String = ""
 ) {
     Column(
         modifier = modifier,
