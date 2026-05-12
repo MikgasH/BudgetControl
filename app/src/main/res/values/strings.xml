@@ -46,8 +46,8 @@
     <string name="opening_balance">Opening: %1$s</string>
 
     <!-- Statistics percent mode -->
-    <string name="percent_of_expenses">% of expenses</string>
-    <string name="percent_of_income">% of income</string>
+    <string name="percent_of_expenses">%% of expenses</string>
+    <string name="percent_of_income">%% of income</string>
 
     <!-- MainScreen -->
     <string name="previous_period">Previous period</string>
@@ -174,7 +174,7 @@
     <string name="today">today</string>
     <string name="yesterday">yesterday</string>
     <string name="day_before_yesterday">day before yesterday</string>
-    <string name="selected">selected</string>
+    <string name="bc_selected">selected</string>
 
     <!-- DatePickerDialog -->
     <string name="date_selection">Date selection</string>
@@ -490,10 +490,10 @@
     <string name="currencies_selected_summary">%1$d selected</string>
 
     <!-- Bank commission tooltip -->
-    <string name="commission_info_tooltip">Commission may vary depending on your plan, day of week, and monthly spending. Use \'Specify exact amount\' for 100% accuracy.</string>
+    <string name="commission_info_tooltip">Commission may vary depending on your plan, day of week, and monthly spending. Use \'Specify exact amount\' for 100%% accuracy.</string>
 
     <!-- Stale rate improved warning -->
-    <string name="stale_rate_warning_improved">Rate may be outdated (updated %1$s h ago). You can still proceed — use \'Specify exact amount\' for 100% accuracy.</string>
+    <string name="stale_rate_warning_improved">Rate may be outdated (updated %1$s h ago). You can still proceed — use \'Specify exact amount\' for 100%% accuracy.</string>
 
     <!-- Account currency -->
     <string name="account_currency_label">Account currency</string>

@@ -168,7 +168,7 @@ private fun QuickDateOptions(
                             maxLines = 1
                         )
                         Text(
-                            text = stringResource(R.string.selected),
+                            text = stringResource(R.string.bc_selected),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold

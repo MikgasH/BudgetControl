@@ -35,23 +35,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val LABEL_FORMAT_DAY = SimpleDateFormat("d MMM", Locale.getDefault())
-private val LABEL_FORMAT_WEEK = SimpleDateFormat("d MMM", Locale.getDefault())
-private val LABEL_FORMAT_MONTH = SimpleDateFormat("MMM", Locale.getDefault())
-private val LABEL_FORMAT_YEAR = SimpleDateFormat("yyyy", Locale.getDefault())
-
 private val LIMIT_AMBER = Color(0xFFFFC107)
 private val OVER_LIMIT_RED = Color(0xFFF44336)
 
 enum class TrendBarPeriod { DAY, WEEK, MONTH, YEAR }
 
 fun trendLabelFor(periodType: TrendBarPeriod, start: Long): String {
-    return when (periodType) {
-        TrendBarPeriod.DAY -> LABEL_FORMAT_DAY.format(Date(start))
-        TrendBarPeriod.WEEK -> LABEL_FORMAT_WEEK.format(Date(start))
-        TrendBarPeriod.MONTH -> LABEL_FORMAT_MONTH.format(Date(start))
-        TrendBarPeriod.YEAR -> LABEL_FORMAT_YEAR.format(Date(start))
+    val locale = Locale.getDefault()
+    val format = when (periodType) {
+        TrendBarPeriod.DAY -> SimpleDateFormat("d MMM", locale)
+        TrendBarPeriod.WEEK -> SimpleDateFormat("d MMM", locale)
+        TrendBarPeriod.MONTH -> SimpleDateFormat("MMM", locale)
+        TrendBarPeriod.YEAR -> SimpleDateFormat("yyyy", locale)
     }
+    return format.format(Date(start))
 }
 
 /**

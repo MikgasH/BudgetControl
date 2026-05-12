@@ -841,9 +841,6 @@ private fun FixedPeriodTypeSelector(
 }
 
 
-private val SAME_DAY_TIME_FORMAT = SimpleDateFormat("HH:mm", Locale.getDefault())
-private val OTHER_DAY_TIME_FORMAT = SimpleDateFormat("d MMM HH:mm", Locale.getDefault())
-
 private fun currentSelectedDateFor(periodType: PeriodType, periodIndex: Int): Long {
     val calendar = Calendar.getInstance()
     return when (periodType) {
@@ -875,7 +872,9 @@ private fun formatRatesTimestamp(timestamp: Long): String {
     val then = Calendar.getInstance().apply { timeInMillis = timestamp }
     val sameDay = now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
         now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
-    val formatter = if (sameDay) SAME_DAY_TIME_FORMAT else OTHER_DAY_TIME_FORMAT
+    val locale = Locale.getDefault()
+    val formatter = if (sameDay) SimpleDateFormat("HH:mm", locale)
+        else SimpleDateFormat("d MMM HH:mm", locale)
     return formatter.format(Date(timestamp))
 }
 
