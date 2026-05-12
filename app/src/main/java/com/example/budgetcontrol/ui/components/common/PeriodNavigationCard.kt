@@ -29,9 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
-import com.example.budgetcontrol.feature.main.MainScreenUiState
-import com.example.budgetcontrol.feature.main.OperationType
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.OperationType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.ui.components.charts.PieChart
@@ -40,7 +39,12 @@ import java.util.Calendar
 
 @Composable
 internal fun PeriodNavigationCard(
-    uiState: MainScreenUiState,
+    isAllTimePeriod: Boolean,
+    selectedPeriodType: PeriodType,
+    selectedOperationType: OperationType,
+    currentPeriodIndex: Int,
+    totalAmount: Double,
+    categoryStatistics: List<CategoryStatistic>,
     periodDisplayText: String,
     baseCurrency: String,
     onNavigate: (Int) -> Unit,
@@ -53,7 +57,9 @@ internal fun PeriodNavigationCard(
 ) {
     val density = LocalDensity.current
     val swipeThresholdPx = with(density) { 50.dp.toPx() }
-    val currentUiState by rememberUpdatedState(uiState)
+    val currentIsAllTimePeriod by rememberUpdatedState(isAllTimePeriod)
+    val currentSelectedPeriodType by rememberUpdatedState(selectedPeriodType)
+    val currentPeriodIndexState by rememberUpdatedState(currentPeriodIndex)
     val currentOnNavigate by rememberUpdatedState(onNavigate)
 
     // Track navigation direction for animation: true = forward, false = backward
@@ -64,8 +70,8 @@ internal fun PeriodNavigationCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(uiState.isAllTimePeriod, uiState.selectedPeriodType) {
-                if (currentUiState.isAllTimePeriod) return@pointerInput
+            .pointerInput(isAllTimePeriod, selectedPeriodType) {
+                if (currentIsAllTimePeriod) return@pointerInput
                 var totalDrag = 0f
                 detectHorizontalDragGestures(
                     onDragStart = { totalDrag = 0f },
@@ -74,7 +80,7 @@ internal fun PeriodNavigationCard(
                             isForward = false
                             currentOnNavigate(-1) // swipe right → previous
                         } else if (totalDrag < -swipeThresholdPx) {
-                            if (canNavigateToFuture(currentUiState)) {
+                            if (canNavigateToFuture(currentIsAllTimePeriod, currentSelectedPeriodType, currentPeriodIndexState)) {
                                 isForward = true
                                 currentOnNavigate(1) // swipe left → next
                             }
@@ -103,7 +109,7 @@ internal fun PeriodNavigationCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (uiState.isAllTimePeriod) {
+                if (isAllTimePeriod) {
                     Spacer(modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp))
                 } else {
                     IconButton(
@@ -122,7 +128,7 @@ internal fun PeriodNavigationCard(
                 }
 
                 AnimatedContent(
-                    targetState = periodDisplayText to uiState.totalAmount,
+                    targetState = periodDisplayText to totalAmount,
                     transitionSpec = {
                         if (isForward) {
                             (slideInHorizontally { it } + fadeIn(tween(300))) togetherWith
@@ -169,7 +175,7 @@ internal fun PeriodNavigationCard(
                     }
                 }
 
-                if (uiState.isAllTimePeriod || !canNavigateToFuture(uiState)) {
+                if (isAllTimePeriod || !canNavigateToFuture(isAllTimePeriod, selectedPeriodType, currentPeriodIndex)) {
                     Spacer(modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp))
                 } else {
                     IconButton(
@@ -215,9 +221,9 @@ internal fun PeriodNavigationCard(
             ) {
                 if (isCollapsed) {
                     // Segmented bar matching PieChart ring thickness
-                    if (uiState.categoryStatistics.isNotEmpty()) {
+                    if (categoryStatistics.isNotEmpty()) {
                         CategorySegmentedBar(
-                            statistics = uiState.categoryStatistics,
+                            statistics = categoryStatistics,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(barHeight)
@@ -233,10 +239,10 @@ internal fun PeriodNavigationCard(
                         )
                     }
                 } else {
-                    if (uiState.categoryStatistics.isNotEmpty()) {
+                    if (categoryStatistics.isNotEmpty()) {
                         PieChart(
-                            data = uiState.categoryStatistics,
-                            totalAmount = uiState.totalAmount,
+                            data = categoryStatistics,
+                            totalAmount = totalAmount,
                             baseCurrency = baseCurrency,
                             modifier = Modifier.size(chartHeight)
                         )
@@ -253,21 +259,21 @@ internal fun PeriodNavigationCard(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 val emptyText = when {
-                                    uiState.isAllTimePeriod -> {
-                                        if (uiState.selectedOperationType == OperationType.EXPENSES) {
+                                    isAllTimePeriod -> {
+                                        if (selectedOperationType == OperationType.EXPENSES) {
                                             stringResource(R.string.no_expenses_all_time)
                                         } else {
                                             stringResource(R.string.no_incomes_all_time)
                                         }
                                     }
-                                    uiState.selectedPeriodType == PeriodType.DAY && uiState.currentPeriodIndex == 0 -> {
-                                        if (uiState.selectedOperationType == OperationType.EXPENSES) {
+                                    selectedPeriodType == PeriodType.DAY && currentPeriodIndex == 0 -> {
+                                        if (selectedOperationType == OperationType.EXPENSES) {
                                             stringResource(R.string.no_expenses_today)
                                         } else {
                                             stringResource(R.string.no_incomes_today)
                                         }
                                     }
-                                    uiState.selectedPeriodType == PeriodType.DAY -> {
+                                    selectedPeriodType == PeriodType.DAY -> {
                                         stringResource(R.string.no_data_this_day)
                                     }
                                     else -> {
@@ -331,28 +337,32 @@ private fun CategorySegmentedBar(
 /**
  * Checks whether forward navigation is allowed (prevents going into a future period)
  */
-private fun canNavigateToFuture(uiState: MainScreenUiState): Boolean {
-    if (uiState.isAllTimePeriod) return false
+private fun canNavigateToFuture(
+    isAllTimePeriod: Boolean,
+    selectedPeriodType: PeriodType,
+    currentPeriodIndex: Int
+): Boolean {
+    if (isAllTimePeriod) return false
 
     val calendar = Calendar.getInstance()
     val today = calendar.timeInMillis
 
     val nextPeriodCalendar = Calendar.getInstance()
 
-    return when (uiState.selectedPeriodType) {
+    return when (selectedPeriodType) {
         PeriodType.DAY -> {
-            nextPeriodCalendar.add(Calendar.DAY_OF_MONTH, uiState.currentPeriodIndex + 1)
+            nextPeriodCalendar.add(Calendar.DAY_OF_MONTH, currentPeriodIndex + 1)
             nextPeriodCalendar.timeInMillis <= today
         }
 
         PeriodType.WEEK -> {
-            nextPeriodCalendar.add(Calendar.WEEK_OF_YEAR, uiState.currentPeriodIndex + 1)
+            nextPeriodCalendar.add(Calendar.WEEK_OF_YEAR, currentPeriodIndex + 1)
             nextPeriodCalendar.set(Calendar.DAY_OF_WEEK, nextPeriodCalendar.firstDayOfWeek)
             nextPeriodCalendar.timeInMillis <= today
         }
 
         PeriodType.MONTH -> {
-            nextPeriodCalendar.add(Calendar.MONTH, uiState.currentPeriodIndex + 1)
+            nextPeriodCalendar.add(Calendar.MONTH, currentPeriodIndex + 1)
             nextPeriodCalendar.set(Calendar.DAY_OF_MONTH, 1)
             nextPeriodCalendar.get(Calendar.YEAR) < Calendar.getInstance().get(Calendar.YEAR) ||
                     (nextPeriodCalendar.get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR) &&
@@ -360,7 +370,7 @@ private fun canNavigateToFuture(uiState: MainScreenUiState): Boolean {
         }
 
         PeriodType.YEAR -> {
-            nextPeriodCalendar.add(Calendar.YEAR, uiState.currentPeriodIndex + 1)
+            nextPeriodCalendar.add(Calendar.YEAR, currentPeriodIndex + 1)
             nextPeriodCalendar.get(Calendar.YEAR) <= Calendar.getInstance().get(Calendar.YEAR)
         }
 

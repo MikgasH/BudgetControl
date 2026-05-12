@@ -1,6 +1,6 @@
 package com.example.budgetcontrol.core.util
 
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

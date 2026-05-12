@@ -27,6 +27,7 @@ import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.usecase.AccountGroupWithBalance
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -403,11 +404,7 @@ fun AccountsBottomSheet(
                         else Color.Transparent,
                         label = "accountBg"
                     )
-                    val accountColor = try {
-                        Color(android.graphics.Color.parseColor(account.color))
-                    } catch (_: Exception) {
-                        MaterialTheme.colorScheme.primary
-                    }
+                    val accountColor = account.color.toSafeColor(MaterialTheme.colorScheme.primary)
 
                     Box {
                         Surface(

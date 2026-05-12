@@ -39,8 +39,8 @@ import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
-import androidx.annotation.StringRes
-import com.example.budgetcontrol.R
+import com.example.budgetcontrol.core.domain.model.OperationType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -95,14 +95,6 @@ data class MainScreenUiState(
     val pendingCurrencyChange: PendingCurrencyChange? = null,
     val currencyChangeError: String? = null
 )
-
-enum class PeriodType(@StringRes val displayNameRes: Int) {
-    DAY(R.string.period_day),
-    WEEK(R.string.period_week),
-    MONTH(R.string.period_month),
-    YEAR(R.string.period_year),
-    PERIOD(R.string.period_custom)
-}
 
 @Immutable
 private data class PeriodLoadResult(

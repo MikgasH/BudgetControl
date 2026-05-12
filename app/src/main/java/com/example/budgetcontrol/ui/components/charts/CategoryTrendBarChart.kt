@@ -29,8 +29,8 @@ import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.core.domain.model.PairedStackedTrendBucket
 import com.example.budgetcontrol.core.domain.model.StackedTrendBucket
 import com.example.budgetcontrol.core.domain.model.TrendBucket
+import com.example.budgetcontrol.core.domain.model.TrendChartData
 import com.example.budgetcontrol.core.domain.model.TrendSegment
-import com.example.budgetcontrol.feature.transaction.list.TrendChartData
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -33,8 +33,8 @@ import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
+import com.example.budgetcontrol.core.domain.model.LookupState
 import com.example.budgetcontrol.core.util.AMOUNT_FORMAT
-import com.example.budgetcontrol.feature.settings.LookupState
 import com.example.budgetcontrol.ui.components.common.AccountGroupSheet
 import com.example.budgetcontrol.ui.components.common.CreateEditAccountBottomSheet
 import androidx.core.graphics.toColorInt

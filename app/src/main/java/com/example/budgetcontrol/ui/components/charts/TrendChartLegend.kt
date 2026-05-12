@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.budgetcontrol.core.domain.model.Category
+import com.example.budgetcontrol.core.domain.model.TrendChartData
 import com.example.budgetcontrol.core.domain.model.TrendSegment
-import com.example.budgetcontrol.feature.transaction.list.TrendChartData
 import com.example.budgetcontrol.ui.util.displayName
 
 /**

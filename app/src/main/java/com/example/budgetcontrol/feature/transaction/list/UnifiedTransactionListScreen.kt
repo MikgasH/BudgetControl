@@ -42,9 +42,10 @@ import com.example.budgetcontrol.core.domain.model.AccountGroup
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.Transaction
+import com.example.budgetcontrol.core.domain.model.TrendChartData
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.util.AMOUNT_FORMAT
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import com.example.budgetcontrol.ui.components.charts.TrendChart
 import com.example.budgetcontrol.ui.components.charts.TrendChartLegend
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
@@ -52,6 +53,7 @@ import com.example.budgetcontrol.ui.components.common.TransactionItem
 import com.example.budgetcontrol.ui.util.LocalWindowWidthSizeClass
 import com.example.budgetcontrol.ui.util.displayName
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -243,11 +245,7 @@ fun UnifiedTransactionListScreen(
                                 imageVector = getCategoryIcon(firstSelected.iconName),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = try {
-                                    Color(android.graphics.Color.parseColor(firstSelected.color))
-                                } catch (_: Exception) {
-                                    MaterialTheme.colorScheme.primary
-                                }
+                                tint = firstSelected.color.toSafeColor(MaterialTheme.colorScheme.primary)
                             )
                         } else {
                             Icon(
@@ -304,11 +302,7 @@ fun UnifiedTransactionListScreen(
                     uiState.categories
                         .filter { it.id in uiState.selectedCategoryIds }
                         .forEach { category ->
-                            val color = try {
-                                Color(android.graphics.Color.parseColor(category.color))
-                            } catch (_: Exception) {
-                                MaterialTheme.colorScheme.primary
-                            }
+                            val color = category.color.toSafeColor(MaterialTheme.colorScheme.primary)
                             InputChip(
                                 selected = true,
                                 onClick = { viewModel.toggleCategory(category.id) },
@@ -545,11 +539,7 @@ private fun AccountFilterBottomSheet(
 
             accounts.forEach { accountWithBalance ->
                 val account = accountWithBalance.account
-                val iconColor = try {
-                    Color(android.graphics.Color.parseColor(account.color))
-                } catch (_: Exception) {
-                    MaterialTheme.colorScheme.primary
-                }
+                val iconColor = account.color.toSafeColor(MaterialTheme.colorScheme.primary)
                 ListItem(
                     headlineContent = { Text(account.name) },
                     supportingContent = {
@@ -661,11 +651,7 @@ private fun CategoryFilterBottomSheet(
                         )
                     }
                     items(expenseCategories, key = { "expense_${it.id}" }) { category ->
-                        val color = try {
-                            Color(android.graphics.Color.parseColor(category.color))
-                        } catch (_: Exception) {
-                            MaterialTheme.colorScheme.primary
-                        }
+                        val color = category.color.toSafeColor(MaterialTheme.colorScheme.primary)
                         CategoryFilterItem(
                             name = displayNames[category.id] ?: category.name,
                             icon = getCategoryIcon(category.iconName),
@@ -687,11 +673,7 @@ private fun CategoryFilterBottomSheet(
                         )
                     }
                     items(incomeCategories, key = { "income_${it.id}" }) { category ->
-                        val color = try {
-                            Color(android.graphics.Color.parseColor(category.color))
-                        } catch (_: Exception) {
-                            MaterialTheme.colorScheme.primary
-                        }
+                        val color = category.color.toSafeColor(MaterialTheme.colorScheme.primary)
                         CategoryFilterItem(
                             name = displayNames[category.id] ?: category.name,
                             icon = getCategoryIcon(category.iconName),

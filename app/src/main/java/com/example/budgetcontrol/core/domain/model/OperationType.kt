@@ -1,4 +1,4 @@
-package com.example.budgetcontrol.feature.main
+package com.example.budgetcontrol.core.domain.model
 
 import androidx.annotation.StringRes
 import com.example.budgetcontrol.R

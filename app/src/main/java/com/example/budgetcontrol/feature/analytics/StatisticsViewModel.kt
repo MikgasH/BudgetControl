@@ -13,7 +13,7 @@ import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import com.example.budgetcontrol.core.domain.usecase.calculateCategoryStatistics
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
 import androidx.annotation.StringRes

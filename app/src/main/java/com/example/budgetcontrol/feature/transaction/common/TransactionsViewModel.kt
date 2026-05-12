@@ -13,6 +13,7 @@ import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryLimit
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.CurrencyExchange
+import com.example.budgetcontrol.core.domain.model.NetworkStatus
 import com.example.budgetcontrol.core.domain.model.RateSource
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TransactionType
@@ -113,13 +114,6 @@ data class TransactionFormUiState(
     val limitProgressMap: Map<String, com.example.budgetcontrol.core.domain.model.CategoryLimitProgress> = emptyMap(),
     val categoryLimits: Map<String, CategoryLimit> = emptyMap()
 )
-
-enum class NetworkStatus {
-    ONLINE,
-    NO_INTERNET,
-    SERVICE_UNAVAILABLE,
-    OFFLINE_NO_CACHE
-}
 
 enum class TransactionFormMode { ADD, EDIT }
 
@@ -224,7 +218,7 @@ class TransactionFormViewModel @Inject constructor(
         // Maintain a category → limit progress map for the CategorySelector rings.
         viewModelScope.launch {
             val (start, end) = DateRangeHelper.getDateRange(
-                com.example.budgetcontrol.feature.main.PeriodType.MONTH,
+                com.example.budgetcontrol.core.domain.model.PeriodType.MONTH,
                 periodOffset = 0
             )
             combine(
@@ -798,7 +792,7 @@ class TransactionFormViewModel @Inject constructor(
         if (category.type != CategoryType.EXPENSE) return
         limitObservationJob = viewModelScope.launch {
             val (start, end) = DateRangeHelper.getDateRange(
-                com.example.budgetcontrol.feature.main.PeriodType.MONTH,
+                com.example.budgetcontrol.core.domain.model.PeriodType.MONTH,
                 periodOffset = 0
             )
             categoryLimitRepository.getLimit(category.id)

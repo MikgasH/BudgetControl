@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Bank
+import com.example.budgetcontrol.core.domain.model.LookupState
 import kotlinx.coroutines.launch
 
 @Composable

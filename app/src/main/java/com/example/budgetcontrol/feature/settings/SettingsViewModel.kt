@@ -12,7 +12,8 @@ import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryLimit
 import com.example.budgetcontrol.core.domain.model.CategoryLimitProgress
 import com.example.budgetcontrol.core.domain.model.CategoryType
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.LookupState
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,13 +72,6 @@ data class SettingsUiState(
     val showCreateEditCategorySheet: Boolean = false,
     val editingCategoryId: String? = null
 )
-
-sealed class LookupState {
-    object Loading : LookupState()
-    data class Success(val value: Double) : LookupState()
-    object NotFound : LookupState()
-    data class Error(val message: String? = null) : LookupState()
-}
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(

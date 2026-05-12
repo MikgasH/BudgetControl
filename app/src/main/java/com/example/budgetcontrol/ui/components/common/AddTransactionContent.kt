@@ -22,11 +22,11 @@ import com.example.budgetcontrol.core.domain.model.CurrencyExchange
 import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.CategoryType
+import com.example.budgetcontrol.core.domain.model.NetworkStatus
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
-import com.example.budgetcontrol.feature.transaction.common.NetworkStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

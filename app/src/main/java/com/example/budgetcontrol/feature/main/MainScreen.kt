@@ -46,6 +46,8 @@ import java.util.Calendar
 import java.util.Date
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.core.domain.model.CategoryStatistic
+import com.example.budgetcontrol.core.domain.model.OperationType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import com.example.budgetcontrol.ui.components.common.PeriodNavigationCard
 import com.example.budgetcontrol.ui.components.common.PeriodRangePicker
 import com.example.budgetcontrol.ui.util.displayName
@@ -655,7 +657,12 @@ fun MainScreen(
                 )
 
                 PeriodNavigationCard(
-                    uiState = uiState,
+                    isAllTimePeriod = uiState.isAllTimePeriod,
+                    selectedPeriodType = uiState.selectedPeriodType,
+                    selectedOperationType = uiState.selectedOperationType,
+                    currentPeriodIndex = uiState.currentPeriodIndex,
+                    totalAmount = uiState.totalAmount,
+                    categoryStatistics = uiState.categoryStatistics,
                     periodDisplayText = periodDisplayText,
                     baseCurrency = baseCurrency,
                     openingBalance = openingBalance,
@@ -980,7 +987,12 @@ private fun ExpandedMainContent(
                 onPeriodSelected = onSelectPeriodType
             )
             PeriodNavigationCard(
-                uiState = uiState,
+                isAllTimePeriod = uiState.isAllTimePeriod,
+                selectedPeriodType = uiState.selectedPeriodType,
+                selectedOperationType = uiState.selectedOperationType,
+                currentPeriodIndex = uiState.currentPeriodIndex,
+                totalAmount = uiState.totalAmount,
+                categoryStatistics = uiState.categoryStatistics,
                 periodDisplayText = periodDisplayText,
                 baseCurrency = baseCurrency,
                 openingBalance = openingBalance,

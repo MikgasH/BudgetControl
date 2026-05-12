@@ -14,6 +14,7 @@ import com.example.budgetcontrol.core.domain.model.PairedStackedTrendBucket
 import com.example.budgetcontrol.core.domain.model.StackedTrendBucket
 import com.example.budgetcontrol.core.domain.model.Transaction
 import com.example.budgetcontrol.core.domain.model.TrendBucket
+import com.example.budgetcontrol.core.domain.model.TrendChartData
 import com.example.budgetcontrol.core.domain.model.TrendSegment
 import com.example.budgetcontrol.core.domain.model.findById
 import com.example.budgetcontrol.core.domain.model.toExpense
@@ -31,7 +32,7 @@ import com.example.budgetcontrol.core.domain.usecase.GetIncomesUseCase
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.DateRangeHelper
 import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import com.example.budgetcontrol.ui.components.charts.TrendBarPeriod
 import com.example.budgetcontrol.ui.components.charts.trendLabelFor
 import com.example.budgetcontrol.ui.util.toSafeColor
@@ -49,21 +50,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class TransactionTypeFilter { ALL, INCOME, EXPENSE }
-
-/**
- * Trend chart variants. The VM resolves segment colors here (not in the composable) so that
- * `@Immutable` skipping can hold across recompositions.
- */
-sealed interface TrendChartData {
-    data class Stacked(val buckets: List<StackedTrendBucket>) : TrendChartData
-    data class PairedStacked(val buckets: List<PairedStackedTrendBucket>) : TrendChartData
-    data class SingleCategory(
-        val buckets: List<TrendBucket>,
-        val color: Color,
-        val limitAmount: Double?
-    ) : TrendChartData
-    object Empty : TrendChartData
-}
 
 @Immutable
 data class UnifiedTransactionListUiState(

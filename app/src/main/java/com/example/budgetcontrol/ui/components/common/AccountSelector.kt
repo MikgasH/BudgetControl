@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +48,7 @@ fun AccountSelector(
                     Icon(
                         imageVector = getCategoryIcon(it.account.iconName),
                         contentDescription = null,
-                        tint = try {
-                            Color(android.graphics.Color.parseColor(it.account.color))
-                        } catch (_: Exception) {
-                            MaterialTheme.colorScheme.primary
-                        },
+                        tint = it.account.color.toSafeColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -78,11 +75,7 @@ fun AccountSelector(
                         Icon(
                             imageVector = getCategoryIcon(accountWithBalance.account.iconName),
                             contentDescription = null,
-                            tint = try {
-                                Color(android.graphics.Color.parseColor(accountWithBalance.account.color))
-                            } catch (_: Exception) {
-                                MaterialTheme.colorScheme.primary
-                            },
+                            tint = accountWithBalance.account.color.toSafeColor(MaterialTheme.colorScheme.primary),
                             modifier = Modifier.size(20.dp)
                         )
                     },

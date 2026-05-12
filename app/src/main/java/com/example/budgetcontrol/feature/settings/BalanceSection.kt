@@ -21,6 +21,7 @@ import com.example.budgetcontrol.core.domain.usecase.AccountWithBalance
 import com.example.budgetcontrol.core.util.formatAmount
 import com.example.budgetcontrol.core.util.getCurrencySymbol
 import com.example.budgetcontrol.ui.util.getCategoryIcon
+import com.example.budgetcontrol.ui.util.toSafeColor
 
 @Composable
 internal fun AccountsSection(
@@ -73,11 +74,7 @@ internal fun AccountsSection(
 
             accounts.forEach { accountWithBalance ->
                 val account = accountWithBalance.account
-                val accountColor = try {
-                    Color(android.graphics.Color.parseColor(account.color))
-                } catch (_: Exception) {
-                    MaterialTheme.colorScheme.primary
-                }
+                val accountColor = account.color.toSafeColor(MaterialTheme.colorScheme.primary)
 
                 Surface(
                     modifier = Modifier

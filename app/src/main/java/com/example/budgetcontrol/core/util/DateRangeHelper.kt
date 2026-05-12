@@ -2,7 +2,7 @@ package com.example.budgetcontrol.core.util
 
 import android.content.Context
 import com.example.budgetcontrol.R
-import com.example.budgetcontrol.feature.main.PeriodType
+import com.example.budgetcontrol.core.domain.model.PeriodType
 import java.text.SimpleDateFormat
 import java.util.*
 

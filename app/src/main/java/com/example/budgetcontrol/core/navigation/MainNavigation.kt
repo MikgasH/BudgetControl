@@ -4,7 +4,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.budgetcontrol.feature.main.MainScreen
-import com.example.budgetcontrol.feature.main.OperationType
+import com.example.budgetcontrol.core.domain.model.OperationType
 
 fun NavGraphBuilder.mainNavigation(navController: NavHostController) {
     composable(Screen.Main.route) {

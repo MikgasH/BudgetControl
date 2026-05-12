@@ -19,8 +19,8 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsRepository
 import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiRepository
 import com.example.budgetcontrol.core.data.remote.gemini.GeminiResult
+import com.example.budgetcontrol.core.domain.model.LookupState
 import com.example.budgetcontrol.core.domain.repository.BankRepository
-import com.example.budgetcontrol.feature.settings.LookupState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
