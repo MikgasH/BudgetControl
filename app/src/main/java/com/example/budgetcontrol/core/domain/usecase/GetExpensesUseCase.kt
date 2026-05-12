@@ -28,6 +28,14 @@ class GetExpensesUseCase @Inject constructor(
         return repository.getExpensesByAccountAndDateRange(accountId, startDate, endDate)
     }
 
+    fun getByAccounts(accountIds: List<String>): Flow<List<Expense>> {
+        return repository.getExpensesByAccounts(accountIds)
+    }
+
+    fun getByAccountsAndDateRange(accountIds: List<String>, startDate: Long, endDate: Long): Flow<List<Expense>> {
+        return repository.getExpensesByAccountsAndDateRange(accountIds, startDate, endDate)
+    }
+
     suspend fun getMinDate(): Long? = repository.getMinDate()
 
     suspend fun getMaxDate(): Long? = repository.getMaxDate()

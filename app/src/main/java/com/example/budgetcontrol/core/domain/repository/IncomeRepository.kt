@@ -17,6 +17,8 @@ interface IncomeRepository {
     suspend fun getMaxDate(): Long?
     fun getIncomesByAccount(accountId: String): Flow<List<Income>>
     fun getIncomesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<Income>>
+    fun getIncomesByAccounts(accountIds: List<String>): Flow<List<Income>>
+    fun getIncomesByAccountsAndDateRange(accountIds: List<String>, startDate: Long, endDate: Long): Flow<List<Income>>
     suspend fun reassignIncomes(sourceAccountId: String, targetAccountId: String)
     suspend fun getIncomeCountByAccount(accountId: String): Int
     fun getTotalIncomesBeforeDate(date: Long, accountId: String?): Flow<Double>

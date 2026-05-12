@@ -88,6 +88,10 @@ fun MainScreen(
     val isApproximateBalance by viewModel.isApproximateBalance.collectAsState()
     val openingBalance by viewModel.openingBalance.collectAsState()
     val cachedRatesTimestamp by viewModel.cachedRatesTimestamp.collectAsState()
+    val totalBalance by viewModel.totalBalance.collectAsState()
+    val hasMixedCurrencies by viewModel.hasMixedCurrencies.collectAsState()
+    val editingAccount by viewModel.editingAccount.collectAsState()
+    val groupMemberAccounts by viewModel.groupMemberAccounts.collectAsState()
     val currentContext = LocalContext.current
     val periodDisplayText = DateRangeHelper.getPeriodDisplayText(
         context = currentContext,
@@ -116,7 +120,7 @@ fun MainScreen(
 
     // Account picker when FAB pressed with a group selected
     if (showGroupAccountPicker) {
-        val memberAccounts = viewModel.getGroupMemberAccounts()
+        val memberAccounts = groupMemberAccounts
         AlertDialog(
             onDismissRequest = { showGroupAccountPicker = false },
             title = { Text(stringResource(R.string.choose_account)) },
@@ -201,9 +205,9 @@ fun MainScreen(
             groups = uiState.accountGroups,
             selectedAccountId = uiState.selectedAccountId,
             selectedGroupId = uiState.selectedGroupId,
-            totalBalance = viewModel.getTotalBalance(),
+            totalBalance = totalBalance,
             baseCurrency = baseCurrency,
-            hasMixedCurrencies = viewModel.hasMixedCurrencies(),
+            hasMixedCurrencies = hasMixedCurrencies,
             onAccountSelect = { accountId ->
                 if (accountId != uiState.selectedAccountId || uiState.selectedGroupId != null) {
                     viewModel.selectAccount(accountId)
@@ -238,24 +242,24 @@ fun MainScreen(
     }
 
     if (uiState.showCreateEditAccountSheet) {
-        val editingAccount = viewModel.getEditingAccount()
+        val currentEditingAccount = editingAccount
         CreateEditAccountBottomSheet(
-            isEditMode = editingAccount != null,
-            account = editingAccount,
+            isEditMode = currentEditingAccount != null,
+            account = currentEditingAccount,
             baseCurrency = baseCurrency,
             transactionCount = uiState.editingAccountTransactionCount,
             availableCurrencies = uiState.availableCurrencies,
             favoriteCurrencies = uiState.favoriteCurrencies,
             isCurrenciesLoading = uiState.isCurrenciesLoading,
             onSave = { name, iconName, color, initialBalance, currency ->
-                if (editingAccount != null) {
+                if (currentEditingAccount != null) {
                     viewModel.updateAccount(name, iconName, color, initialBalance, currency)
                 } else {
                     viewModel.createAccount(name, iconName, color, initialBalance, currency)
                 }
             },
-            onDelete = if (editingAccount != null && !editingAccount.isDefault) {
-                { viewModel.deleteAccount(editingAccount.id) }
+            onDelete = if (currentEditingAccount != null && !currentEditingAccount.isDefault) {
+                { viewModel.deleteAccount(currentEditingAccount.id) }
             } else null,
             onDismiss = { viewModel.dismissCreateEditAccountSheet() }
         )

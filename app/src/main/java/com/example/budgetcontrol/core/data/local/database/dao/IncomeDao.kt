@@ -52,6 +52,12 @@ interface IncomeDao {
     @Query("SELECT * FROM incomes WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getIncomesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<IncomeEntity>>
 
+    @Query("SELECT * FROM incomes WHERE accountId IN (:accountIds) ORDER BY date DESC")
+    fun getIncomesByAccounts(accountIds: List<String>): Flow<List<IncomeEntity>>
+
+    @Query("SELECT * FROM incomes WHERE accountId IN (:accountIds) AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    fun getIncomesByAccountsAndDateRange(accountIds: List<String>, startDate: Long, endDate: Long): Flow<List<IncomeEntity>>
+
     @Query("UPDATE incomes SET accountId = :targetAccountId WHERE accountId = :sourceAccountId")
     suspend fun reassignIncomes(sourceAccountId: String, targetAccountId: String)
 

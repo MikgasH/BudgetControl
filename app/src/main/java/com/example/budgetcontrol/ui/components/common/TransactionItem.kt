@@ -41,6 +41,9 @@ fun TransactionItem(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val dateFormatter = remember(Locale.getDefault().language) {
+        SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -121,7 +124,7 @@ fun TransactionItem(
                 }
 
                 Text(
-                    text = formatDate(transaction.date),
+                    text = dateFormatter.format(Date(transaction.date)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp)
@@ -290,13 +293,4 @@ fun TransactionItemDetailed(
             )
         }
     }
-}
-
-
-/**
- * Formats a timestamp into a human-readable date string
- */
-private fun formatDate(timestamp: Long): String {
-    val formatter = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
-    return formatter.format(Date(timestamp))
 }

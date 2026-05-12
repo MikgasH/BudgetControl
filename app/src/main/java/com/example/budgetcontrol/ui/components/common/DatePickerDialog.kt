@@ -36,6 +36,10 @@ fun DatePickerDialog(
         mutableStateOf(Calendar.getInstance().apply { timeInMillis = selectedDate })
     }
 
+    val monthYearFormatter = remember(Locale.getDefault().language) {
+        SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+    }
+
     // Prevent navigating beyond the current month
     val maxMonth = Calendar.getInstance()
 
@@ -80,8 +84,7 @@ fun DatePickerDialog(
                     }
 
                     Text(
-                        text = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-                            .format(currentMonth.time),
+                        text = monthYearFormatter.format(currentMonth.time),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )

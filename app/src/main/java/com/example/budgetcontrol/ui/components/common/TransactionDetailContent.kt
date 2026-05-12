@@ -44,6 +44,13 @@ fun TransactionDetailContent(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val dateFormatPattern = stringResource(R.string.date_format_full)
+    val fullDateFormatter = remember(dateFormatPattern, Locale.getDefault().language) {
+        SimpleDateFormat(dateFormatPattern, Locale.getDefault())
+    }
+    val timeFormatter = remember(Locale.getDefault().language) {
+        SimpleDateFormat("HH:mm", Locale.getDefault())
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -91,14 +98,12 @@ fun TransactionDetailContent(
 
         DetailItem(
             label = stringResource(R.string.detail_date),
-            value = SimpleDateFormat(stringResource(R.string.date_format_full), Locale.getDefault())
-                .format(Date(transaction.date))
+            value = fullDateFormatter.format(Date(transaction.date))
         )
 
         DetailItem(
             label = stringResource(R.string.detail_time),
-            value = SimpleDateFormat("HH:mm", Locale.getDefault())
-                .format(Date(transaction.date))
+            value = timeFormatter.format(Date(transaction.date))
         )
 
         val originalCurrency = when (transaction) {

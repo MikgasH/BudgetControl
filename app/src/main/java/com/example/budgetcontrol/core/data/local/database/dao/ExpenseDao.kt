@@ -54,6 +54,12 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getExpensesByAccountAndDateRange(accountId: String, startDate: Long, endDate: Long): Flow<List<ExpenseEntity>>
 
+    @Query("SELECT * FROM expenses WHERE accountId IN (:accountIds) ORDER BY date DESC")
+    fun getExpensesByAccounts(accountIds: List<String>): Flow<List<ExpenseEntity>>
+
+    @Query("SELECT * FROM expenses WHERE accountId IN (:accountIds) AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    fun getExpensesByAccountsAndDateRange(accountIds: List<String>, startDate: Long, endDate: Long): Flow<List<ExpenseEntity>>
+
     @Query("UPDATE expenses SET accountId = :targetAccountId WHERE accountId = :sourceAccountId")
     suspend fun reassignExpenses(sourceAccountId: String, targetAccountId: String)
 

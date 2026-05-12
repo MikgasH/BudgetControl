@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -74,17 +75,21 @@ private fun QuickDateOptions(
     calendar.add(Calendar.DAY_OF_MONTH, -1)
     val dayBeforeYesterday = calendar.timeInMillis
 
+    val dateFormatter = remember(Locale.getDefault().language) {
+        SimpleDateFormat("dd.MM", Locale.getDefault())
+    }
+
     val quickDates = listOf(
         today to Pair(
-            SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(today)),
+            dateFormatter.format(Date(today)),
             stringResource(R.string.today)
         ),
         yesterday to Pair(
-            SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(yesterday)),
+            dateFormatter.format(Date(yesterday)),
             stringResource(R.string.yesterday)
         ),
         dayBeforeYesterday to Pair(
-            SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(dayBeforeYesterday)),
+            dateFormatter.format(Date(dayBeforeYesterday)),
             stringResource(R.string.day_before_yesterday)
         )
     )
@@ -154,7 +159,7 @@ private fun QuickDateOptions(
                             .fillMaxWidth()
                     ) {
                         Text(
-                            text = SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(selectedDate)),
+                            text = dateFormatter.format(Date(selectedDate)),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold

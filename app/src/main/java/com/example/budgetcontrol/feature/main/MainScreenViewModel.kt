@@ -232,6 +232,37 @@ class MainScreenViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), false)
 
+    val totalBalance: StateFlow<Double> = _accountsWithBalances
+        .map { accounts ->
+            val currencies = accounts.map { it.account.currency }.distinct()
+            if (currencies.size == 1) accounts.sumOf { it.currentBalance }
+            else sumInBaseCurrency(accounts)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), 0.0)
+
+    val hasMixedCurrencies: StateFlow<Boolean> = combine(
+        _accountsWithBalances,
+        baseCurrency
+    ) { accounts, baseCur ->
+        accounts.any { it.account.currency != baseCur }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), false)
+
+    val editingAccount: StateFlow<Account?> = _uiState
+        .map { s ->
+            val id = s.editingAccountId ?: return@map null
+            s.accounts.find { it.account.id == id }?.account
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
+
+    val groupMemberAccounts: StateFlow<List<AccountWithBalance>> = _uiState
+        .map { s ->
+            val groupId = s.selectedGroupId ?: return@map emptyList()
+            val memberIds = s.accountGroups.find { it.group.id == groupId }
+                ?.group?.memberAccountIds ?: emptyList()
+            s.accounts.filter { it.account.id in memberIds }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
+
     /**
      * Balance at the start of the currently selected period, expressed in [displayCurrency].
      *
@@ -849,11 +880,6 @@ class MainScreenViewModel @Inject constructor(
         }
     }
 
-    fun getEditingAccount(): Account? {
-        val id = _uiState.value.editingAccountId ?: return null
-        return _uiState.value.accounts.find { it.account.id == id }?.account
-    }
-
     fun getSelectedAccountName(): String? {
         val state = _uiState.value
         if (state.selectedGroupId != null) {
@@ -861,18 +887,6 @@ class MainScreenViewModel @Inject constructor(
         }
         val id = state.selectedAccountId ?: return null
         return state.accounts.find { it.account.id == id }?.account?.name
-    }
-
-    fun getTotalBalance(): Double {
-        val accounts = _accountsWithBalances.value
-        val currencies = accounts.map { it.account.currency }.distinct()
-        return if (currencies.size == 1) accounts.sumOf { it.currentBalance }
-        else sumInBaseCurrency(accounts)
-    }
-
-    fun hasMixedCurrencies(): Boolean {
-        val baseCur = baseCurrency.value
-        return _accountsWithBalances.value.any { it.account.currency != baseCur }
     }
 
     fun formatBalance(amount: Double?, currency: String, isApproximate: Boolean): String {
@@ -993,8 +1007,4 @@ class MainScreenViewModel @Inject constructor(
             ?.group?.memberAccountIds ?: emptyList()
     }
 
-    fun getGroupMemberAccounts(): List<AccountWithBalance> {
-        val memberIds = getSelectedGroupMemberIds()
-        return _uiState.value.accounts.filter { it.account.id in memberIds }
-    }
 }

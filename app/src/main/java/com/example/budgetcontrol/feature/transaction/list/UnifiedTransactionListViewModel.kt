@@ -38,12 +38,14 @@ import com.example.budgetcontrol.ui.components.charts.trendLabelFor
 import com.example.budgetcontrol.ui.util.toSafeColor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -118,30 +120,37 @@ class UnifiedTransactionListViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UnifiedTransactionListUiState> = combine(
-        _startDate,
-        _endDate
-    ) { start, end ->
-        if (start != null && end != null) start to end else null
-    }.distinctUntilChanged().flatMapLatest { dateRange ->
-        val expensesFlow = if (dateRange != null) {
-            getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
-        } else {
-            getExpensesUseCase()
-        }
-        val incomesFlow = if (dateRange != null) {
-            getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
-        } else {
-            getIncomesUseCase()
-        }
-        // Trend buckets always span 6 periods regardless of the current date filter, so we
-        // bundle their inputs (period, limit, full unfiltered series) into a single struct.
-        // Account/group filtering is applied in the inner reducer using `filters` + `groups`,
-        // not here, so the same unfiltered series feeds every recomputation.
+        combine(_startDate, _endDate) { start, end ->
+            if (start != null && end != null) start to end else null
+        }.distinctUntilChanged(),
+        combine(
+            _selectedAccountId,
+            _selectedGroupId,
+            accountGroupRepository.getAllGroups()
+        ) { accountId, groupId, groups ->
+            // null  → no account filter (load everything)
+            // empty → group present but has no members (yields zero rows)
+            // non-empty → restrict to these account IDs at the DAO level
+            when {
+                groupId != null -> groups.find { it.id == groupId }?.memberAccountIds ?: emptyList()
+                accountId != null -> listOf(accountId)
+                else -> null
+            }
+        }.distinctUntilChanged()
+    ) { dateRange, effectiveAccountIds ->
+        dateRange to effectiveAccountIds
+    }.flatMapLatest { (dateRange, effectiveAccountIds) ->
+        val expensesFlow = expenseSource(effectiveAccountIds, dateRange)
+        val incomesFlow = incomeSource(effectiveAccountIds, dateRange)
+        // Trend buckets always span 6 periods regardless of the current date filter, so the
+        // trend series ignores `dateRange`. The account/group filter, however, *is* applied
+        // here at the DAO level — selecting a single account narrows both the tx list and
+        // the chart.
         val trendInputsFlow = combine(
             _selectedTrendPeriod,
             selectedCategoryLimitAmountFlow,
-            getExpensesUseCase(),
-            getIncomesUseCase()
+            expenseSource(effectiveAccountIds, null),
+            incomeSource(effectiveAccountIds, null)
         ) { period, limitAmount, allExp, allInc ->
             TrendInputs(period, limitAmount, allExp, allInc)
         }
@@ -167,42 +176,25 @@ class UnifiedTransactionListViewModel @Inject constructor(
             val (expenses, incomes, categories) = coreData
             val trendPeriod = trendInputs.period
             val selectedCategoryLimitAmount = trendInputs.limitAmount
-            val allExpenses = trendInputs.allExpenses
-            val allIncomes = trendInputs.allIncomes
-
-            // Resolve group member IDs once per recomputation. A missing group (e.g. deleted
-            // while still selected) yields an empty set → no transactions match.
-            val groupMemberIds: Set<String>? = filters.groupId?.let { gid ->
-                groups.find { it.id == gid }?.memberAccountIds?.toSet() ?: emptySet()
-            }
-
-            // Reusable account predicate — applied to both the tx list and the trend series.
-            val accountMatches: (String?) -> Boolean = { txAccountId ->
-                when {
-                    groupMemberIds != null -> txAccountId != null && txAccountId in groupMemberIds
-                    filters.accountId != null -> txAccountId == filters.accountId
-                    else -> true
-                }
-            }
+            val trendExpenses = trendInputs.allExpenses
+            val trendIncomes = trendInputs.allIncomes
 
             val allTransactions = buildList {
                 addAll(expenses.map { it.toTransaction() })
                 addAll(incomes.map { it.toTransaction() })
             }
 
+            // Account/group filter is already applied at the DAO level; only the
+            // category + type filters remain in memory.
             val filtered = allTransactions
                 .filter { tx ->
-                    val txAccountId = when (tx) {
-                        is Transaction.ExpenseTransaction -> tx.accountId
-                        is Transaction.IncomeTransaction -> tx.accountId
-                    }
                     val categoryMatch = filters.categoryIds.isEmpty() || tx.categoryId in filters.categoryIds
                     val typeMatch = when (filters.typeFilter) {
                         TransactionTypeFilter.ALL -> true
                         TransactionTypeFilter.INCOME -> tx is Transaction.IncomeTransaction
                         TransactionTypeFilter.EXPENSE -> tx is Transaction.ExpenseTransaction
                     }
-                    accountMatches(txAccountId) && categoryMatch && typeMatch
+                    categoryMatch && typeMatch
                 }
                 .sortedByDescending { it.date }
 
@@ -210,12 +202,6 @@ class UnifiedTransactionListViewModel @Inject constructor(
             // here (not in composable) so segment lists carry stable, parsed colors and the
             // chart can rely on `@Immutable` skipping.
             val categoryById: Map<String, Category> = categories.associateBy { it.id }
-
-            // Apply the same account/group filter to the trend series. The user's expectation
-            // is that selecting a single account narrows the chart too — the previous version
-            // ignored this and showed cross-account totals.
-            val trendExpenses = allExpenses.filter { accountMatches(it.accountId) }
-            val trendIncomes = allIncomes.filter { accountMatches(it.accountId) }
 
             // Type-tab availability based on the *types of selected categories*. Drives both
             // the visible tabs and the guarded type-filter value.
@@ -414,6 +400,40 @@ class UnifiedTransactionListViewModel @Inject constructor(
         // caller wires this up directly we still want to ignore zero-data periods.
         if (total == 0.0) return
         setCustomDateRange(start, end)
+    }
+
+    /**
+     * Picks the right DAO query for the current (account-filter, date-range) combination so
+     * that filtering happens in SQL rather than in memory.
+     *
+     * The empty-`accountIds` short-circuit to `flowOf(emptyList())` is load-bearing, not
+     * cosmetic: Room expands `IN (:accountIds)` into a comma-separated `?` list, and an empty
+     * list produces `WHERE accountId IN ()` — a SQLite syntax error that crashes with
+     * `SQLiteException: near ")": syntax error`, NOT a no-match. Any future caller of
+     * `getByAccounts*` on the DAO/repository must guard against an empty list the same way.
+     */
+    private fun expenseSource(
+        accountIds: List<String>?,
+        dateRange: Pair<Long, Long>?
+    ): Flow<List<Expense>> = when {
+        accountIds != null && accountIds.isEmpty() -> flowOf(emptyList())
+        accountIds != null && dateRange != null ->
+            getExpensesUseCase.getByAccountsAndDateRange(accountIds, dateRange.first, dateRange.second)
+        accountIds != null -> getExpensesUseCase.getByAccounts(accountIds)
+        dateRange != null -> getExpensesUseCase.getByDateRange(dateRange.first, dateRange.second)
+        else -> getExpensesUseCase()
+    }
+
+    private fun incomeSource(
+        accountIds: List<String>?,
+        dateRange: Pair<Long, Long>?
+    ): Flow<List<Income>> = when {
+        accountIds != null && accountIds.isEmpty() -> flowOf(emptyList())
+        accountIds != null && dateRange != null ->
+            getIncomesUseCase.getByAccountsAndDateRange(accountIds, dateRange.first, dateRange.second)
+        accountIds != null -> getIncomesUseCase.getByAccounts(accountIds)
+        dateRange != null -> getIncomesUseCase.getByDateRange(dateRange.first, dateRange.second)
+        else -> getIncomesUseCase()
     }
 
     /** Internal accessors for the bucket computations, kept private to avoid leaking shape. */

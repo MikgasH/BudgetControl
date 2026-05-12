@@ -37,6 +37,9 @@ fun PeriodRangePicker(
     }
     var startDate by remember { mutableStateOf<Long?>(null) }
     var endDate by remember { mutableStateOf<Long?>(null) }
+    val periodFormatter = remember(Locale.getDefault().language) {
+        SimpleDateFormat("d MMM", Locale.getDefault())
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -145,7 +148,7 @@ fun PeriodRangePicker(
                 if (startDate != null) {
                     Text(
                         text = when {
-                            endDate != null -> stringResource(R.string.period_range_display, formatPeriod(startDate!!, endDate!!))
+                            endDate != null -> stringResource(R.string.period_range_display, formatPeriod(periodFormatter, startDate!!, endDate!!))
                             else -> stringResource(R.string.start_date_display, SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(startDate!!)))
                         },
                         style = MaterialTheme.typography.bodyMedium,
@@ -344,8 +347,7 @@ private fun getPeriodDaysInMonth(currentMonth: Calendar): List<PeriodDayInfo> {
     return days
 }
 
-private fun formatPeriod(startDate: Long, endDate: Long): String {
-    val formatter = SimpleDateFormat("d MMM", Locale.getDefault())
+private fun formatPeriod(formatter: SimpleDateFormat, startDate: Long, endDate: Long): String {
     val startFormatted = formatter.format(Date(startDate))
     val endFormatted = formatter.format(Date(endDate))
     return "$startFormatted - $endFormatted"
