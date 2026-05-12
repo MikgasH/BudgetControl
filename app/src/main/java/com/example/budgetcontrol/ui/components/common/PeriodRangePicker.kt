@@ -125,17 +125,19 @@ fun PeriodRangePicker(
                     startDate = startDate,
                     endDate = endDate,
                     onDateSelected = { date ->
+                        val currentStart = startDate
+                        val currentEnd = endDate
                         when {
-                            startDate == null || (endDate != null) -> {
+                            currentStart == null || currentEnd != null -> {
                                 startDate = date
                                 endDate = null
                             }
-                            startDate != null && endDate == null -> {
-                                if (date >= startDate!!) {
+                            else -> {
+                                if (date >= currentStart) {
                                     endDate = date
                                 } else {
                                     // Selected date is before start, so swap them
-                                    endDate = startDate
+                                    endDate = currentStart
                                     startDate = date
                                 }
                             }
@@ -145,11 +147,14 @@ fun PeriodRangePicker(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (startDate != null) {
+                val previewStart = startDate
+                if (previewStart != null) {
+                    val previewEnd = endDate
                     Text(
-                        text = when {
-                            endDate != null -> stringResource(R.string.period_range_display, formatPeriod(periodFormatter, startDate!!, endDate!!))
-                            else -> stringResource(R.string.start_date_display, SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(startDate!!)))
+                        text = if (previewEnd != null) {
+                            stringResource(R.string.period_range_display, formatPeriod(periodFormatter, previewStart, previewEnd))
+                        } else {
+                            stringResource(R.string.start_date_display, SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(previewStart)))
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
@@ -200,10 +205,12 @@ fun PeriodRangePicker(
                         Text(stringResource(R.string.cancel_upper))
                     }
 
-                    if (startDate != null && endDate != null) {
+                    val confirmStart = startDate
+                    val confirmEnd = endDate
+                    if (confirmStart != null && confirmEnd != null) {
                         TextButton(
                             onClick = {
-                                onPeriodSelected(startDate!!, endDate!!)
+                                onPeriodSelected(confirmStart, confirmEnd)
                                 onDismiss()
                             }
                         ) {

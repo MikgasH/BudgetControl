@@ -11,6 +11,7 @@ import com.example.budgetcontrol.core.data.remote.cerps.CerpsResult
 import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
+import com.example.budgetcontrol.core.util.ONE_DAY_MS
 import com.example.budgetcontrol.core.util.PERIODS
 import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import android.content.Context
@@ -30,6 +31,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+
+private const val DEFAULT_CONVERT_AMOUNT = 100.0
 
 @Immutable
 data class ScrubState(
@@ -88,7 +91,7 @@ class RateHistoryViewModel @Inject constructor(
     val scrubState: StateFlow<ScrubState?> = _scrubState.asStateFlow()
 
     // Tracks the last amount entered by the user so it survives period/pair changes
-    private var _currentAmount = 100.0
+    private var _currentAmount = DEFAULT_CONVERT_AMOUNT
 
     fun onScrubUpdate(rateEnd: Double, amount: Double) {
         val data = _trendsData.value ?: return
@@ -253,7 +256,7 @@ class RateHistoryViewModel @Inject constructor(
         if (data.points.size <= 1) return data
 
         if (period == "1D") {
-            val cutoff = Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000)
+            val cutoff = Date(System.currentTimeMillis() - ONE_DAY_MS)
             val filtered = data.points.filter { point ->
                 val ts = parseTimestamp(point.timestamp)
                 ts != null && !ts.before(cutoff)

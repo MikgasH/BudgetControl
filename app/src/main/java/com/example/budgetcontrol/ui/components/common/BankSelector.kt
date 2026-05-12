@@ -45,7 +45,7 @@ fun BankSelector(
             onDismissRequest = { showCommissionInfo = false },
             confirmButton = {
                 TextButton(onClick = { showCommissionInfo = false }) {
-                    Text("OK")
+                    Text(stringResource(android.R.string.ok))
                 }
             },
             icon = {

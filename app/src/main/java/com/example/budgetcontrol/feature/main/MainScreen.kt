@@ -145,8 +145,8 @@ fun MainScreen(
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     showGroupAccountPicker = false
-                                    val selectedDate = viewModel.getCurrentSelectedDate()
-                                    when (viewModel.getCurrentSelectedOperationType()) {
+                                    val selectedDate = currentSelectedDateFor(uiState.selectedPeriodType, uiState.currentPeriodIndex)
+                                    when (uiState.selectedOperationType) {
                                         OperationType.EXPENSES -> onAddExpenseClick(selectedDate, account.id)
                                         OperationType.INCOMES -> onAddIncomeClick(selectedDate, account.id)
                                     }
@@ -395,9 +395,9 @@ fun MainScreen(
                                 if (uiState.selectedGroupId != null) {
                                     showGroupAccountPicker = true
                                 } else {
-                                    val selectedDate = viewModel.getCurrentSelectedDate()
+                                    val selectedDate = currentSelectedDateFor(uiState.selectedPeriodType, uiState.currentPeriodIndex)
                                     val accountId = uiState.selectedAccountId
-                                    when (viewModel.getCurrentSelectedOperationType()) {
+                                    when (uiState.selectedOperationType) {
                                         OperationType.EXPENSES -> onAddExpenseClick(selectedDate, accountId)
                                         OperationType.INCOMES -> onAddIncomeClick(selectedDate, accountId)
                                     }
@@ -405,7 +405,7 @@ fun MainScreen(
                             },
                             onLongClick = {
                                 if (topCategories.isNotEmpty() &&
-                                    viewModel.getCurrentSelectedOperationType() == OperationType.EXPENSES
+                                    uiState.selectedOperationType == OperationType.EXPENSES
                                 ) {
                                     showQuickAdd = true
                                 }
@@ -461,7 +461,7 @@ fun MainScreen(
                             },
                             onClick = {
                                 showQuickAdd = false
-                                val selectedDate = viewModel.getCurrentSelectedDate()
+                                val selectedDate = currentSelectedDateFor(uiState.selectedPeriodType, uiState.currentPeriodIndex)
                                 onAddExpenseWithCategory(selectedDate, category.id, uiState.selectedAccountId)
                             }
                         )
@@ -843,6 +843,32 @@ private fun FixedPeriodTypeSelector(
 
 private val SAME_DAY_TIME_FORMAT = SimpleDateFormat("HH:mm", Locale.getDefault())
 private val OTHER_DAY_TIME_FORMAT = SimpleDateFormat("d MMM HH:mm", Locale.getDefault())
+
+private fun currentSelectedDateFor(periodType: PeriodType, periodIndex: Int): Long {
+    val calendar = Calendar.getInstance()
+    return when (periodType) {
+        PeriodType.DAY -> {
+            calendar.add(Calendar.DAY_OF_MONTH, periodIndex)
+            calendar.timeInMillis
+        }
+        PeriodType.WEEK -> {
+            calendar.add(Calendar.WEEK_OF_YEAR, periodIndex)
+            calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+            calendar.timeInMillis
+        }
+        PeriodType.MONTH -> {
+            calendar.add(Calendar.MONTH, periodIndex)
+            calendar.set(Calendar.DAY_OF_MONTH, 1)
+            calendar.timeInMillis
+        }
+        PeriodType.YEAR -> {
+            calendar.add(Calendar.YEAR, periodIndex)
+            calendar.set(Calendar.DAY_OF_YEAR, 1)
+            calendar.timeInMillis
+        }
+        else -> System.currentTimeMillis()
+    }
+}
 
 private fun formatRatesTimestamp(timestamp: Long): String {
     val now = Calendar.getInstance()

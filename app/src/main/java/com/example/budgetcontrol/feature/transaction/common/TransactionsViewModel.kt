@@ -35,6 +35,7 @@ import com.example.budgetcontrol.core.domain.repository.AccountRepository
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.DateRangeHelper
+import com.example.budgetcontrol.core.util.HOUR_IN_MS
 import com.example.budgetcontrol.core.util.ValidationHelper
 import java.util.UUID
 import android.content.Context
@@ -519,7 +520,7 @@ class TransactionFormViewModel @Inject constructor(
             // Show stale rate warning if API failed and cached rates are older than 8 hours
             val staleWarning = if (interBankRate != null && cerpsRepository.areRatesStale()) {
                 val ageMs = System.currentTimeMillis() - cerpsRepository.getRatesTimestamp()
-                val ageHours = (ageMs / (1000 * 60 * 60)).toInt()
+                val ageHours = (ageMs / HOUR_IN_MS).toInt()
                 context.getString(R.string.stale_rate_warning_improved, ageHours.toString())
             } else null
 

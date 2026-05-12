@@ -637,40 +637,6 @@ class MainScreenViewModel @Inject constructor(
         return _uiState.value.categories.findById(categoryId)
     }
 
-    fun getCurrentSelectedDate(): Long {
-        val currentState = _uiState.value
-        return when (currentState.selectedPeriodType) {
-            PeriodType.DAY -> {
-                val calendar = Calendar.getInstance()
-                calendar.add(Calendar.DAY_OF_MONTH, currentState.currentPeriodIndex)
-                calendar.timeInMillis
-            }
-            PeriodType.WEEK -> {
-                val calendar = Calendar.getInstance()
-                calendar.add(Calendar.WEEK_OF_YEAR, currentState.currentPeriodIndex)
-                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-                calendar.timeInMillis
-            }
-            PeriodType.MONTH -> {
-                val calendar = Calendar.getInstance()
-                calendar.add(Calendar.MONTH, currentState.currentPeriodIndex)
-                calendar.set(Calendar.DAY_OF_MONTH, 1)
-                calendar.timeInMillis
-            }
-            PeriodType.YEAR -> {
-                val calendar = Calendar.getInstance()
-                calendar.add(Calendar.YEAR, currentState.currentPeriodIndex)
-                calendar.set(Calendar.DAY_OF_YEAR, 1)
-                calendar.timeInMillis
-            }
-            else -> System.currentTimeMillis()
-        }
-    }
-
-    fun getCurrentSelectedOperationType(): OperationType {
-        return _uiState.value.selectedOperationType
-    }
-
     fun getCurrentPeriodDateRange(): Pair<Long, Long> {
         val currentState = _uiState.value
         return DateRangeHelper.getDateRange(

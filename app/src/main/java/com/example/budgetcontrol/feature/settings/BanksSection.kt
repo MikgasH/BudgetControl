@@ -443,7 +443,7 @@ internal fun AddEditBankDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(stringResource(R.string.find_with_ai))
                     } else {
-                        Text("\uD83E\uDD16 " + stringResource(R.string.find_with_ai))
+                        Text(stringResource(R.string.find_with_ai))
                     }
                 }
             }
