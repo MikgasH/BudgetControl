@@ -54,4 +54,4 @@ captures/
 
 # Lint
 lint/tmp/
-lint/reports/
+lint/reports/.idea/
