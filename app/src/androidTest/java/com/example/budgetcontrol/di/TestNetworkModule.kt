@@ -118,7 +118,7 @@ private class FakeCerpsAnalyticsApiService : CerpsAnalyticsApiService {
             startDate = "2026-01-01T00:00:00Z",
             endDate = "2026-01-01T00:00:00Z",
             dataPoints = 0,
-            points = emptyList<RatePoint>()
+            points = emptyList()
         )
     )
 }

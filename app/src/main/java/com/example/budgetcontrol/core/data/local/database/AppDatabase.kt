@@ -2,6 +2,7 @@ package com.example.budgetcontrol.core.data.local.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabase.Callback
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.budgetcontrol.core.data.local.database.dao.BankDao
@@ -308,7 +309,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val prepopulateScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        val PREPOPULATE_CALLBACK = object : RoomDatabase.Callback() {
+        val PREPOPULATE_CALLBACK = object : Callback() {
             // Only use onOpen (not onCreate) to avoid a race condition:
             // Room fires both callbacks on first creation, and each launches an async coroutine —
             // onOpen's count check can see 0 before onCreate's inserts complete, duplicating banks.

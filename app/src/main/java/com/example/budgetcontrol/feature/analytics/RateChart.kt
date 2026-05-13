@@ -52,9 +52,9 @@ import kotlin.math.sqrt
 // the point in each bucket that forms the largest triangle with its neighbours,
 // retaining peaks/troughs that matter visually.
 // X and Y are normalised before area computation so the two axes have equal weight.
-private fun lttbDownsample(points: List<RatePoint>, threshold: Int): List<RatePoint> {
+private fun lttbDownsample(points: List<RatePoint>): List<RatePoint> {
     val n = points.size
-    if (n <= threshold || threshold < 3) return points
+    if (n <= LTTB_THRESHOLD) return points
 
     val yMin   = points.minOf { it.rate }
     val yMax   = points.maxOf { it.rate }
@@ -64,13 +64,13 @@ private fun lttbDownsample(points: List<RatePoint>, threshold: Int): List<RatePo
     fun normX(i: Int)   = i / xScale
     fun normY(r: Double) = (r - yMin) / yScale
 
-    val result = ArrayList<RatePoint>(threshold)
+    val result = ArrayList<RatePoint>(LTTB_THRESHOLD)
     result.add(points.first())
 
-    val every = (n - 2).toDouble() / (threshold - 2)
+    val every = (n - 2).toDouble() / (LTTB_THRESHOLD - 2)
     var a = 0                               // index of last selected point
 
-    for (i in 0 until threshold - 2) {
+    for (i in 0 until LTTB_THRESHOLD - 2) {
         // Averaged "next" bucket centroid
         val nextStart = ((i + 1) * every + 1).toInt()
         val nextEnd   = ((i + 2) * every + 1).toInt().coerceAtMost(n)
@@ -192,7 +192,7 @@ internal fun RateChart(
     // true horizontal line for identical y-values without any overlay hack.
     val allSame = allPoints.all { it.rate == allPoints.first().rate }
 
-    val points = remember(allPoints) { lttbDownsample(allPoints, LTTB_THRESHOLD) }
+    val points = remember(allPoints) { lttbDownsample(allPoints) }
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(points) { selectedIndex = null }

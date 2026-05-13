@@ -49,7 +49,7 @@ data class OnboardingUiState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,

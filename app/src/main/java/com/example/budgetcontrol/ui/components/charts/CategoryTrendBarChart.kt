@@ -116,17 +116,15 @@ private fun DrawScope.computeLayout(
     chartTopPadding: Float,
     xAxisLabelHeight: Float
 ): ChartLayout {
-    val plotLeft = yAxisLabelWidth
-    val plotTop = chartTopPadding
     val plotRight = size.width
     val plotBottom = size.height - xAxisLabelHeight
     return ChartLayout(
-        plotLeft = plotLeft,
-        plotTop = plotTop,
+        plotLeft = yAxisLabelWidth,
+        plotTop = chartTopPadding,
         plotRight = plotRight,
         plotBottom = plotBottom,
-        plotWidth = (plotRight - plotLeft).coerceAtLeast(0f),
-        plotHeight = (plotBottom - plotTop).coerceAtLeast(0f)
+        plotWidth = (plotRight - yAxisLabelWidth).coerceAtLeast(0f),
+        plotHeight = (plotBottom - chartTopPadding).coerceAtLeast(0f)
     )
 }
 
@@ -441,12 +439,11 @@ private fun PairedStackedBarChart(
             buckets.forEachIndexed { i, bucket ->
                 val slotLeft = layout.plotLeft + slotWidth * i
                 val groupLeft = slotLeft + groupInset
-                val leftBarLeft = groupLeft
                 val rightBarLeft = groupLeft + barWidth + barGap
 
                 drawStackedBar(
                     segments = bucket.expenseSegments,
-                    barLeft = leftBarLeft,
+                    barLeft = groupLeft,
                     barWidth = barWidth,
                     plotBottom = layout.plotBottom,
                     plotHeight = layout.plotHeight,

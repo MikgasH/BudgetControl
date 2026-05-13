@@ -75,12 +75,12 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val bankRepository: BankRepository,
     private val cerpsRepository: CerpsRepository,
     private val geminiRepository: GeminiRepository,
-    private val getAccountsUseCase: GetAccountsUseCase,
+    getAccountsUseCase: GetAccountsUseCase,
     private val accountRepository: AccountRepository,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,

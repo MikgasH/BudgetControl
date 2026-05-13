@@ -43,7 +43,7 @@ data class TransactionsByCategoryUiState(
 
 @HiltViewModel
 class TransactionsByCategoryViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val getExpensesUseCase: GetExpensesUseCase,
     private val getIncomesUseCase: GetIncomesUseCase,
     private val categoryRepository: CategoryRepository,

@@ -28,11 +28,11 @@ sealed class CerpsResult<out T> {
 
 @Singleton
 class CerpsRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val apiService: CerpsApiService,
     private val analyticsApiService: CerpsAnalyticsApiService,
     private val preferencesManager: PreferencesManager,
-    @ApplicationScope private val applicationScope: CoroutineScope
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) : CurrencyRateProvider {
 
     // --- Currencies in-memory cache (one request per session) ---

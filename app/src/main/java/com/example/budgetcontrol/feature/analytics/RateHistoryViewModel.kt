@@ -12,7 +12,6 @@ import com.example.budgetcontrol.core.data.remote.cerps.dto.TrendsResponse
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
 import com.example.budgetcontrol.core.util.DEFAULT_BASE_CURRENCY
 import com.example.budgetcontrol.core.util.ONE_DAY_MS
-import com.example.budgetcontrol.core.util.PERIODS
 import com.example.budgetcontrol.core.util.SUBSCRIPTION_TIMEOUT_MS
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +42,7 @@ data class ScrubState(
 
 @HiltViewModel
 class RateHistoryViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val cerpsRepository: CerpsRepository,
     private val preferencesManager: PreferencesManager,
     private val networkStatusRepository: NetworkStatusRepository

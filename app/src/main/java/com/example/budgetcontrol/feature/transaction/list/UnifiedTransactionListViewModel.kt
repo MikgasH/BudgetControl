@@ -51,6 +51,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TREND_BUCKET_COUNT = 6
+
 enum class TransactionTypeFilter { ALL, INCOME, EXPENSE }
 
 @Immutable
@@ -108,11 +110,11 @@ class UnifiedTransactionListViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DEFAULT_BASE_CURRENCY)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val selectedCategoryLimitAmountFlow: kotlinx.coroutines.flow.Flow<Double?> =
+    private val selectedCategoryLimitAmountFlow: Flow<Double?> =
         _selectedCategoryIds.flatMapLatest { ids ->
             val singleId = ids.singleOrNull()
             if (singleId == null) {
-                kotlinx.coroutines.flow.flowOf<Double?>(null)
+                flowOf<Double?>(null)
             } else {
                 categoryLimitRepository.getLimit(singleId).map { it?.amount }
             }
@@ -448,7 +450,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
         dateOf: (T) -> Long,
         amountOf: (T) -> Double,
         period: PeriodType,
-        count: Int = 6
+        count: Int = TREND_BUCKET_COUNT
     ): List<TrendBucket> {
         val barPeriod = period.toTrendBarPeriod()
         return (count - 1 downTo 0).map { i ->
@@ -478,7 +480,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
         categoryIdOf: (T) -> String,
         categoryById: Map<String, Category>,
         period: PeriodType,
-        count: Int = 6
+        count: Int = TREND_BUCKET_COUNT
     ): List<StackedTrendBucket> {
         val barPeriod = period.toTrendBarPeriod()
         val ranges: List<Pair<Long, Long>> = (count - 1 downTo 0).map { i ->
@@ -521,7 +523,7 @@ class UnifiedTransactionListViewModel @Inject constructor(
         categoryIdOf: (T) -> String,
         categoryById: Map<String, Category>,
         period: PeriodType,
-        count: Int = 6
+        count: Int = TREND_BUCKET_COUNT
     ): List<PairedStackedTrendBucket> {
         val expenseStacks = computeStackedBuckets(
             expenseItems, dateOf, amountOf, categoryIdOf, categoryById, period, count

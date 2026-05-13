@@ -51,8 +51,7 @@ fun TrendChartLegend(
         val byCategory = LinkedHashMap<String, TrendSegment>()
         for (seg in all) {
             val existing = byCategory[seg.categoryId]
-            byCategory[seg.categoryId] = if (existing == null) seg
-                else existing.copy(amount = existing.amount + seg.amount)
+            byCategory[seg.categoryId] = existing?.let { it.copy(amount = it.amount + seg.amount) } ?: seg
         }
         byCategory.values.sortedByDescending { it.amount }
     }

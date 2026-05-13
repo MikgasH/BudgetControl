@@ -130,7 +130,7 @@ class MainScreenViewModel @Inject constructor(
     private val accountGroupRepository: AccountGroupRepository,
     private val cerpsRepository: CerpsRepository,
     private val updateAccountUseCase: UpdateAccountUseCase,
-    @ApplicationScope private val applicationScope: CoroutineScope
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainScreenUiState())

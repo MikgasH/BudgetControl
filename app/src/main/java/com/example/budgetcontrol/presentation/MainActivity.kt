@@ -1,6 +1,8 @@
 package com.example.budgetcontrol.presentation
 
-import android.app.Activity
+import android.annotation.SuppressLint
+import android.app.Activity.OVERRIDE_TRANSITION_CLOSE
+import android.app.Activity.OVERRIDE_TRANSITION_OPEN
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -54,12 +56,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("InlinedApi")
     override fun recreate() {
         // Smooth crossfade instead of the default jarring flash
         // when the Activity recreates (language or locale change).
-        applyCrossfade(Activity.OVERRIDE_TRANSITION_CLOSE)
+        // Constants are inlined ints on older APIs; applyCrossfade() guards the actual API 34 call.
+        applyCrossfade(OVERRIDE_TRANSITION_CLOSE)
         super.recreate()
-        applyCrossfade(Activity.OVERRIDE_TRANSITION_OPEN)
+        applyCrossfade(OVERRIDE_TRANSITION_OPEN)
     }
 
     private fun applyCrossfade(overrideType: Int) {

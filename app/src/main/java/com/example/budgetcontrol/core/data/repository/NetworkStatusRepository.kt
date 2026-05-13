@@ -13,7 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class NetworkStatusRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val cerpsApiService: CerpsApiService
 ) {
 

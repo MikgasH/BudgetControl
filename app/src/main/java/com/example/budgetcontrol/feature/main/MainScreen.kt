@@ -342,8 +342,7 @@ fun MainScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         AutoSizeBalanceText(
-                            text = viewModel.formatBalance(balance, displayCurrency, isApproximateBalance),
-                            color = Color.White
+                            text = viewModel.formatBalance(balance, displayCurrency, isApproximateBalance)
                         )
                         if (isApproximateBalance && cachedRatesTimestamp > 0L) {
                             Text(
@@ -881,7 +880,6 @@ private fun formatRatesTimestamp(timestamp: Long): String {
 @Composable
 private fun AutoSizeBalanceText(
     text: String,
-    color: Color,
     modifier: Modifier = Modifier,
     maxFontSize: Float = 32f,
     minFontSize: Float = 18f
@@ -894,7 +892,7 @@ private fun AutoSizeBalanceText(
 
     Text(
         text = text,
-        color = color,
+        color = Color.White,
         maxLines = 1,
         softWrap = false,
         style = MaterialTheme.typography.headlineLarge.copy(

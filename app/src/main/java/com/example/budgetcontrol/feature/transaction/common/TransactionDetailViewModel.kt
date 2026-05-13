@@ -38,7 +38,7 @@ data class TransactionDetailUiState(
 
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
     private val categoryRepository: CategoryRepository,

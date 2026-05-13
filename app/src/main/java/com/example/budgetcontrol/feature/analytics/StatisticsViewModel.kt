@@ -47,7 +47,7 @@ data class StatisticsUiState(
     val showPercentOfIncome: Boolean = false
 )
 
-enum class TimePeriod(@StringRes val displayNameRes: Int) {
+enum class TimePeriod(@param:StringRes val displayNameRes: Int) {
     THIS_WEEK(R.string.time_period_this_week),
     THIS_MONTH(R.string.time_period_this_month),
     THIS_YEAR(R.string.time_period_this_year),

@@ -120,13 +120,13 @@ enum class TransactionFormMode { ADD, EDIT }
 
 @HiltViewModel
 class TransactionFormViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val expenseRepository: ExpenseRepository,
     private val incomeRepository: IncomeRepository,
     private val categoryRepository: CategoryRepository,
     private val cerpsRepository: CerpsRepository,
-    private val bankRepository: BankRepository,
+    bankRepository: BankRepository,
     private val preferencesManager: PreferencesManager,
     private val currencyExchangeRepository: CurrencyExchangeRepository,
     private val networkStatusRepository: NetworkStatusRepository,
@@ -661,13 +661,13 @@ class TransactionFormViewModel @Inject constructor(
                     val initialExpenseCategory = if (type == TransactionType.EXPENSE) {
                         selectedCategory
                     } else {
-                        categories.filter { it.type == CategoryType.EXPENSE }.firstOrNull()
+                        categories.firstOrNull { it.type == CategoryType.EXPENSE }
                     }
 
                     val initialIncomeCategory = if (type == TransactionType.INCOME) {
                         selectedCategory
                     } else {
-                        categories.filter { it.type == CategoryType.INCOME }.firstOrNull()
+                        categories.firstOrNull { it.type == CategoryType.INCOME }
                     }
 
                     val current = _uiState.value
