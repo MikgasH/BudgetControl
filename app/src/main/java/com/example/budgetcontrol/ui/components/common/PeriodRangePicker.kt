@@ -35,6 +35,7 @@ fun PeriodRangePicker(
     var currentMonth by remember {
         mutableStateOf(Calendar.getInstance())
     }
+    val maxMonth = Calendar.getInstance()
     var startDate by remember { mutableStateOf<Long?>(null) }
     var endDate by remember { mutableStateOf<Long?>(null) }
     val periodFormatter = remember(Locale.getDefault().language) {
@@ -88,18 +89,26 @@ fun PeriodRangePicker(
                         fontWeight = FontWeight.Medium
                     )
 
-                    IconButton(
-                        onClick = {
-                            currentMonth = Calendar.getInstance().apply {
-                                timeInMillis = currentMonth.timeInMillis
-                                add(Calendar.MONTH, 1)
+                    val canGoForward = currentMonth.get(Calendar.YEAR) < maxMonth.get(Calendar.YEAR) ||
+                            (currentMonth.get(Calendar.YEAR) == maxMonth.get(Calendar.YEAR) &&
+                                    currentMonth.get(Calendar.MONTH) < maxMonth.get(Calendar.MONTH))
+
+                    if (canGoForward) {
+                        IconButton(
+                            onClick = {
+                                currentMonth = Calendar.getInstance().apply {
+                                    timeInMillis = currentMonth.timeInMillis
+                                    add(Calendar.MONTH, 1)
+                                }
                             }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = stringResource(R.string.next_month)
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = stringResource(R.string.next_month)
-                        )
+                    } else {
+                        Box(modifier = Modifier.size(48.dp))
                     }
                 }
 
@@ -125,20 +134,22 @@ fun PeriodRangePicker(
                     startDate = startDate,
                     endDate = endDate,
                     onDateSelected = { date ->
-                        val currentStart = startDate
-                        val currentEnd = endDate
-                        when {
-                            currentStart == null || currentEnd != null -> {
-                                startDate = date
-                                endDate = null
-                            }
-                            else -> {
-                                if (date >= currentStart) {
-                                    endDate = date
-                                } else {
-                                    // Selected date is before start, so swap them
-                                    endDate = currentStart
+                        if (date <= System.currentTimeMillis()) {
+                            val currentStart = startDate
+                            val currentEnd = endDate
+                            when {
+                                currentStart == null || currentEnd != null -> {
                                     startDate = date
+                                    endDate = null
+                                }
+                                else -> {
+                                    if (date >= currentStart) {
+                                        endDate = date
+                                    } else {
+                                        // Selected date is before start, so swap them
+                                        endDate = currentStart
+                                        startDate = date
+                                    }
                                 }
                             }
                         }
@@ -176,10 +187,7 @@ fun PeriodRangePicker(
                                     set(now.get(Calendar.YEAR), 0, 1, 0, 0, 0)
                                     set(Calendar.MILLISECOND, 0)
                                 }.timeInMillis
-                                val allTimeEnd = Calendar.getInstance().apply {
-                                    set(now.get(Calendar.YEAR), 11, 31, 23, 59, 59)
-                                    set(Calendar.MILLISECOND, 999)
-                                }.timeInMillis
+                                val allTimeEnd = System.currentTimeMillis()
                                 onPeriodSelected(allTimeStart, allTimeEnd)
                             }
                             onDismiss()
@@ -261,6 +269,7 @@ private fun PeriodDayItem(
     val isInRange = startDate != null && endDate != null &&
             dayInfo.date >= startDate && dayInfo.date <= endDate
     val isToday = isSameDay(dayInfo.date, System.currentTimeMillis())
+    val isFuture = dayInfo.date > System.currentTimeMillis() && !isToday
 
     Box(
         modifier = Modifier
@@ -274,7 +283,7 @@ private fun PeriodDayItem(
                     else -> Color.Transparent
                 }
             )
-            .clickable(enabled = dayInfo.isCurrentMonth) {
+            .clickable(enabled = dayInfo.isCurrentMonth && !isFuture) {
                 onDateSelected(dayInfo.date)
             },
         contentAlignment = Alignment.Center
@@ -284,6 +293,7 @@ private fun PeriodDayItem(
             style = MaterialTheme.typography.bodyMedium,
             color = when {
                 !dayInfo.isCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                isFuture -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 isStart || isEnd -> MaterialTheme.colorScheme.onPrimary
                 isToday -> MaterialTheme.colorScheme.onTertiary
                 else -> MaterialTheme.colorScheme.onSurface
