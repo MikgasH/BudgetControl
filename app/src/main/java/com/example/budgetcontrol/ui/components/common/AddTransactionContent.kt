@@ -70,7 +70,6 @@ data class TransactionCategoryActions(
 
 @Composable
 fun AddTransactionContent(
-    title: String,
     formState: TransactionFormState,
     formCallbacks: TransactionFormCallbacks,
     categories: List<Category>,

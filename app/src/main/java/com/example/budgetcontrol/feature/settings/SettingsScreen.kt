@@ -92,8 +92,7 @@ fun SettingsScreen(
                     accountCount = uiState.accounts.size,
                     onManageClick = { viewModel.showCreateAccountSheet() },
                     onAccountClick = { accountId -> viewModel.showEditAccountSheet(accountId) },
-                    accounts = uiState.accounts,
-                    baseCurrency = baseCurrency
+                    accounts = uiState.accounts
                 )
             },
             {

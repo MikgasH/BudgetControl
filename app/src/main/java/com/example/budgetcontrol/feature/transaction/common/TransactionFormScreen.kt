@@ -265,7 +265,6 @@ private fun TransactionFormContent(
 
     if (uiState.mode == TransactionFormMode.ADD) {
         AddTransactionContent(
-            title = getContentTitle(uiState.mode, uiState.transactionType),
             formState = TransactionFormState(
                 amount = uiState.amount,
                 description = uiState.description,
@@ -336,8 +335,6 @@ private fun TransactionFormContent(
             onSaveClick = onSaveClick,
             onShowDatePicker = onShowDatePicker,
             onTransactionTypeChange = onTransactionTypeChange,
-            onCurrencySelect = onCurrencySelect,
-            onBankSelect = onBankSelect,
             onCreateCategory = onCreateCategory,
             onUpdateCategoryColor = onUpdateCategoryColor,
             onUpdateCategory = onUpdateCategory,
@@ -362,8 +359,6 @@ private fun EditTransactionFormContent(
     onSaveClick: () -> Unit,
     onShowDatePicker: () -> Unit,
     onTransactionTypeChange: (TransactionType) -> Unit,
-    onCurrencySelect: (String) -> Unit,
-    onBankSelect: (Bank) -> Unit,
     onCreateCategory: (name: String, iconName: String, color: String, type: CategoryType, limitAmount: Double?) -> Unit,
     modifier: Modifier = Modifier,
     onUpdateCategoryColor: (Category, String) -> Unit = { _, _ -> },
@@ -700,23 +695,3 @@ private fun getTitle(
     }
 }
 
-@Composable
-private fun getContentTitle(
-    mode: TransactionFormMode,
-    transactionType: TransactionType
-): String {
-    return when (mode) {
-        TransactionFormMode.ADD -> {
-            when (transactionType) {
-                TransactionType.EXPENSE -> stringResource(R.string.add_expense)
-                TransactionType.INCOME -> stringResource(R.string.add_income)
-            }
-        }
-        TransactionFormMode.EDIT -> {
-            when (transactionType) {
-                TransactionType.EXPENSE -> stringResource(R.string.edit_expense)
-                TransactionType.INCOME -> stringResource(R.string.edit_income)
-            }
-        }
-    }
-}

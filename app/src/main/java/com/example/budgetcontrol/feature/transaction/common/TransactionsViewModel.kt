@@ -570,10 +570,6 @@ class TransactionFormViewModel @Inject constructor(
         loadCategoriesForType(newType)
     }
 
-    fun requestTypeChange(newType: TransactionType) {
-        changeTransactionType(newType)
-    }
-
     private fun loadCategoriesForType(type: TransactionType) {
         viewModelScope.launch {
             try {
@@ -1409,13 +1405,5 @@ class TransactionFormViewModel @Inject constructor(
             is AddTransactionError.InvalidAmount ->
                 context.getString(R.string.validation_amount_positive)
         }
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(showError = null)
-    }
-
-    fun resetSuccess() {
-        _uiState.value = _uiState.value.copy(isSuccess = false)
     }
 }

@@ -50,13 +50,6 @@ object ValidationHelper {
         }
     }
 
-    /**
-     * Safely parse amount string to Double, handling comma as decimal separator
-     */
-    fun parseAmount(input: String): Double? {
-        return input.replace(',', '.').toDoubleOrNull()
-    }
-
     fun validateTransaction(
         context: Context,
         amount: String,

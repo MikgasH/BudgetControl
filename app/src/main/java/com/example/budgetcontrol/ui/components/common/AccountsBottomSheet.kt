@@ -40,7 +40,6 @@ fun AccountsBottomSheet(
     selectedGroupId: String? = null,
     totalBalance: Double,
     baseCurrency: String,
-    hasMixedCurrencies: Boolean = false,
     onAccountSelect: (String?) -> Unit,
     onGroupSelect: (String) -> Unit = {},
     onCreateAccount: () -> Unit,

@@ -89,7 +89,6 @@ fun MainScreen(
     val openingBalance by viewModel.openingBalance.collectAsState()
     val cachedRatesTimestamp by viewModel.cachedRatesTimestamp.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
-    val hasMixedCurrencies by viewModel.hasMixedCurrencies.collectAsState()
     val editingAccount by viewModel.editingAccount.collectAsState()
     val groupMemberAccounts by viewModel.groupMemberAccounts.collectAsState()
     val currentContext = LocalContext.current
@@ -207,7 +206,6 @@ fun MainScreen(
             selectedGroupId = uiState.selectedGroupId,
             totalBalance = totalBalance,
             baseCurrency = baseCurrency,
-            hasMixedCurrencies = hasMixedCurrencies,
             onAccountSelect = { accountId ->
                 if (accountId != uiState.selectedAccountId || uiState.selectedGroupId != null) {
                     viewModel.selectAccount(accountId)

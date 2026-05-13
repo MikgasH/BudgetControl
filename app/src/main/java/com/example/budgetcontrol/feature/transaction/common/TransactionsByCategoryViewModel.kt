@@ -129,8 +129,4 @@ class TransactionsByCategoryViewModel @Inject constructor(
         }
         filtered.sortedByDescending { it.date }
     }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(showError = null)
-    }
 }

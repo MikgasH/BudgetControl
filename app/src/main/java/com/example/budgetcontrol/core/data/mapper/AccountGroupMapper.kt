@@ -1,7 +1,6 @@
 package com.example.budgetcontrol.core.data.mapper
 
 import com.example.budgetcontrol.core.data.local.database.entities.AccountGroupEntity
-import com.example.budgetcontrol.core.data.local.database.entities.AccountGroupMemberEntity
 import com.example.budgetcontrol.core.domain.model.AccountGroup
 
 fun AccountGroupEntity.toDomain(memberAccountIds: List<String>): AccountGroup {
@@ -19,10 +18,4 @@ fun AccountGroup.toEntity(): AccountGroupEntity {
         name = name,
         createdAt = createdAt
     )
-}
-
-fun AccountGroup.toMemberEntities(): List<AccountGroupMemberEntity> {
-    return memberAccountIds.map { accountId ->
-        AccountGroupMemberEntity(groupId = id, accountId = accountId)
-    }
 }

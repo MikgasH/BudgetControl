@@ -112,8 +112,4 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
     }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(showError = null)
-    }
 }

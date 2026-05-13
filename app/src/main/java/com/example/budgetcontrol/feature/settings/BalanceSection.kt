@@ -29,8 +29,7 @@ internal fun AccountsSection(
     accountCount: Int,
     onManageClick: () -> Unit,
     onAccountClick: (String) -> Unit,
-    accounts: List<AccountWithBalance>,
-    baseCurrency: String
+    accounts: List<AccountWithBalance>
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),

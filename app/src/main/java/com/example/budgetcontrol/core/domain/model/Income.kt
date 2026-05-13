@@ -18,7 +18,4 @@ data class Income(
     val bankCommission: Double? = null,
     val rateSource: String? = null,
     val accountId: String? = null
-) {
-    fun wasConverted(baseCurrency: String): Boolean =
-        originalCurrency != baseCurrency && exchangeRate != null
-}
+)

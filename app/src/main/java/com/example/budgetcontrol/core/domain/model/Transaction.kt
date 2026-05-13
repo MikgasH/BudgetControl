@@ -57,10 +57,7 @@ sealed class Transaction {
 
 enum class TransactionType {
     EXPENSE,
-    INCOME;
-
-    fun isExpense() = this == EXPENSE
-    fun isIncome() = this == INCOME
+    INCOME
 }
 
 /**

@@ -576,8 +576,7 @@ private fun CategorySettingsSheet(
                 baseCurrency = baseCurrency,
                 onSave = { newColor -> onUpdateCategoryColor(category, newColor) },
                 onSetLimit = { amount -> onSetCategoryLimit(category.id, amount) },
-                onClearLimit = { onClearCategoryLimit(category.id) },
-                onDismiss = onDismiss
+                onClearLimit = { onClearCategoryLimit(category.id) }
             )
         } else {
             CustomCategorySettings(
@@ -587,8 +586,7 @@ private fun CategorySettingsSheet(
                 onSave = { updated -> onUpdateCategory(updated) },
                 onDelete = { onDeleteCategory(category) },
                 onSetLimit = { amount -> onSetCategoryLimit(category.id, amount) },
-                onClearLimit = { onClearCategoryLimit(category.id) },
-                onDismiss = onDismiss
+                onClearLimit = { onClearCategoryLimit(category.id) }
             )
         }
     }
@@ -663,8 +661,7 @@ private fun SystemCategorySettings(
     baseCurrency: String,
     onSave: (String) -> Unit,
     onSetLimit: (Double) -> Unit,
-    onClearLimit: () -> Unit,
-    onDismiss: () -> Unit
+    onClearLimit: () -> Unit
 ) {
     var selectedColor by remember { mutableStateOf(category.color) }
     var limitText by remember(existingLimit) {
@@ -794,8 +791,7 @@ private fun CustomCategorySettings(
     onSave: (Category) -> Unit,
     onDelete: () -> Unit,
     onSetLimit: (Double) -> Unit,
-    onClearLimit: () -> Unit,
-    onDismiss: () -> Unit
+    onClearLimit: () -> Unit
 ) {
     val initialName = category.displayName()
     var name by remember { mutableStateOf(initialName) }

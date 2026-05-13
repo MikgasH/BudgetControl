@@ -225,13 +225,4 @@ class CerpsRepository @Inject constructor(
             GeminiResult.Error(e.message)
         }
     }
-
-    suspend fun isServiceAvailable(): Boolean {
-        return try {
-            val response = apiService.healthCheck()
-            response.isSuccessful
-        } catch (e: Exception) {
-            false
-        }
-    }
 }
