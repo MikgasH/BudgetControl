@@ -1,14 +1,25 @@
 package com.example.budgetcontrol.ui.components.common
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.input.pointer.pointerInput
+import com.example.budgetcontrol.core.navigation.fadeIn
+import com.example.budgetcontrol.core.navigation.fadeOut
+import com.example.budgetcontrol.core.navigation.slideInFromLeft
+import com.example.budgetcontrol.core.navigation.slideInFromRight
+import com.example.budgetcontrol.core.navigation.slideOutToLeft
+import com.example.budgetcontrol.core.navigation.slideOutToRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -37,6 +48,9 @@ fun PeriodRangePicker(
         mutableStateOf(Calendar.getInstance())
     }
     val maxMonth = Calendar.getInstance()
+    val canGoForward = currentMonth.get(Calendar.YEAR) < maxMonth.get(Calendar.YEAR) ||
+            (currentMonth.get(Calendar.YEAR) == maxMonth.get(Calendar.YEAR) &&
+                    currentMonth.get(Calendar.MONTH) < maxMonth.get(Calendar.MONTH))
     var startDate by remember { mutableStateOf<Long?>(null) }
     var endDate by remember { mutableStateOf<Long?>(null) }
     val periodFormatter = remember(Locale.getDefault().language) {
@@ -90,10 +104,6 @@ fun PeriodRangePicker(
                         fontWeight = FontWeight.Medium
                     )
 
-                    val canGoForward = currentMonth.get(Calendar.YEAR) < maxMonth.get(Calendar.YEAR) ||
-                            (currentMonth.get(Calendar.YEAR) == maxMonth.get(Calendar.YEAR) &&
-                                    currentMonth.get(Calendar.MONTH) < maxMonth.get(Calendar.MONTH))
-
                     if (canGoForward) {
                         IconButton(
                             onClick = {
@@ -130,32 +140,78 @@ fun PeriodRangePicker(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                PeriodCalendarGrid(
-                    currentMonth = currentMonth,
-                    startDate = startDate,
-                    endDate = endDate,
-                    onDateSelected = { date ->
-                        if (date <= System.currentTimeMillis()) {
-                            val currentStart = startDate
-                            val currentEnd = endDate
-                            when {
-                                currentStart == null || currentEnd != null -> {
-                                    startDate = date
-                                    endDate = null
-                                }
-                                else -> {
-                                    if (date >= currentStart) {
-                                        endDate = date
-                                    } else {
-                                        // Selected date is before start, so swap them
-                                        endDate = currentStart
-                                        startDate = date
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(canGoForward) {
+                            val swipeThresholdPx = 60.dp.toPx()
+                            var accumulated = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { accumulated = 0f },
+                                onDragEnd = {
+                                    when {
+                                        accumulated >= swipeThresholdPx -> {
+                                            currentMonth = Calendar.getInstance().apply {
+                                                timeInMillis = currentMonth.timeInMillis
+                                                add(Calendar.MONTH, -1)
+                                            }
+                                        }
+                                        accumulated <= -swipeThresholdPx && canGoForward -> {
+                                            currentMonth = Calendar.getInstance().apply {
+                                                timeInMillis = currentMonth.timeInMillis
+                                                add(Calendar.MONTH, 1)
+                                            }
+                                        }
+                                    }
+                                    accumulated = 0f
+                                },
+                                onDragCancel = { accumulated = 0f }
+                            ) { _, dragAmount -> accumulated += dragAmount }
+                        }
+                ) {
+                    AnimatedContent(
+                        targetState = currentMonth,
+                        modifier = Modifier.clipToBounds(),
+                        contentKey = { it.get(Calendar.YEAR) * 12 + it.get(Calendar.MONTH) },
+                        transitionSpec = {
+                            val initial = initialState.get(Calendar.YEAR) * 12 + initialState.get(Calendar.MONTH)
+                            val target = targetState.get(Calendar.YEAR) * 12 + targetState.get(Calendar.MONTH)
+                            if (target > initial) {
+                                (slideInFromRight + fadeIn) togetherWith (slideOutToLeft + fadeOut)
+                            } else {
+                                (slideInFromLeft + fadeIn) togetherWith (slideOutToRight + fadeOut)
+                            }
+                        },
+                        label = "month-transition"
+                    ) { displayedMonth ->
+                        PeriodCalendarGrid(
+                            currentMonth = displayedMonth,
+                            startDate = startDate,
+                            endDate = endDate,
+                            onDateSelected = { date ->
+                                if (date <= System.currentTimeMillis()) {
+                                    val currentStart = startDate
+                                    val currentEnd = endDate
+                                    when {
+                                        currentStart == null || currentEnd != null -> {
+                                            startDate = date
+                                            endDate = null
+                                        }
+                                        else -> {
+                                            if (date >= currentStart) {
+                                                endDate = date
+                                            } else {
+                                                // Selected date is before start, so swap them
+                                                endDate = currentStart
+                                                startDate = date
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
+                        )
                     }
-                )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
