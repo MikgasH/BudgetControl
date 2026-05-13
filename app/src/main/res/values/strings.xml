@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">BudgetControl</string>
 
     <!-- Common -->
@@ -131,7 +131,10 @@
     <string name="edit_account">Edit account</string>
     <string name="delete_account">Delete account</string>
     <string name="delete_account_confirm">Delete account \"%1$s\"?</string>
-    <string name="transactions_will_be_moved">%1$d transactions will be moved to \"%2$s\"</string>
+    <plurals name="transactions_will_be_moved">
+        <item quantity="one">%1$d transaction will be moved to \"%2$s\"</item>
+        <item quantity="other">%1$d transactions will be moved to \"%2$s\"</item>
+    </plurals>
     <string name="account_name_label">Account name</string>
     <string name="account_name_required">Enter an account name</string>
     <string name="initial_balance_label">Initial balance</string>
@@ -149,13 +152,19 @@
     <string name="select_accounts">Select accounts</string>
     <string name="group_name_label">Group name</string>
     <string name="group_name_required">Enter a group name</string>
-    <string name="group_member_count">%1$d accounts</string>
+    <plurals name="group_member_count">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
     <string name="add_to_existing_group">Add to group</string>
     <string name="create_new_group">Create new group</string>
     <string name="choose_account">Choose account</string>
     <string name="choose_account_for_transaction">Which account should this transaction use?</string>
     <string name="accounts_management">Accounts</string>
-    <string name="accounts_count">%1$d accounts</string>
+    <plurals name="accounts_count">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
 
     <!-- BankSelector -->
     <string name="bank_payment_method">Bank / Payment method</string>
@@ -205,7 +214,10 @@
     <!-- UnifiedTransactionListScreen -->
     <string name="all_transactions">All transactions</string>
     <string name="no_transactions">No transactions for the selected filters</string>
-    <string name="filter_n_categories">%1$d categories</string>
+    <plurals name="filter_n_categories">
+        <item quantity="one">%1$d category</item>
+        <item quantity="other">%1$d categories</item>
+    </plurals>
     <string name="done">Done</string>
 
     <!-- TransactionItem -->
@@ -289,8 +301,14 @@
 
     <!-- Bottom sheet management -->
     <string name="manage">Manage</string>
-    <string name="banks_selected_count">%1$d banks selected</string>
-    <string name="currencies_selected_count">%1$d currencies selected</string>
+    <plurals name="banks_selected_count">
+        <item quantity="one">%1$d bank selected</item>
+        <item quantity="other">%1$d banks selected</item>
+    </plurals>
+    <plurals name="currencies_selected_count">
+        <item quantity="one">%1$d currency selected</item>
+        <item quantity="other">%1$d currencies selected</item>
+    </plurals>
     <string name="search_banks">Search banks</string>
     <string name="search_currencies">Search currencies</string>
     <string name="no_banks_found">No banks found</string>
@@ -330,7 +348,7 @@
 
     <!-- Categories management -->
     <string name="categories_management">Categories</string>
-    <string name="categories_description">%1$d expense, %2$d income categories</string>
+    <string name="categories_description" tools:ignore="PluralsCandidate">%1$d expense, %2$d income categories</string>
     <string name="expense_tab">Expenses</string>
     <string name="income_tab">Incomes</string>
     <string name="filter_all_types">All</string>
@@ -444,7 +462,10 @@
 
     <!-- Onboarding summary -->
     <string name="onboarding_currencies_summary">Currencies</string>
-    <string name="currencies_selected_summary">%1$d selected</string>
+    <plurals name="currencies_selected_summary">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
 
     <!-- Bank commission tooltip -->
     <string name="commission_info_tooltip">Commission may vary depending on your plan, day of week, and monthly spending. Use \'Specify exact amount\' for 100%% accuracy.</string>

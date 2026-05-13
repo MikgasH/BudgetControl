@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1085,17 +1086,17 @@ private fun ReadyPage(
                 SummaryRow(
                     icon = Icons.Default.AccountBalance,
                     label = stringResource(R.string.onboarding_banks_title),
-                    value = stringResource(R.string.banks_selected_count, banksCount)
+                    value = pluralStringResource(R.plurals.banks_selected_count, banksCount, banksCount)
                 )
                 SummaryRow(
                     icon = Icons.Default.Payments,
                     label = stringResource(R.string.onboarding_currencies_summary),
-                    value = stringResource(R.string.currencies_selected_summary, favoriteCurrenciesCount)
+                    value = pluralStringResource(R.plurals.currencies_selected_summary, favoriteCurrenciesCount, favoriteCurrenciesCount)
                 )
                 SummaryRow(
                     icon = Icons.Default.AccountBalanceWallet,
                     label = stringResource(R.string.accounts_management),
-                    value = stringResource(R.string.accounts_count, accountsCount)
+                    value = pluralStringResource(R.plurals.accounts_count, accountsCount, accountsCount)
                 )
             }
         }
@@ -1495,7 +1496,7 @@ private fun OnboardingGroupCard(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = stringResource(R.string.group_member_count, group.memberAccountIds.size),
+                    text = pluralStringResource(R.plurals.group_member_count, group.memberAccountIds.size, group.memberAccountIds.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

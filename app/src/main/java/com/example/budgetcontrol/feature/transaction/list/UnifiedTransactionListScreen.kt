@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -232,7 +233,7 @@ fun UnifiedTransactionListScreen(
                 val categoryChipLabel = when {
                     selectedCategories.isEmpty() -> stringResource(R.string.all_categories)
                     selectedCategories.size == 1 -> selectedCategories.first().displayName()
-                    else -> stringResource(R.string.filter_n_categories, selectedCategories.size)
+                    else -> pluralStringResource(R.plurals.filter_n_categories, selectedCategories.size, selectedCategories.size)
                 }
                 FilterChip(
                     selected = uiState.selectedCategoryIds.isNotEmpty(),
@@ -508,7 +509,7 @@ private fun AccountFilterBottomSheet(
                         headlineContent = { Text(group.name) },
                         supportingContent = {
                             Text(
-                                text = stringResource(R.string.group_member_count, group.memberAccountIds.size),
+                                text = pluralStringResource(R.plurals.group_member_count, group.memberAccountIds.size, group.memberAccountIds.size),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },

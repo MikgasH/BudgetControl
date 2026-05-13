@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">BudgetControl</string>
 
     <!-- Common -->
@@ -131,7 +131,11 @@
     <string name="edit_account">Редактировать счёт</string>
     <string name="delete_account">Удалить счёт</string>
     <string name="delete_account_confirm">Удалить счёт «%1$s»?</string>
-    <string name="transactions_will_be_moved">%1$d транзакций будет перенесено в «%2$s»</string>
+    <plurals name="transactions_will_be_moved">
+        <item quantity="one">%1$d транзакция будет перенесена в «%2$s»</item>
+        <item quantity="few">%1$d транзакции будут перенесены в «%2$s»</item>
+        <item quantity="many">%1$d транзакций будет перенесено в «%2$s»</item>
+    </plurals>
     <string name="account_name_label">Название счёта</string>
     <string name="account_name_required">Введите название счёта</string>
     <string name="initial_balance_label">Начальный баланс</string>
@@ -149,13 +153,21 @@
     <string name="select_accounts">Выбрать счета</string>
     <string name="group_name_label">Название группы</string>
     <string name="group_name_required">Введите название группы</string>
-    <string name="group_member_count">%1$d счетов</string>
+    <plurals name="group_member_count">
+        <item quantity="one">%1$d счёт</item>
+        <item quantity="few">%1$d счёта</item>
+        <item quantity="many">%1$d счетов</item>
+    </plurals>
     <string name="add_to_existing_group">Добавить в группу</string>
     <string name="create_new_group">Создать группу</string>
     <string name="choose_account">Выберите счёт</string>
     <string name="choose_account_for_transaction">Какой счёт использовать для операции?</string>
     <string name="accounts_management">Счета</string>
-    <string name="accounts_count">%1$d счетов</string>
+    <plurals name="accounts_count">
+        <item quantity="one">%1$d счёт</item>
+        <item quantity="few">%1$d счёта</item>
+        <item quantity="many">%1$d счетов</item>
+    </plurals>
 
     <!-- BankSelector -->
     <string name="bank_payment_method">Банк / Способ оплаты</string>
@@ -205,7 +217,11 @@
     <!-- UnifiedTransactionListScreen -->
     <string name="all_transactions">Все операции</string>
     <string name="no_transactions">Операций по выбранным фильтрам нет</string>
-    <string name="filter_n_categories">%1$d категории</string>
+    <plurals name="filter_n_categories">
+        <item quantity="one">%1$d категория</item>
+        <item quantity="few">%1$d категории</item>
+        <item quantity="many">%1$d категорий</item>
+    </plurals>
     <string name="done">Готово</string>
 
     <!-- TransactionItem -->
@@ -289,8 +305,16 @@
 
     <!-- Bottom sheet management -->
     <string name="manage">Настроить</string>
-    <string name="banks_selected_count">Выбрано банков: %1$d</string>
-    <string name="currencies_selected_count">Выбрано валют: %1$d</string>
+    <plurals name="banks_selected_count">
+        <item quantity="one">Выбран %1$d банк</item>
+        <item quantity="few">Выбрано %1$d банка</item>
+        <item quantity="many">Выбрано %1$d банков</item>
+    </plurals>
+    <plurals name="currencies_selected_count">
+        <item quantity="one">Выбрана %1$d валюта</item>
+        <item quantity="few">Выбрано %1$d валюты</item>
+        <item quantity="many">Выбрано %1$d валют</item>
+    </plurals>
     <string name="search_banks">Поиск банков</string>
     <string name="search_currencies">Поиск валют</string>
     <string name="no_banks_found">Банки не найдены</string>
@@ -330,7 +354,7 @@
 
     <!-- Categories management -->
     <string name="categories_management">Категории</string>
-    <string name="categories_description">%1$d расходных, %2$d доходных категорий</string>
+    <string name="categories_description" tools:ignore="PluralsCandidate">%1$d расходных, %2$d доходных категорий</string>
     <string name="expense_tab">Расходы</string>
     <string name="income_tab">Доходы</string>
     <string name="filter_all_types">Все</string>
@@ -444,7 +468,11 @@
 
     <!-- Onboarding summary -->
     <string name="onboarding_currencies_summary">Валюты</string>
-    <string name="currencies_selected_summary">Выбрано: %1$d</string>
+    <plurals name="currencies_selected_summary">
+        <item quantity="one">Выбрано: %1$d</item>
+        <item quantity="few">Выбрано: %1$d</item>
+        <item quantity="many">Выбрано: %1$d</item>
+    </plurals>
 
     <!-- Bank commission tooltip -->
     <string name="commission_info_tooltip">Комиссия может отличаться в зависимости от плана, дня недели и суммы трат. Используйте кнопку \'Уточнить сумму\' для 100%% точности.</string>

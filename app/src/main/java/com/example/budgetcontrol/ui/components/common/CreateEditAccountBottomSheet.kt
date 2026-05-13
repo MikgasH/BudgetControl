@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -96,8 +97,9 @@ fun CreateEditAccountBottomSheet(
                     if (transactionCount > 0) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = stringResource(
-                                R.string.transactions_will_be_moved,
+                            text = pluralStringResource(
+                                R.plurals.transactions_will_be_moved,
+                                transactionCount,
                                 transactionCount,
                                 stringResource(R.string.main_account)
                             ),

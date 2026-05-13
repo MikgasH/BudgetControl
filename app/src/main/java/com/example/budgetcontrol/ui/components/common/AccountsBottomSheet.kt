@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -323,8 +324,9 @@ fun AccountsBottomSheet(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = stringResource(
-                                            R.string.group_member_count,
+                                        text = pluralStringResource(
+                                            R.plurals.group_member_count,
+                                            groupWithBalance.memberCount,
                                             groupWithBalance.memberCount
                                         ),
                                         style = MaterialTheme.typography.bodySmall,
