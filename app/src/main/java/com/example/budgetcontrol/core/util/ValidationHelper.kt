@@ -53,7 +53,8 @@ object ValidationHelper {
     fun validateTransaction(
         context: Context,
         amount: String,
-        category: Category?
+        category: Category?,
+        selectedDate: Long = System.currentTimeMillis()
     ): ValidationResult {
         validateAmount(context, amount).let { result ->
             if (result is ValidationResult.Error) return result
@@ -61,6 +62,10 @@ object ValidationHelper {
 
         validateCategory(context, category).let { result ->
             if (result is ValidationResult.Error) return result
+        }
+
+        if (selectedDate > System.currentTimeMillis()) {
+            return ValidationResult.Error(context.getString(R.string.validation_future_date))
         }
 
         return ValidationResult.Success

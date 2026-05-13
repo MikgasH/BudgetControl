@@ -291,7 +291,7 @@ class TransactionFormViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             mode = mode,
             transactionType = type,
-            selectedDate = initialDate,
+            selectedDate = minOf(initialDate, System.currentTimeMillis()),
             isLoading = true,
             canChangeType = mode == TransactionFormMode.EDIT,
             selectedAccountId = accountId ?: _uiState.value.selectedAccountId
@@ -816,8 +816,9 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     fun updateDate(date: Long) {
+        val clamped = minOf(date, System.currentTimeMillis())
         _uiState.value = _uiState.value.copy(
-            selectedDate = date,
+            selectedDate = clamped,
             showError = null
         )
     }
@@ -828,7 +829,8 @@ class TransactionFormViewModel @Inject constructor(
         val validationResult = ValidationHelper.validateTransaction(
             context = context,
             amount = currentState.amount,
-            category = currentState.selectedCategory
+            category = currentState.selectedCategory,
+            selectedDate = currentState.selectedDate
         )
 
         if (validationResult is ValidationHelper.ValidationResult.Error) {

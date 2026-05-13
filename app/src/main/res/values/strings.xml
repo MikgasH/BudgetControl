@@ -238,6 +238,7 @@
     <string name="validation_enter_valid_amount">Enter a valid amount</string>
     <string name="validation_amount_positive">Amount must be greater than zero</string>
     <string name="validation_select_category">Select a category</string>
+    <string name="validation_future_date">Date cannot be in the future</string>
 
     <!-- PieChart -->
 
@@ -468,10 +469,10 @@
     </plurals>
 
     <!-- Bank commission tooltip -->
-    <string name="commission_info_tooltip">Commission may vary depending on your plan, day of week, and monthly spending. Use \'Specify exact amount\' for 100%% accuracy.</string>
+    <string name="commission_info_tooltip">Commission may vary depending on your plan, day of week, and monthly spending. Use \'Specify exact amount\' for 100% accuracy.</string>
 
     <!-- Stale rate improved warning -->
-    <string name="stale_rate_warning_improved">Rate may be outdated (updated %1$s h ago). You can still proceed — use \'Specify exact amount\' for 100%% accuracy.</string>
+    <string name="stale_rate_warning_improved">Rate may be outdated (updated %1$s h ago). You can still proceed — use \'Specify exact amount\' for 100% accuracy.</string>
 
     <!-- Account currency -->
     <string name="currency_change_blocked">Currency cannot be changed because this account has transactions</string>
