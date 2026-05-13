@@ -1,6 +1,7 @@
 package com.example.budgetcontrol.ui.components.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -271,6 +272,8 @@ private fun PeriodDayItem(
     val isToday = isSameDay(dayInfo.date, System.currentTimeMillis())
     val isFuture = dayInfo.date > System.currentTimeMillis() && !isToday
 
+    val showTodayRing = isToday && !isStart && !isEnd
+
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -279,9 +282,13 @@ private fun PeriodDayItem(
                 when {
                     isStart || isEnd -> MaterialTheme.colorScheme.primary
                     isInRange -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    isToday -> MaterialTheme.colorScheme.tertiary
                     else -> Color.Transparent
                 }
+            )
+            .then(
+                if (showTodayRing) {
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                } else Modifier
             )
             .clickable(enabled = dayInfo.isCurrentMonth && !isFuture) {
                 onDateSelected(dayInfo.date)
@@ -295,7 +302,7 @@ private fun PeriodDayItem(
                 !dayInfo.isCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 isFuture -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 isStart || isEnd -> MaterialTheme.colorScheme.onPrimary
-                isToday -> MaterialTheme.colorScheme.onTertiary
+                showTodayRing -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.onSurface
             },
             fontWeight = if (isStart || isEnd || isToday) FontWeight.Bold else FontWeight.Normal
