@@ -80,7 +80,7 @@ internal fun PeriodNavigationCard(
                             isForward = false
                             currentOnNavigate(-1) // swipe right → previous
                         } else if (totalDrag < -swipeThresholdPx) {
-                            if (canNavigateToFuture(currentIsAllTimePeriod, currentSelectedPeriodType, currentPeriodIndexState)) {
+                            if (canNavigateToFuture(currentSelectedPeriodType, currentPeriodIndexState)) {
                                 isForward = true
                                 currentOnNavigate(1) // swipe left → next
                             }
@@ -175,7 +175,7 @@ internal fun PeriodNavigationCard(
                     }
                 }
 
-                if (isAllTimePeriod || !canNavigateToFuture(isAllTimePeriod, selectedPeriodType, currentPeriodIndex)) {
+                if (isAllTimePeriod || !canNavigateToFuture(selectedPeriodType, currentPeriodIndex)) {
                     Spacer(modifier = Modifier.size(if (isCollapsed) 32.dp else 48.dp))
                 } else {
                     IconButton(
@@ -338,12 +338,9 @@ private fun CategorySegmentedBar(
  * Checks whether forward navigation is allowed (prevents going into a future period)
  */
 private fun canNavigateToFuture(
-    isAllTimePeriod: Boolean,
     selectedPeriodType: PeriodType,
     currentPeriodIndex: Int
 ): Boolean {
-    if (isAllTimePeriod) return false
-
     val calendar = Calendar.getInstance()
     val today = calendar.timeInMillis
 

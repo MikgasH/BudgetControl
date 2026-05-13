@@ -240,13 +240,6 @@ class MainScreenViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), 0.0)
 
-    val hasMixedCurrencies: StateFlow<Boolean> = combine(
-        _accountsWithBalances,
-        baseCurrency
-    ) { accounts, baseCur ->
-        accounts.any { it.account.currency != baseCur }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), false)
-
     val editingAccount: StateFlow<Account?> = _uiState
         .map { s ->
             val id = s.editingAccountId ?: return@map null
