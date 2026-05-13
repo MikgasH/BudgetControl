@@ -1,5 +1,14 @@
 package com.example.budgetcontrol.ui.components.common
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,10 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.example.budgetcontrol.core.domain.model.Bank
+import com.example.budgetcontrol.core.domain.model.CashRateMode
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryLimit
 import com.example.budgetcontrol.core.domain.model.CategoryLimitProgress
@@ -41,6 +52,7 @@ data class TransactionFormState(
     val transactionType: TransactionType,
     val paymentMethod: String,
     val cashRate: String,
+    val cashRateMode: CashRateMode,
     val exactEurAmount: String,
     val isExactMode: Boolean
 )
@@ -55,6 +67,10 @@ data class TransactionFormCallbacks(
     val onSave: (Long) -> Unit,
     val onPaymentMethodChange: (String) -> Unit,
     val onCashRateChange: (String) -> Unit,
+    val onCashRateModeChange: (CashRateMode) -> Unit,
+    val onCashExchangeSelect: (String) -> Unit,
+    val onToggleSaveExchangeRecord: () -> Unit,
+    val onExchangeRecordDescriptionChange: (String) -> Unit,
     val onExactEurAmountChange: (String) -> Unit,
     val onExactModeToggle: (Boolean) -> Unit
 )
@@ -86,8 +102,14 @@ fun AddTransactionContent(
     convertedAmountPreview: String = "",
     categoryActions: TransactionCategoryActions = TransactionCategoryActions(),
     cashRatePlaceholder: String = "",
-    cashRateHint: String = "",
     lastCashExchange: CurrencyExchange? = null,
+    availableCashExchanges: List<CurrencyExchange> = emptyList(),
+    selectedCashExchangeId: String? = null,
+    isLastExchangeAvailable: Boolean = false,
+    isCurrentRateAvailable: Boolean = true,
+    isCurrentRateLoading: Boolean = false,
+    saveExchangeRecord: Boolean = false,
+    exchangeRecordDescription: String = "",
     networkStatus: NetworkStatus = NetworkStatus.ONLINE,
     staleRateWarning: String? = null,
     accounts: List<AccountWithBalance> = emptyList(),
@@ -168,101 +190,88 @@ fun AddTransactionContent(
                 onMethodSelect = formCallbacks.onPaymentMethodChange
             )
 
-            if (formState.paymentMethod == "CARD") {
-                // Card mode: existing bank selector + conversion preview
-                BankSelector(
-                    banks = availableBanks,
-                    selectedBank = formState.selectedBank,
-                    onBankSelect = formCallbacks.onBankSelect
-                )
+            AnimatedContent(
+                targetState = formState.paymentMethod,
+                transitionSpec = { cashContentTransition() },
+                label = "payment-method-content"
+            ) { method ->
+                if (method == "CARD") {
+                    // Card mode: existing bank selector + conversion preview
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        BankSelector(
+                            banks = availableBanks,
+                            selectedBank = formState.selectedBank,
+                            onBankSelect = formCallbacks.onBankSelect
+                        )
 
-                // Conversion preview — hidden when user has entered exact EUR amount
-                if (formState.isExactMode && formState.exactEurAmount.isNotBlank()) {
-                    Text(
-                        text = "✓ " + stringResource(R.string.will_be_saved, formState.exactEurAmount),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
+                        // Conversion preview — hidden when user has entered exact EUR amount
+                        if (formState.isExactMode && formState.exactEurAmount.isNotBlank()) {
+                            Text(
+                                text = "✓ " + stringResource(R.string.will_be_saved, formState.exactEurAmount),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        } else {
+                            ConversionPreview(preview = convertedAmountPreview)
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = formState.isExactMode,
+                                onCheckedChange = formCallbacks.onExactModeToggle,
+                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                            )
+                            Text(
+                                text = stringResource(R.string.specify_amount_manually),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        // Exact EUR amount field — shown only when toggle is checked
+                        if (formState.isExactMode) {
+                            OutlinedTextField(
+                                value = formState.exactEurAmount,
+                                onValueChange = formCallbacks.onExactEurAmountChange,
+                                label = { Text(stringResource(R.string.exact_eur_amount)) },
+                                placeholder = { Text(stringResource(R.string.exact_eur_example)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
                 } else {
-                    ConversionPreview(preview = convertedAmountPreview)
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = formState.isExactMode,
-                        onCheckedChange = formCallbacks.onExactModeToggle,
-                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                    )
-                    Text(
-                        text = stringResource(R.string.specify_amount_manually),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                // Exact EUR amount field — shown only when toggle is checked
-                if (formState.isExactMode) {
-                    OutlinedTextField(
-                        value = formState.exactEurAmount,
-                        onValueChange = formCallbacks.onExactEurAmountChange,
-                        label = { Text(stringResource(R.string.exact_eur_amount)) },
-                        placeholder = { Text(stringResource(R.string.exact_eur_example)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-            } else {
-                // Cash mode: exchange rate input
-                CashRateSection(
-                    cashRate = formState.cashRate,
-                    onCashRateChange = formCallbacks.onCashRateChange,
-                    cashRatePlaceholder = cashRatePlaceholder,
-                    cashRateHint = cashRateHint,
-                    lastCashExchange = lastCashExchange,
-                    selectedCurrency = formState.selectedCurrency
-                )
-
-                // Toggle: Specify amount manually (same as card mode)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = formState.isExactMode,
-                        onCheckedChange = formCallbacks.onExactModeToggle,
-                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                    )
-                    Text(
-                        text = stringResource(R.string.specify_amount_manually),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                if (formState.isExactMode) {
-                    OutlinedTextField(
-                        value = formState.exactEurAmount,
-                        onValueChange = formCallbacks.onExactEurAmountChange,
-                        label = { Text(stringResource(R.string.exact_eur_amount)) },
-                        placeholder = { Text(stringResource(R.string.exact_eur_example)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = MaterialTheme.colorScheme.primary
-                        )
+                    // Cash mode: exchange rate input
+                    CashRateSection(
+                        cashRate = formState.cashRate,
+                        cashRateMode = formState.cashRateMode,
+                        onCashRateChange = formCallbacks.onCashRateChange,
+                        onCashRateModeSelect = formCallbacks.onCashRateModeChange,
+                        onCashExchangeSelect = formCallbacks.onCashExchangeSelect,
+                        onToggleSaveExchangeRecord = formCallbacks.onToggleSaveExchangeRecord,
+                        onExchangeRecordDescriptionChange = formCallbacks.onExchangeRecordDescriptionChange,
+                        cashRatePlaceholder = cashRatePlaceholder,
+                        lastCashExchange = lastCashExchange,
+                        availableCashExchanges = availableCashExchanges,
+                        selectedCashExchangeId = selectedCashExchangeId,
+                        isLastExchangeAvailable = isLastExchangeAvailable,
+                        isCurrentRateAvailable = isCurrentRateAvailable,
+                        isCurrentRateLoading = isCurrentRateLoading,
+                        saveExchangeRecord = saveExchangeRecord,
+                        exchangeRecordDescription = exchangeRecordDescription,
+                        amount = formState.amount,
+                        baseCurrency = baseCurrency,
+                        selectedCurrency = formState.selectedCurrency
                     )
                 }
             }
@@ -449,73 +458,395 @@ private fun PaymentMethodSelector(
     }
 }
 
+private val CashModeEnter = fadeIn(animationSpec = tween(200)) +
+    slideInHorizontally(animationSpec = tween(200)) { it / 4 }
+private val CashModeExit = fadeOut(animationSpec = tween(200))
+
+private fun cashContentTransition() = CashModeEnter togetherWith CashModeExit
+
 @Composable
 private fun CashRateSection(
     cashRate: String,
+    cashRateMode: CashRateMode,
     onCashRateChange: (String) -> Unit,
+    onCashRateModeSelect: (CashRateMode) -> Unit,
+    onCashExchangeSelect: (String) -> Unit,
+    onToggleSaveExchangeRecord: () -> Unit,
+    onExchangeRecordDescriptionChange: (String) -> Unit,
     cashRatePlaceholder: String,
     lastCashExchange: CurrencyExchange?,
+    availableCashExchanges: List<CurrencyExchange>,
+    selectedCashExchangeId: String?,
+    isLastExchangeAvailable: Boolean,
+    isCurrentRateAvailable: Boolean,
+    isCurrentRateLoading: Boolean,
+    saveExchangeRecord: Boolean,
+    exchangeRecordDescription: String,
+    amount: String,
+    baseCurrency: String,
     selectedCurrency: String,
-    modifier: Modifier = Modifier,
-    cashRateHint: String = ""
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Cash mode description
+        CashRateModeSelector(
+            selectedMode = cashRateMode,
+            isLastExchangeAvailable = isLastExchangeAvailable,
+            isCurrentRateAvailable = isCurrentRateAvailable,
+            isCurrentRateLoading = isCurrentRateLoading,
+            onModeSelect = onCashRateModeSelect
+        )
+
+        // Contextual hint — also disappears in MANUAL once the user opts in to saving.
+        val hintRes: Int? = when (cashRateMode) {
+            CashRateMode.LAST_EXCHANGE -> R.string.cash_mode_hint_last_exchange
+            CashRateMode.CURRENT_RATE -> R.string.cash_mode_hint_current
+            CashRateMode.MANUAL ->
+                if (saveExchangeRecord) null else R.string.cash_mode_hint_manual_unsaved
+        }
+        AnimatedContent(
+            targetState = hintRes,
+            transitionSpec = { cashContentTransition() },
+            label = "cash-mode-hint"
+        ) { res ->
+            if (res != null) {
+                Text(
+                    text = stringResource(res),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            } else {
+                Spacer(Modifier.height(0.dp))
+            }
+        }
+
+        AnimatedContent(
+            targetState = cashRateMode,
+            transitionSpec = { cashContentTransition() },
+            label = "cash-rate-mode-content"
+        ) { mode ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                when (mode) {
+                    CashRateMode.LAST_EXCHANGE -> {
+                        if (availableCashExchanges.isNotEmpty()) {
+                            CashExchangeHistoryDropdown(
+                                exchanges = availableCashExchanges,
+                                selectedId = selectedCashExchangeId,
+                                onSelect = onCashExchangeSelect
+                            )
+                        }
+                    }
+                    CashRateMode.CURRENT_RATE -> {
+                        CurrentRatePreview(
+                            amount = amount,
+                            cashRate = cashRate,
+                            baseCurrency = baseCurrency
+                        )
+                    }
+                    CashRateMode.MANUAL -> {
+                        CashRateField(
+                            cashRate = cashRate,
+                            onCashRateChange = onCashRateChange,
+                            cashRatePlaceholder = cashRatePlaceholder,
+                            selectedCurrency = selectedCurrency,
+                            readOnly = false
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = saveExchangeRecord,
+                                onCheckedChange = { onToggleSaveExchangeRecord() },
+                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                            )
+                            Text(
+                                text = stringResource(R.string.cash_save_exchange_record),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        if (saveExchangeRecord) {
+                            OutlinedTextField(
+                                value = exchangeRecordDescription,
+                                onValueChange = onExchangeRecordDescriptionChange,
+                                label = { Text(stringResource(R.string.cash_exchange_description_label)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CashRateField(
+    cashRate: String,
+    onCashRateChange: (String) -> Unit,
+    cashRatePlaceholder: String,
+    selectedCurrency: String,
+    readOnly: Boolean,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = cashRate,
+        onValueChange = onCashRateChange,
+        readOnly = readOnly,
+        label = { Text(stringResource(R.string.exchange_rate_label)) },
+        placeholder = {
+            if (cashRatePlaceholder.isNotBlank()) {
+                Text(stringResource(R.string.cash_rate_placeholder, cashRatePlaceholder))
+            }
+        },
+        modifier = modifier.fillMaxWidth(),
+        singleLine = true,
+        shape = RoundedCornerShape(12.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        supportingText = {
+            if (cashRatePlaceholder.isNotBlank()) {
+                Text(
+                    text = stringResource(R.string.cash_rate_hint, cashRatePlaceholder, selectedCurrency),
+                    fontSize = 12.sp
+                )
+            }
+        },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary
+        )
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CashExchangeHistoryDropdown(
+    exchanges: List<CurrencyExchange>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val itemDateFormat = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()) }
+    val selected = exchanges.firstOrNull { it.id == selectedId } ?: exchanges.firstOrNull()
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selected?.let { exchangeSummary(it, itemDateFormat) }.orEmpty(),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(stringResource(R.string.cash_exchange_picker_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            exchanges.forEach { exchange ->
+                val location = exchange.location?.takeIf { it.isNotBlank() }
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(
+                                text = exchangeSummary(exchange, itemDateFormat),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (location != null) {
+                                Text(
+                                    text = location,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    onClick = {
+                        onSelect(exchange.id)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun exchangeSummary(exchange: CurrencyExchange, dateFormat: SimpleDateFormat): String {
+    val date = dateFormat.format(Date(exchange.date))
+    return "$date · ${formatAmount(exchange.fromAmount)} ${exchange.fromCurrency} → " +
+        "${formatAmount(exchange.toAmount)} ${exchange.toCurrency}"
+}
+
+@Composable
+private fun LastExchangeContextLine(exchange: CurrencyExchange) {
+    val dateFormat = remember { SimpleDateFormat("dd.MM", Locale.getDefault()) }
+    val dateStr = dateFormat.format(Date(exchange.date))
+    val fromStr = formatAmount(exchange.fromAmount)
+    val toStr = formatAmount(exchange.toAmount)
+    val location = exchange.location?.takeIf { it.isNotBlank() }
+    val text = if (location != null) {
+        stringResource(
+            R.string.cash_last_exchange_context_with_desc,
+            dateStr, fromStr, exchange.fromCurrency, toStr, exchange.toCurrency, location
+        )
+    } else {
+        stringResource(
+            R.string.cash_last_exchange_context,
+            dateStr, fromStr, exchange.fromCurrency, toStr, exchange.toCurrency
+        )
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp)
+    )
+}
+
+@Composable
+private fun CurrentRatePreview(
+    amount: String,
+    cashRate: String,
+    baseCurrency: String,
+    modifier: Modifier = Modifier
+) {
+    val amountValue = amount.replace(',', '.').toDoubleOrNull()
+    val rateValue = cashRate.replace(',', '.').toDoubleOrNull()
+    val converted = if (amountValue != null && amountValue > 0 && rateValue != null && rateValue > 0) {
+        formatAmount(amountValue / rateValue)
+    } else null
+
+    if (converted != null) {
         Text(
-            text = stringResource(R.string.cash_rate_desc),
+            text = stringResource(R.string.cash_current_preview_format, converted, baseCurrency, cashRate),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+            modifier = modifier.padding(start = 4.dp, top = 2.dp)
         )
+    }
+}
 
-        OutlinedTextField(
-            value = cashRate,
-            onValueChange = onCashRateChange,
-            label = { Text(stringResource(R.string.exchange_rate_label)) },
-            placeholder = {
-                if (cashRatePlaceholder.isNotBlank()) {
-                    Text(stringResource(R.string.cash_rate_placeholder, cashRatePlaceholder))
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            supportingText = {
-                if (cashRatePlaceholder.isNotBlank()) {
-                    Text(
-                        text = stringResource(R.string.cash_rate_hint, cashRatePlaceholder, selectedCurrency),
-                        fontSize = 12.sp
-                    )
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary
+@Composable
+private fun CashRateModeSelector(
+    selectedMode: CashRateMode,
+    isLastExchangeAvailable: Boolean,
+    isCurrentRateAvailable: Boolean,
+    isCurrentRateLoading: Boolean,
+    onModeSelect: (CashRateMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (isLastExchangeAvailable) {
+            CashRateModeChip(
+                selected = selectedMode == CashRateMode.LAST_EXCHANGE,
+                enabled = true,
+                label = stringResource(R.string.cash_rate_mode_last_exchange),
+                onClick = { onModeSelect(CashRateMode.LAST_EXCHANGE) },
+                modifier = Modifier.weight(1f)
             )
+        }
+        CashRateModeChip(
+            selected = selectedMode == CashRateMode.CURRENT_RATE,
+            enabled = isCurrentRateAvailable && !isCurrentRateLoading,
+            label = stringResource(R.string.cash_rate_mode_current),
+            onClick = { onModeSelect(CashRateMode.CURRENT_RATE) },
+            modifier = Modifier.weight(1f)
         )
+        CashRateModeChip(
+            selected = selectedMode == CashRateMode.MANUAL,
+            enabled = true,
+            label = stringResource(R.string.cash_rate_mode_manual),
+            onClick = { onModeSelect(CashRateMode.MANUAL) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
 
-        // Hint about last exchange or interbank rate
-        if (cashRateHint.isNotBlank()) {
+/**
+ * Selectable chip whose container, border and label colors animate with
+ * `animateColorAsState` when the selected state flips — keeps the
+ * selection transition consistent with the AnimatedContent below.
+ */
+@Composable
+private fun CashRateModeChip(
+    selected: Boolean,
+    enabled: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val animSpec = tween<Color>(200)
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+            selected -> MaterialTheme.colorScheme.primary
+            else -> Color.Transparent
+        },
+        animationSpec = animSpec,
+        label = "chip-container"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
+            selected -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.outline
+        },
+        animationSpec = animSpec,
+        label = "chip-border"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            selected -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = animSpec,
+        label = "chip-content"
+    )
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        border = BorderStroke(1.dp, borderColor),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+            .height(36.dp)
+            .clickable(enabled = enabled, onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = cashRateHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        } else if (lastCashExchange != null) {
-            val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-            val dateStr = dateFormat.format(Date(lastCashExchange.date))
-            val locationStr = lastCashExchange.location?.let { " · $it" } ?: ""
-            Text(
-                text = stringResource(R.string.last_exchange) + ": $dateStr$locationStr",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
 import com.example.budgetcontrol.core.domain.model.Bank
+import com.example.budgetcontrol.core.domain.model.CashRateMode
 import com.example.budgetcontrol.core.domain.model.CategoryType
 import com.example.budgetcontrol.core.domain.model.TransactionType
 import com.example.budgetcontrol.core.domain.model.Category
@@ -87,26 +88,9 @@ fun TransactionFormScreen(
     }
 
     LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess && !uiState.showSaveRateDialog) {
+        if (uiState.isSuccess) {
             onSuccess()
         }
-    }
-
-    if (uiState.showSaveRateDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissSaveRateDialog() },
-            title = { Text(stringResource(R.string.save_cash_rate_title)) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.confirmSaveRate() }) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissSaveRateDialog() }) {
-                    Text(stringResource(R.string.save_cash_rate_skip))
-                }
-            }
-        )
     }
 
     if (showDatePicker) {
@@ -228,6 +212,10 @@ fun TransactionFormScreen(
                 onClearCategoryLimit = viewModel::clearCategoryLimit,
                 onPaymentMethodSelect = viewModel::selectPaymentMethod,
                 onCashRateChange = viewModel::updateCashRate,
+                onCashRateModeSelect = viewModel::selectCashRateMode,
+                onCashExchangeSelect = viewModel::selectCashExchange,
+                onToggleSaveExchangeRecord = viewModel::toggleSaveExchangeRecord,
+                onExchangeRecordDescriptionChange = viewModel::updateExchangeRecordDescription,
                 onAccountSelect = viewModel::selectAccount,
                 modifier = Modifier.padding(paddingValues)
             )
@@ -258,6 +246,10 @@ private fun TransactionFormContent(
     onClearCategoryLimit: (categoryId: String) -> Unit = { _ -> },
     onPaymentMethodSelect: (String) -> Unit = {},
     onCashRateChange: (String) -> Unit = {},
+    onCashRateModeSelect: (CashRateMode) -> Unit = {},
+    onCashExchangeSelect: (String) -> Unit = {},
+    onToggleSaveExchangeRecord: () -> Unit = {},
+    onExchangeRecordDescriptionChange: (String) -> Unit = {},
     onAccountSelect: (String) -> Unit = {}
 ) {
     val accountCurrency = uiState.accounts.find { it.account.id == uiState.selectedAccountId }
@@ -274,7 +266,8 @@ private fun TransactionFormContent(
                 date = uiState.selectedDate,
                 transactionType = uiState.transactionType,
                 paymentMethod = uiState.paymentMethod,
-                cashRate = uiState.cashRate,
+                cashRate = uiState.cashRateState.cashRate,
+                cashRateMode = uiState.cashRateState.cashRateMode,
                 exactEurAmount = uiState.exactEurAmount,
                 isExactMode = uiState.isExactAmountEnabled
             ),
@@ -288,6 +281,10 @@ private fun TransactionFormContent(
                 onSave = { _ -> onSaveClick() },
                 onPaymentMethodChange = onPaymentMethodSelect,
                 onCashRateChange = onCashRateChange,
+                onCashRateModeChange = onCashRateModeSelect,
+                onCashExchangeSelect = onCashExchangeSelect,
+                onToggleSaveExchangeRecord = onToggleSaveExchangeRecord,
+                onExchangeRecordDescriptionChange = onExchangeRecordDescriptionChange,
                 onExactEurAmountChange = onExactEurAmountChange,
                 onExactModeToggle = onExactAmountToggle
             ),
@@ -311,9 +308,15 @@ private fun TransactionFormContent(
                 onSetCategoryLimit = onSetCategoryLimit,
                 onClearCategoryLimit = onClearCategoryLimit
             ),
-            cashRatePlaceholder = uiState.cashRatePlaceholder,
-            cashRateHint = uiState.cashRateHint,
-            lastCashExchange = uiState.lastCashExchange,
+            cashRatePlaceholder = uiState.cashRateState.cashRatePlaceholder,
+            lastCashExchange = uiState.cashRateState.lastCashExchange,
+            availableCashExchanges = uiState.cashRateState.availableCashExchanges,
+            selectedCashExchangeId = uiState.cashRateState.selectedCashExchangeId,
+            saveExchangeRecord = uiState.cashRateState.saveExchangeRecord,
+            exchangeRecordDescription = uiState.cashRateState.exchangeRecordDescription,
+            isLastExchangeAvailable = uiState.cashRateState.isLastExchangeAvailable,
+            isCurrentRateAvailable = uiState.cashRateState.isCurrentRateAvailable,
+            isCurrentRateLoading = uiState.cashRateState.isCurrentRateLoading,
             networkStatus = uiState.networkStatus,
             staleRateWarning = uiState.staleRateWarning,
             accounts = uiState.accounts,

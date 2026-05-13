@@ -121,6 +121,18 @@
     <string name="exchange_rate_label">Курс обмена</string>
     <string name="last_exchange">Последний обмен</string>
     <string name="cash_rate_hint">1 EUR = %1$s %2$s</string>
+    <string name="cash_rate_mode_last_exchange">Последний</string>
+    <string name="cash_rate_mode_current">Текущий</string>
+    <string name="cash_rate_mode_manual">Вручную</string>
+    <string name="cash_mode_hint_last_exchange">Курс из последнего сохранённого обмена. Управлять записями: Настройки → Обмен валют.</string>
+    <string name="cash_mode_hint_current">Межбанковский курс · неточно. Для большей точности сохраните свой курс в Настройки → Обмен валют.</string>
+    <string name="cash_mode_hint_manual_unsaved">Совет: отметьте «Сохранить» ниже, чтобы запомнить этот курс.</string>
+    <string name="cash_save_exchange_record">Сохранить как запись обмена</string>
+    <string name="cash_exchange_description_label">Описание (необязательно)</string>
+    <string name="cash_exchange_picker_label">Запись обмена</string>
+    <string name="cash_last_exchange_context">%1$s · %2$s %3$s → %4$s %5$s</string>
+    <string name="cash_last_exchange_context_with_desc">%1$s · %2$s %3$s → %4$s %5$s · %6$s</string>
+    <string name="cash_current_preview_format">≈ %1$s %2$s  (межбанковский курс %3$s)</string>
 
     <!-- AccountSelector -->
     <string name="account_label">Счёт</string>
@@ -402,10 +414,6 @@
     <string name="discard_button">Выйти</string>
     <string name="keep_editing_button">Остаться</string>
 
-    <!-- Save cash rate dialog -->
-    <string name="save_cash_rate_title">Сохранить этот курс для будущего использования?</string>
-    <string name="save_cash_rate_skip">Пропустить</string>
-
     <!-- Statistics tabs -->
     <string name="transactions_count_suffix"> операций</string>
 
@@ -460,9 +468,8 @@
     <string name="rate_history_updates_interval">Обновляется каждые 8 часов</string>
 
     <!-- Cash mode hints -->
-    <string name="cash_rate_desc">Введите курс обмена, полученный в обменном пункте.</string>
     <string name="cash_rate_placeholder">напр. %1$s</string>
-    <string name="using_interbank_rate_hint">Используется межбанковский курс · неточно</string>
+    <string name="using_interbank_rate_hint">Межбанковский курс · неточно</string>
 
     <!-- Onboarding -->
     <string name="onboarding_back">Назад</string>

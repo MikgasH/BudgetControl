@@ -26,6 +26,14 @@ class CurrencyExchangeRepositoryImpl @Inject constructor(
         return currencyExchangeDao.getLatestExchangeForCurrency(fromCurrency, toCurrency)?.toDomain()
     }
 
+    override fun getExchangesForCurrency(
+        fromCurrency: String,
+        toCurrency: String
+    ): Flow<List<CurrencyExchange>> {
+        return currencyExchangeDao.getExchangesForPair(fromCurrency, toCurrency)
+            .map { entities -> entities.toDomain() }
+    }
+
     override suspend fun insertExchange(exchange: CurrencyExchange) {
         currencyExchangeDao.insertExchange(exchange.toEntity())
     }

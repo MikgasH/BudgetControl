@@ -121,6 +121,18 @@
     <string name="exchange_rate_label">Exchange rate</string>
     <string name="last_exchange">Last exchange</string>
     <string name="cash_rate_hint">1 EUR = %1$s %2$s</string>
+    <string name="cash_rate_mode_last_exchange">Last</string>
+    <string name="cash_rate_mode_current">Current</string>
+    <string name="cash_rate_mode_manual">Manual</string>
+    <string name="cash_mode_hint_last_exchange">Rate from your last recorded exchange. Manage records: Settings → Currency Exchange.</string>
+    <string name="cash_mode_hint_current">Interbank rate · not exact. For better accuracy record your rate in Settings → Currency Exchange.</string>
+    <string name="cash_mode_hint_manual_unsaved">Tip: check Save below to store this rate for future use.</string>
+    <string name="cash_save_exchange_record">Save as exchange record</string>
+    <string name="cash_exchange_description_label">Description (optional)</string>
+    <string name="cash_exchange_picker_label">Exchange record</string>
+    <string name="cash_last_exchange_context">%1$s · %2$s %3$s → %4$s %5$s</string>
+    <string name="cash_last_exchange_context_with_desc">%1$s · %2$s %3$s → %4$s %5$s · %6$s</string>
+    <string name="cash_current_preview_format">approx. %1$s %2$s  (interbank rate %3$s)</string>
 
     <!-- AccountSelector -->
     <string name="account_label">Account</string>
@@ -396,10 +408,6 @@
     <string name="discard_button">Discard</string>
     <string name="keep_editing_button">Keep editing</string>
 
-    <!-- Save cash rate dialog -->
-    <string name="save_cash_rate_title">Save this exchange rate for future use?</string>
-    <string name="save_cash_rate_skip">Skip</string>
-
     <!-- Statistics tabs -->
     <string name="transactions_count_suffix"> transactions</string>
 
@@ -454,9 +462,8 @@
     <string name="rate_history_updates_interval">Updates every 8 hours</string>
 
     <!-- Cash mode hints -->
-    <string name="cash_rate_desc">Enter the exchange rate you received at the exchange point.</string>
     <string name="cash_rate_placeholder">e.g. %1$s</string>
-    <string name="using_interbank_rate_hint">Using interbank rate · not exact</string>
+    <string name="using_interbank_rate_hint">Interbank rate · not exact</string>
 
     <!-- Onboarding -->
     <string name="onboarding_back">Back</string>

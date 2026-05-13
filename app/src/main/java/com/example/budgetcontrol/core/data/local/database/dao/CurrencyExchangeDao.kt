@@ -16,6 +16,9 @@ interface CurrencyExchangeDao {
     @Query("SELECT * FROM currency_exchanges WHERE fromCurrency = :fromCurrency AND toCurrency = :toCurrency ORDER BY date DESC LIMIT 1")
     suspend fun getLatestExchangeForCurrency(fromCurrency: String, toCurrency: String): CurrencyExchangeEntity?
 
+    @Query("SELECT * FROM currency_exchanges WHERE fromCurrency = :fromCurrency AND toCurrency = :toCurrency ORDER BY date DESC")
+    fun getExchangesForPair(fromCurrency: String, toCurrency: String): Flow<List<CurrencyExchangeEntity>>
+
     @Query("DELETE FROM currency_exchanges WHERE id = :id")
     suspend fun deleteExchange(id: String)
 }

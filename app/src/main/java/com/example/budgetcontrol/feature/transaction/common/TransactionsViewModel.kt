@@ -9,6 +9,7 @@ import com.example.budgetcontrol.core.domain.model.Bank
 import com.example.budgetcontrol.core.data.local.datastore.PreferencesManager
 import com.example.budgetcontrol.core.domain.repository.BankRepository
 import com.example.budgetcontrol.core.data.repository.NetworkStatusRepository
+import com.example.budgetcontrol.core.domain.model.CashRateMode
 import com.example.budgetcontrol.core.domain.model.Category
 import com.example.budgetcontrol.core.domain.model.CategoryLimit
 import com.example.budgetcontrol.core.domain.model.CategoryType
@@ -46,6 +47,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -56,6 +58,21 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+@Immutable
+data class CashRateState(
+    val cashRate: String = "",
+    val cashRatePlaceholder: String = "",
+    val cashRateMode: CashRateMode = CashRateMode.LAST_EXCHANGE,
+    val isLastExchangeAvailable: Boolean = false,
+    val isCurrentRateAvailable: Boolean = true,
+    val isCurrentRateLoading: Boolean = false,
+    val lastCashExchange: CurrencyExchange? = null,
+    val availableCashExchanges: List<CurrencyExchange> = emptyList(),
+    val selectedCashExchangeId: String? = null,
+    val saveExchangeRecord: Boolean = false,
+    val exchangeRecordDescription: String = ""
+)
 
 @Immutable
 data class TransactionFormUiState(
@@ -90,10 +107,7 @@ data class TransactionFormUiState(
     val favoriteCurrencies: Set<String> = emptySet(),
     // Cash mode
     val paymentMethod: String = "CARD",
-    val cashRate: String = "",
-    val cashRatePlaceholder: String = "",
-    val cashRateHint: String = "",
-    val lastCashExchange: CurrencyExchange? = null,
+    val cashRateState: CashRateState = CashRateState(),
     // Network status
     val networkStatus: NetworkStatus = NetworkStatus.ONLINE,
     // True when foreign-currency selection is unavailable because no rates are cached
@@ -102,10 +116,6 @@ data class TransactionFormUiState(
     val foreignCurrencyDisabledMessage: String? = null,
     // Stale rate warning (shown when cached rates are older than 8 hours)
     val staleRateWarning: String? = null,
-    // Save cash rate dialog
-    val showSaveRateDialog: Boolean = false,
-    val pendingSaveCurrency: String = "",
-    val pendingSaveRate: Double = 0.0,
     // Accounts
     val accounts: List<AccountWithBalance> = emptyList(),
     val selectedAccountId: String = Account.DEFAULT_ACCOUNT_ID,
@@ -161,6 +171,9 @@ class TransactionFormViewModel @Inject constructor(
 
     /** Tracks the active limit/spend observation so we can replace it on category change. */
     private var limitObservationJob: Job? = null
+
+    /** Tracks the active cash-exchange history Flow so we can replace it on currency change. */
+    private var cashHistoryJob: Job? = null
 
     init {
         // Load saved account first, then start collecting accounts to avoid race condition
@@ -385,10 +398,7 @@ class TransactionFormViewModel @Inject constructor(
                 isExactAmountEnabled = if (currency == accountCurrency) false else current.isExactAmountEnabled,
                 exactEurAmount = if (currency == accountCurrency) "" else current.exactEurAmount,
                 paymentMethod = if (currency == accountCurrency) "CARD" else lastMethod,
-                cashRate = "",
-                cashRatePlaceholder = "",
-                cashRateHint = "",
-                lastCashExchange = null,
+                cashRateState = CashRateState(),
                 showError = null,
                 staleRateWarning = null
             )
@@ -397,7 +407,8 @@ class TransactionFormViewModel @Inject constructor(
                 if (lastMethod == "CARD") {
                     fetchRateAndUpdatePreview(currency, current.amount, defaultBank)
                 } else {
-                    loadCashExchangeRate(currency)
+                    loadLastCashExchange(currency)
+                    loadCurrentInterbankRate(currency)
                 }
                 checkNetworkStatus()
             } else {
@@ -408,12 +419,17 @@ class TransactionFormViewModel @Inject constructor(
 
     fun selectPaymentMethod(method: String) {
         val current = _uiState.value
+        // Cash mode has no "exact amount" affordance — clear any leftover state from Card mode
+        // so saveNewExpense / saveNewIncome don't take the manual-base-amount branch.
         _uiState.value = current.copy(
             paymentMethod = method,
-            showError = null
+            showError = null,
+            isExactAmountEnabled = if (method == "CASH") false else current.isExactAmountEnabled,
+            exactEurAmount = if (method == "CASH") "" else current.exactEurAmount
         )
         if (method == "CASH" && current.selectedCurrency != current.baseCurrency) {
-            loadCashExchangeRate(current.selectedCurrency)
+            loadLastCashExchange(current.selectedCurrency)
+            loadCurrentInterbankRate(current.selectedCurrency)
         }
         viewModelScope.launch {
             preferencesManager.setLastPaymentMethod(method)
@@ -421,45 +437,202 @@ class TransactionFormViewModel @Inject constructor(
     }
 
     fun updateCashRate(rate: String) {
-        _uiState.value = _uiState.value.copy(cashRate = rate, showError = null)
+        _uiState.update {
+            it.copy(
+                cashRateState = it.cashRateState.copy(cashRate = rate),
+                showError = null
+            )
+        }
     }
 
-    private fun loadCashExchangeRate(currency: String) {
+    fun selectCashRateMode(mode: CashRateMode) {
+        _uiState.update {
+            it.copy(cashRateState = it.cashRateState.copy(cashRateMode = mode))
+        }
+        resolveCashRateForMode()
+    }
+
+    fun toggleSaveExchangeRecord() {
+        _uiState.update {
+            it.copy(
+                cashRateState = it.cashRateState.copy(
+                    saveExchangeRecord = !it.cashRateState.saveExchangeRecord
+                )
+            )
+        }
+    }
+
+    fun updateExchangeRecordDescription(text: String) {
+        _uiState.update {
+            it.copy(cashRateState = it.cashRateState.copy(exchangeRecordDescription = text))
+        }
+    }
+
+    /**
+     * Persists a cash-exchange record when the user opted in via the MANUAL-mode
+     * "Save as exchange record" checkbox. Stored as 1 base → toAmount foreign so
+     * the LAST_EXCHANGE lookup picks it up on the next transaction.
+     */
+    private suspend fun maybePersistExchangeRecord(state: TransactionFormUiState) {
+        val cash = state.cashRateState
+        if (cash.cashRateMode != CashRateMode.MANUAL) return
+        if (!cash.saveExchangeRecord) return
+        val rate = cash.cashRate.replace(',', '.').toDoubleOrNull() ?: return
+        if (rate <= 0.0) return
+        currencyExchangeRepository.insertExchange(
+            CurrencyExchange(
+                id = UUID.randomUUID().toString(),
+                fromAmount = 1.0,
+                fromCurrency = state.baseCurrency,
+                toAmount = rate,
+                toCurrency = state.selectedCurrency,
+                exchangeRate = rate,
+                location = cash.exchangeRecordDescription,
+                date = System.currentTimeMillis(),
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    /**
+     * Subscribes to all stored cash exchanges for the (base → currency) pair.
+     * The Flow updates `availableCashExchanges` and keeps the picker in sync
+     * when the user records a new exchange (via MANUAL-mode save) or edits
+     * records from Settings → Currency Exchange while the form is open.
+     */
+    private fun loadLastCashExchange(currency: String) {
+        cashHistoryJob?.cancel()
+        val baseCurrency = _uiState.value.baseCurrency
+        cashHistoryJob = viewModelScope.launch {
+            currencyExchangeRepository.getExchangesForCurrency(baseCurrency, currency)
+                .collect { exchanges ->
+                    _uiState.update { state ->
+                        val cash = state.cashRateState
+                        // Preserve the user's selection if it's still in the list; otherwise
+                        // fall back to the most recent record.
+                        val resolvedId = cash.selectedCashExchangeId
+                            ?.takeIf { id -> exchanges.any { it.id == id } }
+                            ?: exchanges.firstOrNull()?.id
+                        val selected = exchanges.firstOrNull { it.id == resolvedId }
+                        state.copy(
+                            cashRateState = cash.copy(
+                                availableCashExchanges = exchanges,
+                                selectedCashExchangeId = resolvedId,
+                                lastCashExchange = selected,
+                                isLastExchangeAvailable = exchanges.isNotEmpty()
+                            )
+                        )
+                    }
+                    resolveCashRateForMode()
+                }
+        }
+    }
+
+    fun selectCashExchange(id: String) {
+        val state = _uiState.value
+        val exchange = state.cashRateState.availableCashExchanges.firstOrNull { it.id == id } ?: return
+        _uiState.update {
+            it.copy(
+                cashRateState = it.cashRateState.copy(
+                    selectedCashExchangeId = id,
+                    lastCashExchange = exchange
+                )
+            )
+        }
+        resolveCashRateForMode()
+    }
+
+    /**
+     * Resolves the live interbank rate for the (base → currency) pair.
+     * Fast path: in-memory cache for the same currency. Otherwise CERPS.
+     * Updates [CashRateState.isCurrentRateAvailable] and [CashRateState.isCurrentRateLoading].
+     */
+    private fun loadCurrentInterbankRate(currency: String) {
         viewModelScope.launch {
             val baseCurrency = _uiState.value.baseCurrency
-            // Try to load last saved cash exchange rate
-            val lastExchange = currencyExchangeRepository.getLatestExchangeForCurrency(baseCurrency, currency)
-            if (lastExchange != null) {
-                val formatted = String.format(java.util.Locale.US, "%.4f", lastExchange.exchangeRate)
-                _uiState.value = _uiState.value.copy(
-                    lastCashExchange = lastExchange,
-                    cashRatePlaceholder = formatted,
-                    cashRate = formatted,
-                    cashRateHint = context.getString(R.string.last_exchange)
-                )
-            } else {
-                // Fall back to interbank rate
-                val rate = if (cachedRateCurrency == currency && cachedInterBankRate != null) {
-                    cachedInterBankRate
-                } else {
-                    when (val result = cerpsRepository.convert(baseCurrency, currency, 1.0)) {
-                        is CerpsResult.Success -> {
-                            val r = result.data.exchangeRate.toDouble()
-                            cachedInterBankRate = r
-                            cachedRateCurrency = currency
-                            r
-                        }
-                        is CerpsResult.Error -> null
+
+            // Fast path: cached rate for this currency
+            if (cachedRateCurrency == currency && cachedInterBankRate != null) {
+                _uiState.update {
+                    it.copy(
+                        cashRateState = it.cashRateState.copy(
+                            isCurrentRateAvailable = true,
+                            isCurrentRateLoading = false
+                        )
+                    )
+                }
+                resolveCashRateForMode()
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(cashRateState = it.cashRateState.copy(isCurrentRateLoading = true))
+            }
+
+            when (val result = cerpsRepository.convert(baseCurrency, currency, 1.0)) {
+                is CerpsResult.Success -> {
+                    val rate = result.data.exchangeRate.toDouble()
+                    cachedInterBankRate = rate
+                    cachedRateCurrency = currency
+                    _uiState.update {
+                        it.copy(
+                            cashRateState = it.cashRateState.copy(
+                                isCurrentRateAvailable = true,
+                                isCurrentRateLoading = false
+                            )
+                        )
                     }
                 }
-                val formatted = if (rate != null) String.format(java.util.Locale.US, "%.4f", rate) else ""
-                _uiState.value = _uiState.value.copy(
-                    lastCashExchange = null,
-                    cashRatePlaceholder = formatted,
-                    cashRate = formatted,
-                    cashRateHint = if (formatted.isNotEmpty()) context.getString(R.string.using_interbank_rate_hint) else ""
-                )
+                is CerpsResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            cashRateState = it.cashRateState.copy(
+                                isCurrentRateAvailable = false,
+                                isCurrentRateLoading = false
+                            )
+                        )
+                    }
+                }
             }
+            resolveCashRateForMode()
+        }
+    }
+
+    /**
+     * Applies the rate that corresponds to the active [CashRateMode] to the displayed
+     * cashRate / cashRatePlaceholder. If the active mode is unavailable
+     * (e.g. LAST_EXCHANGE chosen but no records exist), falls back per:
+     *   LAST_EXCHANGE → CURRENT_RATE → MANUAL.
+     */
+    private fun resolveCashRateForMode() {
+        val state = _uiState.value
+        val cash = state.cashRateState
+
+        val effectiveMode = when {
+            cash.cashRateMode == CashRateMode.LAST_EXCHANGE && !cash.isLastExchangeAvailable ->
+                if (cash.isCurrentRateAvailable) CashRateMode.CURRENT_RATE else CashRateMode.MANUAL
+            cash.cashRateMode == CashRateMode.CURRENT_RATE && !cash.isCurrentRateAvailable ->
+                if (cash.isLastExchangeAvailable) CashRateMode.LAST_EXCHANGE else CashRateMode.MANUAL
+            else -> cash.cashRateMode
+        }
+
+        val rate: Double? = when (effectiveMode) {
+            CashRateMode.LAST_EXCHANGE -> cash.lastCashExchange?.exchangeRate
+            CashRateMode.CURRENT_RATE ->
+                if (cachedRateCurrency == state.selectedCurrency) cachedInterBankRate else null
+            CashRateMode.MANUAL -> null
+        }
+
+        val formatted = if (rate != null) String.format(java.util.Locale.US, "%.4f", rate) else ""
+
+        _uiState.update {
+            it.copy(
+                cashRateState = it.cashRateState.copy(
+                    cashRateMode = effectiveMode,
+                    cashRate = if (effectiveMode == CashRateMode.MANUAL) "" else formatted,
+                    cashRatePlaceholder = formatted
+                )
+            )
         }
     }
 
@@ -912,8 +1085,8 @@ class TransactionFormViewModel @Inject constructor(
             )
         } else if (isCashMode) {
             // Cash mode: use the cash rate directly
-            val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
-                ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+            val cashRateValue = state.cashRateState.cashRate.replace(',', '.').toDoubleOrNull()
+                ?: state.cashRateState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
             if (cashRateValue == null || cashRateValue <= 0) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -979,19 +1152,7 @@ class TransactionFormViewModel @Inject constructor(
         when (result) {
             is AddTransactionResult.Success -> {
                 accountRepository.updateLastUsedAt(state.selectedAccountId)
-                if (isCashMode && !state.isExactAmountEnabled) {
-                    val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
-                        ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
-                    if (cashRateValue != null && cashRateValue > 0) {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            showSaveRateDialog = true,
-                            pendingSaveCurrency = state.selectedCurrency,
-                            pendingSaveRate = cashRateValue
-                        )
-                        return
-                    }
-                }
+                if (isCashMode) maybePersistExchangeRecord(state)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isSuccess = true
@@ -1046,8 +1207,8 @@ class TransactionFormViewModel @Inject constructor(
             )
         } else if (isCashMode) {
             // Cash mode: use the cash rate directly
-            val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
-                ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
+            val cashRateValue = state.cashRateState.cashRate.replace(',', '.').toDoubleOrNull()
+                ?: state.cashRateState.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
             if (cashRateValue == null || cashRateValue <= 0) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -1113,19 +1274,7 @@ class TransactionFormViewModel @Inject constructor(
         when (result) {
             is AddTransactionResult.Success -> {
                 accountRepository.updateLastUsedAt(state.selectedAccountId)
-                if (isCashMode && !state.isExactAmountEnabled) {
-                    val cashRateValue = state.cashRate.replace(',', '.').toDoubleOrNull()
-                        ?: state.cashRatePlaceholder.replace(',', '.').toDoubleOrNull()
-                    if (cashRateValue != null && cashRateValue > 0) {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            showSaveRateDialog = true,
-                            pendingSaveCurrency = state.selectedCurrency,
-                            pendingSaveRate = cashRateValue
-                        )
-                        return
-                    }
-                }
+                if (isCashMode) maybePersistExchangeRecord(state)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isSuccess = true
@@ -1353,36 +1502,6 @@ class TransactionFormViewModel @Inject constructor(
                 currentState.selectedCategory?.id != original.categoryId ||
                 currentState.transactionType != original.type ||
                 !DateRangeHelper.isSameDay(currentState.selectedDate, original.date)
-    }
-
-    fun confirmSaveRate() {
-        val state = _uiState.value
-        viewModelScope.launch {
-            currencyExchangeRepository.insertExchange(
-                CurrencyExchange(
-                    id = UUID.randomUUID().toString(),
-                    fromAmount = 1.0,
-                    fromCurrency = state.baseCurrency,
-                    toAmount = state.pendingSaveRate,
-                    toCurrency = state.pendingSaveCurrency,
-                    exchangeRate = state.pendingSaveRate,
-                    location = null,
-                    date = System.currentTimeMillis(),
-                    createdAt = System.currentTimeMillis()
-                )
-            )
-            _uiState.value = state.copy(
-                showSaveRateDialog = false,
-                isSuccess = true
-            )
-        }
-    }
-
-    fun dismissSaveRateDialog() {
-        _uiState.value = _uiState.value.copy(
-            showSaveRateDialog = false,
-            isSuccess = true
-        )
     }
 
     private fun mapExpenseError(error: AddTransactionError): String {
