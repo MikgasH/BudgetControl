@@ -1,6 +1,7 @@
 package com.example.budgetcontrol.ui.components.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -189,6 +190,8 @@ private fun DayItem(
     val isToday = isSameDay(dayInfo.date, System.currentTimeMillis())
     val isFuture = dayInfo.date > System.currentTimeMillis() && !isToday
 
+    val showTodayRing = isToday && !isSelected
+
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -196,9 +199,13 @@ private fun DayItem(
             .background(
                 when {
                     isSelected -> MaterialTheme.colorScheme.primary
-                    isToday -> MaterialTheme.colorScheme.tertiary
                     else -> Color.Transparent
                 }
+            )
+            .then(
+                if (showTodayRing) {
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                } else Modifier
             )
             .clickable(enabled = dayInfo.isCurrentMonth && !isFuture) {
                 onDateSelected(dayInfo.date)
@@ -212,7 +219,7 @@ private fun DayItem(
                 !dayInfo.isCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 isSelected -> MaterialTheme.colorScheme.onPrimary
-                isToday -> MaterialTheme.colorScheme.onTertiary
+                showTodayRing -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.onSurface
             },
             fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
