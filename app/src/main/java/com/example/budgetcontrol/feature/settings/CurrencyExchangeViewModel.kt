@@ -25,7 +25,7 @@ data class ExchangeFormState(
     val fromCurrency: String = DEFAULT_BASE_CURRENCY,
     val toAmount: String = "",
     val toCurrency: String = "USD",
-    val location: String = "",
+    val description: String = "",
     val date: Long = System.currentTimeMillis(),
     val error: String? = null
 )
@@ -38,6 +38,27 @@ class CurrencyExchangeViewModel @Inject constructor(
 
     val exchanges: StateFlow<List<CurrencyExchange>> = currencyExchangeRepository.getAllExchanges()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
+
+    val availableCurrencies: StateFlow<List<String>> = preferencesManager.getAvailableCurrencies()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS),
+            PreferencesManager.DEFAULT_AVAILABLE_CURRENCIES
+        )
+
+    val baseCurrency: StateFlow<String> = preferencesManager.baseCurrencyFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS),
+            DEFAULT_BASE_CURRENCY
+        )
+
+    val favoriteCurrencies: StateFlow<Set<String>> = preferencesManager.favoriteCurrenciesFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS),
+            emptySet()
+        )
 
     private val _formState = MutableStateFlow(ExchangeFormState())
     val formState: StateFlow<ExchangeFormState> = _formState.asStateFlow()
@@ -68,8 +89,8 @@ class CurrencyExchangeViewModel @Inject constructor(
         _formState.value = _formState.value.copy(toCurrency = currency, error = null)
     }
 
-    fun updateLocation(location: String) {
-        _formState.value = _formState.value.copy(location = location)
+    fun updateDescription(description: String) {
+        _formState.value = _formState.value.copy(description = description)
     }
 
     fun updateDate(date: Long) {
@@ -100,7 +121,7 @@ class CurrencyExchangeViewModel @Inject constructor(
                     toAmount = toAmount,
                     toCurrency = form.toCurrency,
                     exchangeRate = exchangeRate,
-                    location = form.location.ifBlank { null },
+                    location = form.description.ifBlank { null },
                     date = form.date,
                     createdAt = System.currentTimeMillis()
                 )

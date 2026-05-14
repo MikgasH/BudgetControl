@@ -44,6 +44,7 @@ fun TransactionFormScreen(
     preSelectedAccountId: String? = null,
     onBackClick: () -> Unit,
     onSuccess: () -> Unit,
+    onNavigateToCurrencyExchange: () -> Unit = {},
     viewModel: TransactionFormViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -217,6 +218,7 @@ fun TransactionFormScreen(
                 onToggleSaveExchangeRecord = viewModel::toggleSaveExchangeRecord,
                 onExchangeRecordDescriptionChange = viewModel::updateExchangeRecordDescription,
                 onAccountSelect = viewModel::selectAccount,
+                onNavigateToCurrencyExchange = onNavigateToCurrencyExchange,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -250,7 +252,8 @@ private fun TransactionFormContent(
     onCashExchangeSelect: (String) -> Unit = {},
     onToggleSaveExchangeRecord: () -> Unit = {},
     onExchangeRecordDescriptionChange: (String) -> Unit = {},
-    onAccountSelect: (String) -> Unit = {}
+    onAccountSelect: (String) -> Unit = {},
+    onNavigateToCurrencyExchange: () -> Unit = {}
 ) {
     val accountCurrency = uiState.accounts.find { it.account.id == uiState.selectedAccountId }
         ?.account?.currency ?: uiState.baseCurrency
@@ -322,6 +325,7 @@ private fun TransactionFormContent(
             accounts = uiState.accounts,
             selectedAccountId = uiState.selectedAccountId,
             onAccountSelect = onAccountSelect,
+            onNavigateToCurrencyExchange = onNavigateToCurrencyExchange,
             foreignCurrencyDisabled = uiState.foreignCurrencyDisabled,
             selectedCategoryLimit = uiState.selectedCategoryLimit,
             selectedCategoryMonthSpend = uiState.selectedCategoryMonthSpend,

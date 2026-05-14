@@ -62,7 +62,8 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
             preSelectedCategoryId = categoryId,
             preSelectedAccountId = accountId,
             onBackClick = { navController.popBackStack() },
-            onSuccess = { navController.popBackStack() }
+            onSuccess = { navController.popBackStack() },
+            onNavigateToCurrencyExchange = { navController.navigate(Screen.CurrencyExchange.route) }
         )
     }
 
@@ -78,7 +79,8 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
             mode = TransactionFormMode.ADD,
             initialDate = System.currentTimeMillis(),
             onBackClick = { navController.popBackStack() },
-            onSuccess = { navController.popBackStack() }
+            onSuccess = { navController.popBackStack() },
+            onNavigateToCurrencyExchange = { navController.navigate(Screen.CurrencyExchange.route) }
         )
     }
 
@@ -100,7 +102,8 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
             initialDate = selectedDate,
             preSelectedAccountId = accountId,
             onBackClick = { navController.popBackStack() },
-            onSuccess = { navController.popBackStack() }
+            onSuccess = { navController.popBackStack() },
+            onNavigateToCurrencyExchange = { navController.navigate(Screen.CurrencyExchange.route) }
         )
     }
 
@@ -116,7 +119,8 @@ fun NavGraphBuilder.transactionNavigation(navController: NavHostController) {
             mode = TransactionFormMode.ADD,
             initialDate = System.currentTimeMillis(),
             onBackClick = { navController.popBackStack() },
-            onSuccess = { navController.popBackStack() }
+            onSuccess = { navController.popBackStack() },
+            onNavigateToCurrencyExchange = { navController.navigate(Screen.CurrencyExchange.route) }
         )
     }
 

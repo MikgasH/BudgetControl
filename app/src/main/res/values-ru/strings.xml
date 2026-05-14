@@ -130,6 +130,7 @@
     <string name="cash_save_exchange_record">Сохранить как запись обмена</string>
     <string name="cash_exchange_description_label">Описание (необязательно)</string>
     <string name="cash_exchange_picker_label">Запись обмена</string>
+    <string name="cash_no_history_banner">💡 Сохраняйте курсы обмена для точной конвертации наличных. Настройки → Обмен валют</string>
     <string name="cash_last_exchange_context">%1$s · %2$s %3$s → %4$s %5$s</string>
     <string name="cash_last_exchange_context_with_desc">%1$s · %2$s %3$s → %4$s %5$s · %6$s</string>
     <string name="cash_current_preview_format">≈ %1$s %2$s  (межбанковский курс %3$s)</string>
@@ -285,7 +286,7 @@
     <!-- Currency exchanges -->
     <string name="currency_exchanges">Обмен валюты</string>
     <string name="add_exchange">Добавить обмен</string>
-    <string name="exchange_location">Место обмена (необязательно)</string>
+    <string name="exchange_description">Описание (необязательно)</string>
     <string name="save_exchange">Сохранить обмен</string>
     <string name="no_exchanges">Обменов пока нет</string>
     <string name="exchange_history">История обменов</string>

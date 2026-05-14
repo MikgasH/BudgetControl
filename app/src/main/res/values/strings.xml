@@ -130,6 +130,7 @@
     <string name="cash_save_exchange_record">Save as exchange record</string>
     <string name="cash_exchange_description_label">Description (optional)</string>
     <string name="cash_exchange_picker_label">Exchange record</string>
+    <string name="cash_no_history_banner">💡 Record your exchange rates for accurate cash conversions. Settings → Currency Exchange</string>
     <string name="cash_last_exchange_context">%1$s · %2$s %3$s → %4$s %5$s</string>
     <string name="cash_last_exchange_context_with_desc">%1$s · %2$s %3$s → %4$s %5$s · %6$s</string>
     <string name="cash_current_preview_format">approx. %1$s %2$s  (interbank rate %3$s)</string>
@@ -281,7 +282,7 @@
     <!-- Currency exchanges -->
     <string name="currency_exchanges">Currency exchanges</string>
     <string name="add_exchange">Add exchange</string>
-    <string name="exchange_location">Location (optional)</string>
+    <string name="exchange_description">Description (optional)</string>
     <string name="save_exchange">Save exchange</string>
     <string name="no_exchanges">No exchanges recorded yet</string>
     <string name="exchange_history">Exchange history</string>

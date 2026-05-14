@@ -115,6 +115,7 @@ fun AddTransactionContent(
     accounts: List<AccountWithBalance> = emptyList(),
     selectedAccountId: String = "",
     onAccountSelect: (String) -> Unit = {},
+    onNavigateToCurrencyExchange: () -> Unit = {},
     foreignCurrencyDisabled: Boolean = false,
     selectedCategoryLimit: CategoryLimit? = null,
     selectedCategoryMonthSpend: Double = 0.0,
@@ -260,6 +261,7 @@ fun AddTransactionContent(
                         onCashExchangeSelect = formCallbacks.onCashExchangeSelect,
                         onToggleSaveExchangeRecord = formCallbacks.onToggleSaveExchangeRecord,
                         onExchangeRecordDescriptionChange = formCallbacks.onExchangeRecordDescriptionChange,
+                        onNavigateToCurrencyExchange = onNavigateToCurrencyExchange,
                         cashRatePlaceholder = cashRatePlaceholder,
                         lastCashExchange = lastCashExchange,
                         availableCashExchanges = availableCashExchanges,
@@ -473,6 +475,7 @@ private fun CashRateSection(
     onCashExchangeSelect: (String) -> Unit,
     onToggleSaveExchangeRecord: () -> Unit,
     onExchangeRecordDescriptionChange: (String) -> Unit,
+    onNavigateToCurrencyExchange: () -> Unit,
     cashRatePlaceholder: String,
     lastCashExchange: CurrencyExchange?,
     availableCashExchanges: List<CurrencyExchange>,
@@ -498,6 +501,26 @@ private fun CashRateSection(
             isCurrentRateLoading = isCurrentRateLoading,
             onModeSelect = onCashRateModeSelect
         )
+
+        // Discovery banner shown only when the user hasn't recorded any cash exchanges
+        // yet for any currency pair — points them to Settings → Currency Exchange.
+        if (availableCashExchanges.isEmpty()) {
+            Card(
+                onClick = onNavigateToCurrencyExchange,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(R.string.cash_no_history_banner),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
+        }
 
         // Contextual hint — also disappears in MANUAL once the user opts in to saving.
         val hintRes: Int? = when (cashRateMode) {
