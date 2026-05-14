@@ -194,7 +194,7 @@ private fun AddExchangeForm(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 OutlinedTextField(
                     value = formState.fromAmount,
@@ -224,7 +224,7 @@ private fun AddExchangeForm(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 OutlinedTextField(
                     value = formState.toAmount,
