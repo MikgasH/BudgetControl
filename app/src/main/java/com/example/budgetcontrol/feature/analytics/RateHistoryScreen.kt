@@ -1,6 +1,5 @@
 package com.example.budgetcontrol.feature.analytics
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,30 +9,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.core.os.ConfigurationCompat
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.budgetcontrol.R
@@ -43,12 +35,8 @@ import com.example.budgetcontrol.core.util.PERCENT_FORMAT
 import com.example.budgetcontrol.core.util.PERIODS
 import com.example.budgetcontrol.core.util.RATE_FORMAT
 import com.example.budgetcontrol.core.util.formatAmount
-import java.util.Currency
+import com.example.budgetcontrol.ui.components.common.CompactCurrencySelector
 import java.util.Locale
-
-private fun getCurrencyDisplayName(code: String, locale: Locale): String =
-    try { Currency.getInstance(code).getDisplayName(locale) }
-    catch (_: IllegalArgumentException) { code }
 
 private fun formatChangePercent(value: Double): String =
     String.format(Locale.US, PERCENT_FORMAT, value)
@@ -247,40 +235,38 @@ private fun CurrencyPairSelector(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            CurrencyDropdown(
+            LabeledCurrencySelector(
                 label = stringResource(R.string.rate_history_from),
                 selected = selectedFrom,
                 currencies = availableCurrencies,
-                favoriteCurrencies = favoriteCurrencies,
                 baseCurrency = baseCurrency,
+                favoriteCurrencies = favoriteCurrencies,
                 onSelected = onFromSelected,
                 modifier = Modifier.weight(1f)
             )
 
-            Box(
-                modifier = Modifier.align(Alignment.Bottom),
-                contentAlignment = Alignment.Center
+            IconButton(
+                onClick = onSwap,
+                modifier = Modifier.padding(bottom = 4.dp)
             ) {
-                IconButton(onClick = onSwap) {
-                    Icon(
-                        imageVector = Icons.Default.SwapHoriz,
-                        contentDescription = stringResource(R.string.rate_history_swap),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.SwapHoriz,
+                    contentDescription = stringResource(R.string.rate_history_swap),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
             }
 
-            CurrencyDropdown(
+            LabeledCurrencySelector(
                 label = stringResource(R.string.rate_history_to),
                 selected = selectedTo,
                 currencies = availableCurrencies,
-                favoriteCurrencies = favoriteCurrencies,
                 baseCurrency = baseCurrency,
+                favoriteCurrencies = favoriteCurrencies,
                 onSelected = onToSelected,
                 modifier = Modifier.weight(1f)
             )
@@ -288,42 +274,16 @@ private fun CurrencyPairSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CurrencyDropdown(
+private fun LabeledCurrencySelector(
     label: String,
     selected: String,
     currencies: List<String>,
-    favoriteCurrencies: Set<String>,
     baseCurrency: String,
+    favoriteCurrencies: Set<String>,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    val appLocale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
-
-    val filteredCurrencies = remember(currencies, searchQuery, appLocale) {
-        if (searchQuery.isBlank()) currencies
-        else currencies.filter { code ->
-            code.contains(searchQuery, ignoreCase = true) ||
-                    getCurrencyDisplayName(code, appLocale).contains(searchQuery, ignoreCase = true)
-        }
-    }
-
-    // Base currency (if it matches the search filter)
-    val baseItem = remember(filteredCurrencies, baseCurrency) {
-        filteredCurrencies.filter { it == baseCurrency }
-    }
-    // Favorites excluding base
-    val favorites = remember(filteredCurrencies, favoriteCurrencies, baseCurrency) {
-        filteredCurrencies.filter { it != baseCurrency && favoriteCurrencies.contains(it) }
-    }
-    // Everything else
-    val others = remember(filteredCurrencies, favoriteCurrencies, baseCurrency) {
-        filteredCurrencies.filter { it != baseCurrency && !favoriteCurrencies.contains(it) }
-    }
-
     Column(modifier = modifier) {
         Text(
             text = label,
@@ -332,206 +292,15 @@ private fun CurrencyDropdown(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(4.dp))
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = {
-                expanded = it
-                if (!it) searchQuery = ""
-            }
-        ) {
-            OutlinedTextField(
-                value = selected,
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
-                    .fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                )
-            )
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = {
-                    expanded = false
-                    searchQuery = ""
-                },
-                modifier = Modifier
-                    .widthIn(min = 280.dp)
-                    .heightIn(max = 400.dp),
-                properties = PopupProperties(focusable = true)
-            ) {
-                BackHandler(enabled = searchQuery.isNotEmpty()) {
-                    searchQuery = ""
-                }
-
-                // Search field
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text(stringResource(R.string.search_currencies)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
-
-                if (filteredCurrencies.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(280.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_currencies_found),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(280.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        // Base currency always first
-                        baseItem.forEach { currency ->
-                            CurrencyDropdownItem(
-                                code = currency,
-                                locale = appLocale,
-                                suffix = stringResource(R.string.default_label)
-                            ) {
-                                onSelected(currency)
-                                expanded = false
-                                searchQuery = ""
-                            }
-                        }
-
-                        // Favorites section
-                        if (favorites.isNotEmpty()) {
-                            if (baseItem.isNotEmpty()) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 8.dp),
-                                    thickness = 0.5.dp
-                                )
-                            }
-                            Text(
-                                text = stringResource(R.string.favorite_currencies_header),
-                                fontSize = 11.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            )
-                            favorites.forEach { currency ->
-                                CurrencyDropdownItem(currency, appLocale) {
-                                    onSelected(currency)
-                                    expanded = false
-                                    searchQuery = ""
-                                }
-                            }
-                        }
-
-                        // All other currencies
-                        if (others.isNotEmpty()) {
-                            if (baseItem.isNotEmpty() || favorites.isNotEmpty()) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 8.dp),
-                                    thickness = 0.5.dp
-                                )
-                            }
-                            Text(
-                                text = stringResource(R.string.all_currencies_header),
-                                fontSize = 11.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            )
-                            others.forEach { currency ->
-                                CurrencyDropdownItem(currency, appLocale) {
-                                    onSelected(currency)
-                                    expanded = false
-                                    searchQuery = ""
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        CompactCurrencySelector(
+            selectedCurrency = selected,
+            onCurrencySelect = onSelected,
+            currencies = currencies,
+            baseCurrency = baseCurrency,
+            favoriteCurrencies = favoriteCurrencies,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
-}
-
-@Composable
-private fun CurrencyDropdownItem(
-    code: String,
-    locale: Locale,
-    suffix: String? = null,
-    onClick: () -> Unit
-) {
-    DropdownMenuItem(
-        text = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = code,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.width(52.dp)
-                )
-                Text(
-                    text = getCurrencyDisplayName(code, locale),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                if (suffix != null) {
-                    Text(
-                        text = suffix,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-    )
 }
 
 @Composable
