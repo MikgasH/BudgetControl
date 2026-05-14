@@ -125,7 +125,7 @@
     <string name="cash_rate_mode_current">Current</string>
     <string name="cash_rate_mode_manual">Manual</string>
     <string name="cash_mode_hint_last_exchange">Rate from your last recorded exchange. Manage records: Settings → Currency Exchange.</string>
-    <string name="cash_mode_hint_current">Interbank rate · not exact. For better accuracy record your rate in Settings → Currency Exchange.</string>
+    <string name="cash_mode_hint_current">Interbank rate · not exact</string>
     <string name="cash_mode_hint_manual_unsaved">Tip: check Save below to store this rate for future use.</string>
     <string name="cash_save_exchange_record">Save as exchange record</string>
     <string name="cash_exchange_description_label">Description (optional)</string>

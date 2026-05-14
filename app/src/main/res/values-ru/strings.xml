@@ -125,7 +125,7 @@
     <string name="cash_rate_mode_current">Текущий</string>
     <string name="cash_rate_mode_manual">Вручную</string>
     <string name="cash_mode_hint_last_exchange">Курс из последнего сохранённого обмена. Управлять записями: Настройки → Обмен валют.</string>
-    <string name="cash_mode_hint_current">Межбанковский курс · неточно. Для большей точности сохраните свой курс в Настройки → Обмен валют.</string>
+    <string name="cash_mode_hint_current">Межбанковский курс · неточно</string>
     <string name="cash_mode_hint_manual_unsaved">Совет: отметьте «Сохранить» ниже, чтобы запомнить этот курс.</string>
     <string name="cash_save_exchange_record">Сохранить как запись обмена</string>
     <string name="cash_exchange_description_label">Описание (необязательно)</string>
